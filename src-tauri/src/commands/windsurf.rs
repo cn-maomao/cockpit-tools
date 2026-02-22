@@ -163,6 +163,26 @@ pub async fn add_windsurf_account_with_token(
 }
 
 #[tauri::command]
+pub async fn add_windsurf_account_with_password(
+    app: AppHandle,
+    email: String,
+    password: String,
+) -> Result<WindsurfAccount, String> {
+    logger::log_info(&format!(
+        "[Windsurf Command] 邮箱密码登录开始: email={}",
+        email
+    ));
+    let payload = windsurf_oauth::build_payload_from_password(&email, &password).await?;
+    let account = windsurf_account::upsert_account(payload)?;
+    logger::log_info(&format!(
+        "[Windsurf Command] 邮箱密码登录成功: account_id={}, login={}",
+        account.id, account.github_login
+    ));
+    let _ = crate::modules::tray::update_tray_menu(&app);
+    Ok(account)
+}
+
+#[tauri::command]
 pub async fn update_windsurf_account_tags(
     account_id: String,
     tags: Vec<String>,

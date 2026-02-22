@@ -22,6 +22,7 @@ import {
   Play,
   Eye,
   EyeOff,
+  Mail,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useWindsurfAccountStore } from '../stores/useWindsurfAccountStore';
@@ -66,7 +67,10 @@ export function WindsurfAccountsPage() {
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [showAddModal, setShowAddModal] = useState(false);
-  const [addTab, setAddTab] = useState<'oauth' | 'token' | 'import'>('oauth');
+  const [addTab, setAddTab] = useState<'oauth' | 'token' | 'import' | 'password'>('oauth');
+  const [passwordEmail, setPasswordEmail] = useState('');
+  const [passwordPassword, setPasswordPassword] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(false);
   const [refreshing, setRefreshing] = useState<string | null>(null);
   const [refreshingAll, setRefreshingAll] = useState(false);
   const [injecting, setInjecting] = useState<string | null>(null);
@@ -390,7 +394,7 @@ export function WindsurfAccountsPage() {
     oauthActiveRef.current = false;
   };
 
-  const openAddModal = (tab: 'oauth' | 'token' | 'import') => {
+  const openAddModal = (tab: 'oauth' | 'token' | 'import' | 'password') => {
     setAddTab(tab);
     setShowAddModal(true);
     resetAddModalState();
@@ -515,6 +519,46 @@ export function WindsurfAccountsPage() {
       );
     }
     setImporting(false);
+  };
+
+  const handlePasswordLogin = async () => {
+    const email = passwordEmail.trim();
+    const pwd = passwordPassword.trim();
+    if (!email || !pwd) {
+      setAddStatus('error');
+      setAddMessage(t('windsurf.password.empty', '请输入邮箱和密码'));
+      return;
+    }
+    setPasswordLoading(true);
+    setAddStatus('loading');
+    setAddMessage(t('windsurf.password.logging', '正在登录...'));
+    try {
+      const account = await windsurfService.addWindsurfAccountWithPassword(email, pwd);
+      await fetchAccounts();
+      setAddStatus('success');
+      setAddMessage(
+        t('windsurf.password.success', {
+          login: account.github_login || account.github_email || email,
+          defaultValue: '登录成功: {{login}}',
+        })
+      );
+      setTimeout(() => {
+        setShowAddModal(false);
+        resetAddModalState();
+        setPasswordEmail('');
+        setPasswordPassword('');
+      }, 1200);
+    } catch (e) {
+      setAddStatus('error');
+      const errorMsg = String(e).replace(/^Error:\s*/, '');
+      setAddMessage(
+        t('windsurf.password.failed', {
+          error: errorMsg,
+          defaultValue: '登录失败: {{error}}',
+        })
+      );
+    }
+    setPasswordLoading(false);
   };
 
   const handleCopyOauthUrl = async () => {
@@ -1605,6 +1649,13 @@ export function WindsurfAccountsPage() {
                 <Database size={14} />
                 {t('common.shared.addModal.import', '本地导入')}
               </button>
+              <button
+                className={`modal-tab ${addTab === 'password' ? 'active' : ''}`}
+                onClick={() => openAddModal('password')}
+              >
+                <Mail size={14} />
+                {t('windsurf.addModal.password', '邮箱密码')}
+              </button>
             </div>
 
             <div className="modal-body">
@@ -1733,6 +1784,44 @@ export function WindsurfAccountsPage() {
                   <button className="btn btn-primary btn-full" onClick={handlePickImportFile} disabled={importing}>
                     {importing ? <RefreshCw size={16} className="loading-spinner" /> : <Database size={16} />}
                     {t('common.shared.import.pickFile', '选择 JSON 文件导入')}
+                  </button>
+                </div>
+              )}
+
+              {addTab === 'password' && (
+                <div className="add-section">
+                  <p className="section-desc">
+                    {t('windsurf.password.desc', '使用 Windsurf 账号的邮箱和密码登录，自动获取 API Key 和账号信息。')}
+                  </p>
+                  <input
+                    type="email"
+                    className="token-input"
+                    style={{ minHeight: 'auto', height: 40, resize: 'none', fontFamily: 'inherit' }}
+                    value={passwordEmail}
+                    onChange={(e) => setPasswordEmail(e.target.value)}
+                    placeholder={t('windsurf.password.emailPlaceholder', '邮箱地址')}
+                    disabled={passwordLoading}
+                  />
+                  <input
+                    type="password"
+                    className="token-input"
+                    style={{ minHeight: 'auto', height: 40, resize: 'none', fontFamily: 'inherit', marginTop: 8 }}
+                    value={passwordPassword}
+                    onChange={(e) => setPasswordPassword(e.target.value)}
+                    placeholder={t('windsurf.password.passwordPlaceholder', '密码')}
+                    disabled={passwordLoading}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handlePasswordLogin(); }}
+                  />
+                  <button
+                    className="btn btn-primary btn-full"
+                    style={{ marginTop: 12 }}
+                    onClick={handlePasswordLogin}
+                    disabled={passwordLoading || !passwordEmail.trim() || !passwordPassword.trim()}
+                  >
+                    {passwordLoading ? <RefreshCw size={16} className="loading-spinner" /> : <Mail size={16} />}
+                    {passwordLoading
+                      ? t('windsurf.password.logging', '正在登录...')
+                      : t('windsurf.password.login', '登录')}
                   </button>
                 </div>
               )}

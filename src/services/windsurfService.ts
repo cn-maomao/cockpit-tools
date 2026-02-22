@@ -71,6 +71,11 @@ export async function addWindsurfAccountWithToken(githubAccessToken: string): Pr
   return await invoke('add_windsurf_account_with_token', { githubAccessToken });
 }
 
+/** 通过邮箱密码添加 Windsurf 账号 */
+export async function addWindsurfAccountWithPassword(email: string, password: string): Promise<WindsurfAccount> {
+  return await invoke('add_windsurf_account_with_password', { email, password });
+}
+
 export async function updateWindsurfAccountTags(accountId: string, tags: string[]): Promise<WindsurfAccount> {
   return await invoke('update_windsurf_account_tags', { accountId, tags });
 }
