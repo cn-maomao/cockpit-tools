@@ -375,12 +375,15 @@ export interface WindsurfQuota {
 
 function parseTokenMap(token: string): Record<string, string> {
   const map: Record<string, string> = {};
-  const prefix = token.split(':')[0] ?? token;
-  for (const part of prefix.split(';')) {
-    const [k, v] = part.split('=');
-    const key = (k || '').trim();
+  // Windsurf synthetic tokens contain ";sku=" and may have colons in values (e.g. rd=timestamp:0),
+  // so skip the colon-based prefix split for them to avoid losing sku/source fields.
+  const tokenStr = token.includes(';sku=') ? token : (token.split(':')[0] ?? token);
+  for (const part of tokenStr.split(';')) {
+    const eqIdx = part.indexOf('=');
+    if (eqIdx < 0) continue;
+    const key = part.substring(0, eqIdx).trim();
     if (!key) continue;
-    map[key] = (v || '').trim();
+    map[key] = part.substring(eqIdx + 1).trim();
   }
   return map;
 }
