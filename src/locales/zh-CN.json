@@ -490,7 +490,12 @@
       "traeAppPathDesc": "留空则使用默认路径",
       "traeAppPathPlaceholder": "默认路径",
       "traePathSelect": "选择",
-      "traePathReset": "重置默认"
+      "traePathReset": "重置默认",
+      "workbuddyAppPath": "WorkBuddy 启动路径",
+      "workbuddyAppPathDesc": "留空则使用默认路径",
+      "workbuddyAppPathPlaceholder": "默认路径",
+      "workbuddyPathSelect": "选择",
+      "workbuddyPathReset": "重置默认"
     },
     "network": {
       "apiTitle": "反重力驾驶舱 API",
@@ -1541,6 +1546,10 @@
     },
     "codebuddyCn": {
       "appPath": "CodeBuddy CN 路径"
+    },
+    "workbuddy": {
+      "title": "WorkBuddy 设置",
+      "appPath": "WorkBuddy 路径"
     }
   },
   "quotaAlert": {
@@ -2194,6 +2203,104 @@
     "instances": {
       "unsupported": {
         "descPlatform": "CodeBuddy CN 多开实例仅支持 macOS、Windows 和 Linux。"
+      }
+    }
+  },
+  "workbuddy": {
+    "title": "WorkBuddy 账号管理",
+    "noAccounts": "暂无 WorkBuddy 账号",
+    "addAccount": "添加 WorkBuddy 账号",
+    "flowNotice": {
+      "title": "WorkBuddy 账号管理说明（点击展开/收起）",
+      "desc": "切换账号需读取 WorkBuddy 本地认证存储并调用系统凭据服务进行加解密，数据仅在本地处理。",
+      "permission": "权限范围：读取 WorkBuddy 认证数据库 (state.vscdb)，调用系统凭据能力（macOS Keychain / Windows DPAPI / Linux Secret Service）进行解密/回写。",
+      "network": "网络范围：OAuth 授权登录与 Token 刷新需联网请求 WorkBuddy；配额查询需调用计费 API。不上传本地密钥或凭证。"
+    },
+    "nickname": "昵称",
+    "enterprise": "企业",
+    "usage": "用量状态",
+    "creditsBalance": "积分余额",
+    "usageNormal": "正常",
+    "oauthWaiting": "等待授权完成...",
+    "oauthDesc": "点击下方按钮将在浏览器中打开 WorkBuddy 授权页面。",
+    "oauthDescWebview": "点击下方按钮将在内置 WebView 中打开 WorkBuddy 授权页面。",
+    "oauthFeature": {
+      "oauth": {
+        "title": "仅授权 IDE 登录信息",
+        "item1": "在浏览器完成 OAuth 后即可添加账号并用于 IDE 切换。",
+        "item2": "授权完成后会自动刷新资源包配额数据。",
+        "item3": "账号卡片将按资源包展示额度、进度和刷新/到期时间。"
+      }
+    },
+    "oauthWebviewTab": "WebView 授权",
+    "oauthOpenWebview": "在 WebView 中打开",
+    "oauthOpenWebviewIncognito": "在无痕 WebView 中打开",
+    "oauthOpenWebviewFailed": "打开 WebView 失败：{{error}}",
+    "oauthOpenBrowserFallback": "在浏览器中打开（备用）",
+    "oauthOpenBrowserFailed": "打开浏览器失败：{{error}}",
+    "oauthWebviewProgressHint": "WebView 顶部显示横向步骤条，便于定位卡住步骤。",
+    "oauthFlow": {
+      "prepare": "准备授权链接",
+      "authorize": "访问授权链接并确认授权",
+      "bind": "轮询授权结果并绑定账号",
+      "retryPrepare": "重新生成授权链接",
+      "retryAuthorize": "重新请求授权链接",
+      "retryBind": "重新轮询授权结果",
+      "error": "流程异常：{{error}}"
+    },
+    "oauthWebviewOverlay": {
+      "steps": {
+        "prepare": "1 准备授权链接",
+        "authorize": "2 访问授权链接并确认授权",
+        "bind": "3 轮询授权结果并绑定账号",
+        "complete": "5 已完成（请手动关闭）"
+      },
+      "status": {
+        "loginConfirm": "请在页面中完成登录并确认授权。"
+      }
+    },
+    "tokenDesc": "粘贴 WorkBuddy 的 access token：",
+    "jsonDesc": "选择包含 WorkBuddy 账号的 JSON 文件：",
+    "import": {
+      "localDesc": "支持从本机 WorkBuddy 客户端或 JSON 文件导入账号数据。",
+      "localClient": "从本机 WorkBuddy 导入"
+    },
+    "search": "搜索 WorkBuddy 账号...",
+    "quotaQuery": {
+      "failedRefreshCompact": "配额查询失败",
+      "sectionTitle": "配额查询",
+      "empty": "暂无可用配额数据",
+      "packageUnknown": "套餐信息未知",
+      "quotaLabel": "剩余配额",
+      "updatedAt": "下次刷新时间：{{time}}",
+      "cycleRange": "周期：{{start}} - {{end}}",
+      "cycleUnknown": "周期信息暂无",
+      "expireAt": "到期时间：{{time}}",
+      "expireUnknown": "到期时间：暂无",
+      "packageTitle": {
+        "base": "基础体验包",
+        "activity": "活动赠送包"
+      }
+    },
+    "extraCredit": {
+      "title": "加量包"
+    },
+    "oauthUrlInputPlaceholder": "可手动输入授权地址",
+    "oauthInvalidUrl": "授权链接格式不正确，请输入完整 URL。",
+    "oauthGotoWebview": "让已打开 WebView 跳转到输入地址",
+    "oauthGotoWebviewSuccess": "已请求 WebView 跳转到输入地址。",
+    "oauthGotoWebviewFailed": "WebView 跳转失败：{{error}}",
+    "oauthWebviewInlineUrlPlaceholder": "在此输入网址并在当前 WebView 跳转",
+    "oauthWebviewInlineGo": "跳转",
+    "oauthSuccessClosePrompt": "账号添加完成，是否关闭 WebView？\n点击“关闭 WebView”将立即关闭；点击“稍后再说”保持当前页面不关闭。",
+    "oauthSuccessCloseTitle": "账号添加完成",
+    "oauthSuccessCloseNowLabel": "关闭 WebView",
+    "oauthSuccessCloseLaterLabel": "稍后再说",
+    "oauthSuccessCloseNowStatus": "✅ 账号添加完成，窗口即将关闭…",
+    "oauthSuccessCloseLaterStatus": "✅ 账号添加完成，已保持当前页面打开。",
+    "instances": {
+      "unsupported": {
+        "descPlatform": "WorkBuddy 多开实例仅支持 macOS、Windows 和 Linux。"
       }
     }
   }

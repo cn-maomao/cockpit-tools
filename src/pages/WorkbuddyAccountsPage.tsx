@@ -122,16 +122,17 @@ export function WorkbuddyAccountsPage() {
   // 同步到 CodeBuddy CN 的状态
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const syncToCodebuddyCnLabel = `${t('common.shared.import.label', '导入')} ${t('nav.codebuddyCn', 'CodeBuddy CN')}`;
 
   const handleSyncToCodebuddyCn = useCallback(async () => {
     setSyncing(true);
     setSyncMessage(null);
     try {
       const count = await syncWorkbuddyToCodebuddyCn();
-      setSyncMessage(t('workbuddy.syncSuccess', '成功同步 {{count}} 个账号到 CodeBuddy CN', { count }));
+      setSyncMessage(t('common.shared.token.importSuccessMsg', '成功导入 {{count}} 个账号', { count }));
       setTimeout(() => setSyncMessage(null), 3000);
     } catch (err) {
-      setSyncMessage(t('workbuddy.syncFailed', '同步失败: {{error}}', { error: String(err) }));
+      setSyncMessage(t('common.shared.token.importFailedMsg', '导入失败: {{error}}', { error: String(err) }));
     } finally {
       setSyncing(false);
     }
@@ -278,7 +279,7 @@ export function WorkbuddyAccountsPage() {
       resource.packageCode === WORKBUDDY_PACKAGE_CODE.proMon ||
       resource.packageCode === WORKBUDDY_PACKAGE_CODE.proYear
     ) {
-      return t('workbuddy.quotaQuery.packageTitle.pro', '专业版订阅');
+      return resource.packageName || 'PRO';
     }
     return resource.packageName || t('workbuddy.quotaQuery.packageUnknown', '套餐信息未知');
   }, [t]);
@@ -550,7 +551,7 @@ export function WorkbuddyAccountsPage() {
         </div>
         <div className="toolbar-right">
           <button className="btn btn-primary icon-only" onClick={() => openAddModal('oauth')} title={t('common.shared.addAccount', '添加账号')}><Plus size={14} /></button>
-          <button className="btn btn-secondary icon-only" onClick={handleSyncToCodebuddyCn} disabled={syncing || accounts.length === 0} title={t('workbuddy.syncToCodebuddyCn', '同步到 CodeBuddy CN')}>
+          <button className="btn btn-secondary icon-only" onClick={handleSyncToCodebuddyCn} disabled={syncing || accounts.length === 0} title={syncToCodebuddyCnLabel}>
             {syncing ? <RefreshCw size={14} className="loading-spinner" /> : <ArrowRightLeft size={14} />}
           </button>
           <button className="btn btn-secondary icon-only" onClick={handleRefreshAll} disabled={refreshingAll || accounts.length === 0} title={t('common.shared.refreshAll', '刷新全部')}>
@@ -654,7 +655,7 @@ export function WorkbuddyAccountsPage() {
             </div>
             <div className="modal-tabs">
               <button className={`modal-tab ${addTab === 'oauth' ? 'active' : ''}`} onClick={() => openAddModal('oauth')}><Globe size={14} /> {t('common.shared.addModal.oauth', '授权登录')}</button>
-              <button className={`modal-tab ${addTab === 'token' ? 'active' : ''}`} onClick={() => openAddModal('token')}><KeyRound size={14} />Token / JSON</button>
+              <button className={`modal-tab ${addTab === 'token' ? 'active' : ''}`} onClick={() => openAddModal('token')}><KeyRound size={14} />{t('common.shared.addModal.token', 'Token / JSON')}</button>
               <button className={`modal-tab ${addTab === 'json' ? 'active' : ''}`} onClick={() => openAddModal('json')}><Database size={14} />{t('common.shared.addModal.import', '本地导入')}</button>
             </div>
             <div className="modal-body">

@@ -490,7 +490,12 @@
       "traeAppPathDesc": "Deixe em branco para usar o caminho padrao",
       "traeAppPathPlaceholder": "Caminho padrao",
       "traePathSelect": "Selecionar",
-      "traePathReset": "Redefinir para o padrao"
+      "traePathReset": "Redefinir para o padrao",
+      "workbuddyAppPath": "Caminho de inicializacao do WorkBuddy",
+      "workbuddyAppPathDesc": "Deixe em branco para usar o caminho padrao",
+      "workbuddyAppPathPlaceholder": "Caminho padrao",
+      "workbuddyPathSelect": "Selecionar",
+      "workbuddyPathReset": "Redefinir para o padrao"
     },
     "network": {
       "apiTitle": "API de cockpit antigravidade",
@@ -1448,6 +1453,10 @@
     },
     "codebuddyCn": {
       "appPath": "Caminho do CodeBuddy CN"
+    },
+    "workbuddy": {
+      "title": "Configuracoes do WorkBuddy",
+      "appPath": "Caminho do WorkBuddy"
     }
   },
   "quotaAlert": {
@@ -2194,6 +2203,104 @@
     "instances": {
       "unsupported": {
         "descPlatform": "A multiinstância CodeBuddy CN é compatível apenas com macOS, Windows e Linux."
+      }
+    }
+  },
+  "workbuddy": {
+    "title": "Gerenciamento de contas do WorkBuddy",
+    "noAccounts": "Nenhuma conta WorkBuddy",
+    "addAccount": "Adicionar conta WorkBuddy",
+    "flowNotice": {
+      "title": "Informacoes de gerenciamento de conta do WorkBuddy (clique para expandir/recolher)",
+      "desc": "A troca de conta requer leitura do armazenamento local de autenticacao do WorkBuddy e chamada dos servicos de credenciais do sistema para descriptografar e recriptografar. Os dados sao processados somente localmente.",
+      "permission": "Escopo de permissao: ler o banco de autenticacao do WorkBuddy (state.vscdb), chamar recursos de credenciais do sistema (Keychain do macOS / DPAPI do Windows / Secret Service do Linux) para descriptografar e regravar.",
+      "network": "Escopo de rede: login OAuth e renovacao de token exigem requisicoes para WorkBuddy; consultas de cota chamam APIs de cobranca. Nenhuma chave local ou credencial e enviada."
+    },
+    "nickname": "Apelido",
+    "enterprise": "Empresa",
+    "usage": "Status de uso",
+    "creditsBalance": "Saldo de créditos",
+    "usageNormal": "Estado normal",
+    "oauthWaiting": "Aguardando autorizacao...",
+    "oauthDesc": "Clique no botao abaixo para abrir a pagina de autorizacao do WorkBuddy no navegador.",
+    "oauthDescWebview": "Clique no botao abaixo para abrir a pagina de autorizacao do WorkBuddy na WebView incorporada.",
+    "oauthFeature": {
+      "oauth": {
+        "title": "Somente login do IDE",
+        "item1": "Adicione a conta apos concluir o OAuth no navegador e use-a para alternancia no IDE.",
+        "item2": "Os parametros de consulta de cota nao sao vinculados automaticamente.",
+        "item3": "Se precisar exibir a cota, execute manualmente \"Consultar cota\" no cartao da conta."
+      }
+    },
+    "oauthWebviewTab": "OAuth na WebView",
+    "oauthOpenWebview": "Abrir na WebView",
+    "oauthOpenWebviewIncognito": "Abrir na WebView anonima",
+    "oauthOpenWebviewFailed": "Falha ao abrir a WebView: {{error}}",
+    "oauthOpenBrowserFallback": "Abrir no navegador (fallback)",
+    "oauthOpenBrowserFailed": "Falha ao abrir o navegador: {{error}}",
+    "oauthWebviewProgressHint": "Uma barra horizontal de etapas e mostrada no topo da WebView para localizar pontos travados.",
+    "oauthFlow": {
+      "prepare": "Preparar link OAuth",
+      "authorize": "Abrir link de autorizacao e confirmar",
+      "bind": "Verificar resultado da autenticacao e vincular conta",
+      "retryPrepare": "Gerar novamente o link OAuth",
+      "retryAuthorize": "Solicitar novamente o link de autorizacao",
+      "retryBind": "Tentar novamente a verificacao da autenticacao",
+      "error": "Erro do fluxo: {{error}}"
+    },
+    "tokenDesc": "Cole seu token de acesso do WorkBuddy:",
+    "jsonDesc": "Selecione um arquivo JSON contendo contas do WorkBuddy:",
+    "import": {
+      "localDesc": "Importe dados de conta do cliente local do WorkBuddy ou de um arquivo JSON.",
+      "localClient": "Importar do WorkBuddy local"
+    },
+    "search": "Pesquisar contas do WorkBuddy...",
+    "quotaQuery": {
+      "failedRefreshCompact": "Falha na atualizacao da cota",
+      "sectionTitle": "Consulta de cota",
+      "empty": "Ainda nao ha informacoes vinculadas de consulta de cota",
+      "packageUnknown": "Pacote desconhecido",
+      "quotaLabel": "Cota restante",
+      "updatedAt": "Ultima consulta: {{time}}",
+      "cycleRange": "Ciclo: {{start}} - {{end}}",
+      "cycleUnknown": "Informacoes do ciclo indisponiveis",
+      "expireAt": "Expira em: {{time}}",
+      "expireUnknown": "Expiracao: N/A",
+      "packageTitle": {
+        "base": "Pacote de experiência básica",
+        "activity": "Pacote de bônus de atividade"
+      }
+    },
+    "extraCredit": {
+      "title": "Pacote de creditos"
+    },
+    "oauthUrlInputPlaceholder": "Voce pode inserir manualmente uma URL de autorizacao",
+    "oauthInvalidUrl": "URL de autorizacao invalida. Informe uma URL completa.",
+    "oauthGotoWebview": "Navegar a WebView aberta para a URL informada",
+    "oauthGotoWebviewSuccess": "Solicitacao enviada para a WebView navegar ate a URL informada.",
+    "oauthGotoWebviewFailed": "Falha ao navegar na WebView: {{error}}",
+    "oauthWebviewInlineUrlPlaceholder": "Digite uma URL para abrir nesta WebView",
+    "oauthWebviewInlineGo": "Ir",
+    "oauthSuccessClosePrompt": "Conta adicionada com sucesso. Fechar esta WebView agora?\nEscolha \"Fechar WebView\" para fechar agora, ou \"Depois\" para mantê-la aberta.",
+    "oauthSuccessCloseTitle": "Conta adicionada",
+    "oauthSuccessCloseNowLabel": "Fechar WebView",
+    "oauthSuccessCloseLaterLabel": "Depois",
+    "oauthSuccessCloseNowStatus": "✅ Conta adicionada. Fechando janela...",
+    "oauthSuccessCloseLaterStatus": "✅ Conta adicionada. Esta WebView permanecera aberta.",
+    "oauthWebviewOverlay": {
+      "steps": {
+        "prepare": "1 Preparar link OAuth",
+        "authorize": "2 Abrir link de autorizacao e confirmar",
+        "bind": "3 Verificar resultado da autenticacao e vincular conta",
+        "complete": "5 Concluído (fechar manualmente)"
+      },
+      "status": {
+        "loginConfirm": "Conclua o login e a autorização nesta página."
+      }
+    },
+    "instances": {
+      "unsupported": {
+        "descPlatform": "A multiinstância WorkBuddy é compatível apenas com macOS, Windows e Linux."
       }
     }
   }

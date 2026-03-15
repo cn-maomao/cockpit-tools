@@ -490,7 +490,12 @@
       "traeAppPathDesc": "Оставьте пустым, чтобы использовать путь по умолчанию",
       "traeAppPathPlaceholder": "Путь по умолчанию",
       "traePathSelect": "Выбрать",
-      "traePathReset": "Сбросить по умолчанию"
+      "traePathReset": "Сбросить по умолчанию",
+      "workbuddyAppPath": "Путь запуска WorkBuddy",
+      "workbuddyAppPathDesc": "Оставьте пустым, чтобы использовать путь по умолчанию",
+      "workbuddyAppPathPlaceholder": "Путь по умолчанию",
+      "workbuddyPathSelect": "Выбрать",
+      "workbuddyPathReset": "Сбросить по умолчанию"
     },
     "network": {
       "apiTitle": "API антигравитационной кабины",
@@ -1448,6 +1453,10 @@
     },
     "codebuddyCn": {
       "appPath": "Путь CodeBuddy CN"
+    },
+    "workbuddy": {
+      "title": "Настройки WorkBuddy",
+      "appPath": "Путь WorkBuddy"
     }
   },
   "quotaAlert": {
@@ -2194,6 +2203,104 @@
     "instances": {
       "unsupported": {
         "descPlatform": "Мультиэкземпляр CodeBuddy CN поддерживается только в macOS, Windows и Linux."
+      }
+    }
+  },
+  "workbuddy": {
+    "title": "Управление аккаунтами WorkBuddy",
+    "noAccounts": "Нет аккаунтов WorkBuddy",
+    "addAccount": "Добавить аккаунт WorkBuddy",
+    "flowNotice": {
+      "title": "Информация об управлении аккаунтами WorkBuddy (нажмите, чтобы развернуть/свернуть)",
+      "desc": "Переключение аккаунтов требует чтения локального хранилища аутентификации WorkBuddy и вызова системных сервисов учетных данных для расшифровки и повторного шифрования. Данные обрабатываются только локально.",
+      "permission": "Область доступа: чтение базы аутентификации WorkBuddy (state.vscdb), вызов системных возможностей хранения учетных данных (macOS Keychain / Windows DPAPI / Linux Secret Service) для расшифровки и обратной записи.",
+      "network": "Сетевой доступ: вход по OAuth и обновление токена требуют запросов к WorkBuddy; запросы квоты обращаются к billing API. Никакие локальные ключи или учетные данные не загружаются."
+    },
+    "nickname": "Псевдоним",
+    "enterprise": "Корпоративный",
+    "usage": "Статус использования",
+    "creditsBalance": "Баланс кредитов",
+    "usageNormal": "В норме",
+    "oauthWaiting": "Ожидание авторизации...",
+    "oauthDesc": "Нажмите кнопку ниже, чтобы открыть страницу авторизации WorkBuddy в браузере.",
+    "oauthDescWebview": "Нажмите кнопку ниже, чтобы открыть страницу авторизации WorkBuddy во встроенном WebView.",
+    "oauthFeature": {
+      "oauth": {
+        "title": "Только вход в IDE",
+        "item1": "Добавьте аккаунт после завершения OAuth в браузере, затем используйте его для переключения в IDE.",
+        "item2": "Параметры запроса квоты не привязываются автоматически.",
+        "item3": "Если нужен показ квоты, вручную запустите «Запросить квоту» на карточке аккаунта."
+      }
+    },
+    "oauthWebviewTab": "OAuth в WebView",
+    "oauthOpenWebview": "Открыть в WebView",
+    "oauthOpenWebviewIncognito": "Открыть в WebView инкогнито",
+    "oauthOpenWebviewFailed": "Не удалось открыть WebView: {{error}}",
+    "oauthOpenBrowserFallback": "Открыть в браузере (резервный вариант)",
+    "oauthOpenBrowserFailed": "Не удалось открыть браузер: {{error}}",
+    "oauthWebviewProgressHint": "В верхней части WebView отображается горизонтальная шкала шагов, чтобы легче было найти зависший этап.",
+    "oauthFlow": {
+      "prepare": "Подготовить ссылку OAuth",
+      "authorize": "Открыть ссылку авторизации и подтвердить",
+      "bind": "Опросить результат авторизации и привязать аккаунт",
+      "retryPrepare": "Сгенерировать ссылку OAuth заново",
+      "retryAuthorize": "Повторно запросить ссылку авторизации",
+      "retryBind": "Повторить опрос авторизации",
+      "error": "Ошибка потока: {{error}}"
+    },
+    "tokenDesc": "Вставьте токен доступа WorkBuddy:",
+    "jsonDesc": "Выберите JSON-файл с аккаунтами WorkBuddy:",
+    "import": {
+      "localDesc": "Импортируйте данные аккаунта из локального клиента WorkBuddy или из JSON-файла.",
+      "localClient": "Импорт из локального WorkBuddy"
+    },
+    "search": "Поиск аккаунтов WorkBuddy...",
+    "quotaQuery": {
+      "failedRefreshCompact": "Не удалось обновить квоту",
+      "sectionTitle": "Запрос квоты",
+      "empty": "Привязанной информации о запросе квоты пока нет",
+      "packageUnknown": "Неизвестный пакет",
+      "quotaLabel": "Оставшаяся квота",
+      "updatedAt": "Последний запрос: {{time}}",
+      "cycleRange": "Цикл: {{start}} - {{end}}",
+      "cycleUnknown": "Информация о цикле недоступна",
+      "expireAt": "Истекает: {{time}}",
+      "expireUnknown": "Срок действия: Н/Д",
+      "packageTitle": {
+        "base": "Базовый пакет опыта",
+        "activity": "Подарочный пакет активности"
+      }
+    },
+    "extraCredit": {
+      "title": "Пакет кредитов"
+    },
+    "oauthUrlInputPlaceholder": "Вы можете вручную ввести URL авторизации",
+    "oauthInvalidUrl": "Недопустимый URL авторизации. Введите полный URL.",
+    "oauthGotoWebview": "Перейти в открытом WebView по введенному URL",
+    "oauthGotoWebviewSuccess": "В WebView отправлен запрос на переход по введенному URL.",
+    "oauthGotoWebviewFailed": "Не удалось выполнить переход в WebView: {{error}}",
+    "oauthWebviewInlineUrlPlaceholder": "Введите URL для перехода в этом WebView",
+    "oauthWebviewInlineGo": "Перейти",
+    "oauthSuccessClosePrompt": "Аккаунт успешно добавлен. Закрыть этот WebView сейчас?\nВыберите \"Закрыть WebView\", чтобы закрыть сейчас, или \"Позже\", чтобы оставить его открытым.",
+    "oauthSuccessCloseTitle": "Аккаунт добавлен",
+    "oauthSuccessCloseNowLabel": "Закрыть WebView",
+    "oauthSuccessCloseLaterLabel": "Позже",
+    "oauthSuccessCloseNowStatus": "✅ Аккаунт добавлен. Закрываем окно...",
+    "oauthSuccessCloseLaterStatus": "✅ Аккаунт добавлен. Этот WebView останется открытым.",
+    "oauthWebviewOverlay": {
+      "steps": {
+        "prepare": "1 Подготовить ссылку OAuth",
+        "authorize": "2 Открыть ссылку авторизации и подтвердить",
+        "bind": "3 Опросить результат авторизации и привязать аккаунт",
+        "complete": "5 Готово (закройте вручную)"
+      },
+      "status": {
+        "loginConfirm": "Пожалуйста, завершите вход и авторизацию на этой странице."
+      }
+    },
+    "instances": {
+      "unsupported": {
+        "descPlatform": "Мультиэкземпляр WorkBuddy поддерживается только в macOS, Windows и Linux."
       }
     }
   }

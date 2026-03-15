@@ -284,7 +284,7 @@ export function DashboardPage({ onNavigate, onOpenPlatformLayout, onEasterEggTri
       fetchCodebuddyCnAccounts,
       fetchQoderAccounts,
       fetchTraeAccounts,
-      fetchWorkbuddyAccounts(),
+      fetchWorkbuddyAccounts,
     ];
 
     const loadDeferredPlatforms = () => {

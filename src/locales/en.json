@@ -490,7 +490,12 @@
       "traeAppPathDesc": "Leave empty for default path",
       "traeAppPathPlaceholder": "Default path",
       "traePathSelect": "Select",
-      "traePathReset": "Reset to default"
+      "traePathReset": "Reset to default",
+      "workbuddyAppPath": "WorkBuddy Launch Path",
+      "workbuddyAppPathDesc": "Leave empty for default path",
+      "workbuddyAppPathPlaceholder": "Default path",
+      "workbuddyPathSelect": "Select",
+      "workbuddyPathReset": "Reset to default"
     },
     "network": {
       "apiTitle": "Antigravity Cockpit API",
@@ -1541,6 +1546,10 @@
     },
     "codebuddyCn": {
       "appPath": "CodeBuddy CN Path"
+    },
+    "workbuddy": {
+      "title": "WorkBuddy Settings",
+      "appPath": "WorkBuddy Path"
     }
   },
   "quotaAlert": {
@@ -2194,6 +2203,104 @@
     "instances": {
       "unsupported": {
         "descPlatform": "CodeBuddy CN multi-instance is supported on macOS, Windows, and Linux only."
+      }
+    }
+  },
+  "workbuddy": {
+    "title": "WorkBuddy Account Management",
+    "noAccounts": "No WorkBuddy accounts",
+    "addAccount": "Add WorkBuddy Account",
+    "flowNotice": {
+      "title": "WorkBuddy Account Management Info (click to expand/collapse)",
+      "desc": "Switching accounts requires reading WorkBuddy local auth storage and calling system credential services for decryption/re-encryption. Data is processed locally only.",
+      "permission": "Permission scope: read WorkBuddy auth database (state.vscdb), call system credential capabilities (macOS Keychain / Windows DPAPI / Linux Secret Service) for decrypt/write-back.",
+      "network": "Network scope: OAuth login and token refresh require network requests to WorkBuddy; quota queries call billing APIs. No local keys or credentials are uploaded."
+    },
+    "nickname": "Nickname",
+    "enterprise": "Enterprise",
+    "usage": "Usage Status",
+    "creditsBalance": "Credits Balance",
+    "usageNormal": "Normal",
+    "oauthWaiting": "Waiting for authorization...",
+    "oauthDesc": "Click the button below to open the WorkBuddy authorization page in your browser.",
+    "oauthDescWebview": "Click the button below to open the WorkBuddy authorization page in built-in WebView.",
+    "oauthFeature": {
+      "oauth": {
+        "title": "IDE sign-in only",
+        "item1": "Add the account after completing OAuth in your browser, then use it for IDE switching.",
+        "item2": "Resource-package quota data will refresh automatically after authorization.",
+        "item3": "Account cards show quota amount, progress, and refresh/expiry time by resource package."
+      }
+    },
+    "oauthWebviewTab": "WebView OAuth",
+    "oauthOpenWebview": "Open in WebView",
+    "oauthOpenWebviewIncognito": "Open in Incognito WebView",
+    "oauthOpenWebviewFailed": "Failed to open WebView: {{error}}",
+    "oauthOpenBrowserFallback": "Open in Browser (Fallback)",
+    "oauthOpenBrowserFailed": "Failed to open browser: {{error}}",
+    "oauthWebviewProgressHint": "A horizontal step bar is shown at the top of the WebView to locate stuck stages.",
+    "oauthFlow": {
+      "prepare": "Prepare OAuth link",
+      "authorize": "Open authorization link and confirm",
+      "bind": "Poll auth result and bind account",
+      "retryPrepare": "Regenerate OAuth link",
+      "retryAuthorize": "Request authorization link again",
+      "retryBind": "Retry auth polling",
+      "error": "Flow error: {{error}}"
+    },
+    "oauthWebviewOverlay": {
+      "steps": {
+        "prepare": "1 Prepare OAuth link",
+        "authorize": "2 Open authorization link and confirm",
+        "bind": "3 Poll auth result and bind account",
+        "complete": "5 Done (close manually)"
+      },
+      "status": {
+        "loginConfirm": "Please complete sign-in and authorization on this page."
+      }
+    },
+    "tokenDesc": "Paste your WorkBuddy access token:",
+    "jsonDesc": "Select a JSON file containing WorkBuddy accounts:",
+    "import": {
+      "localDesc": "Import account data from local WorkBuddy client or a JSON file.",
+      "localClient": "Import from local WorkBuddy"
+    },
+    "search": "Search WorkBuddy accounts...",
+    "quotaQuery": {
+      "failedRefreshCompact": "Quota query failed",
+      "sectionTitle": "Quota Query",
+      "empty": "No quota data available",
+      "packageUnknown": "Unknown package",
+      "quotaLabel": "Remaining quota",
+      "updatedAt": "Next refresh time: {{time}}",
+      "cycleRange": "Cycle: {{start}} - {{end}}",
+      "cycleUnknown": "Cycle info unavailable",
+      "expireAt": "Expires at: {{time}}",
+      "expireUnknown": "Expires at: N/A",
+      "packageTitle": {
+        "base": "Base Experience Package",
+        "activity": "Activity Gift Package"
+      }
+    },
+    "extraCredit": {
+      "title": "Credit Package"
+    },
+    "oauthUrlInputPlaceholder": "You can enter an authorization URL manually",
+    "oauthInvalidUrl": "Invalid authorization URL. Please enter a full URL.",
+    "oauthGotoWebview": "Navigate opened WebView to input URL",
+    "oauthGotoWebviewSuccess": "Requested WebView to navigate to the input URL.",
+    "oauthGotoWebviewFailed": "Failed to navigate WebView: {{error}}",
+    "oauthWebviewInlineUrlPlaceholder": "Enter a URL to navigate within this WebView",
+    "oauthWebviewInlineGo": "Go",
+    "oauthSuccessClosePrompt": "Account added successfully. Close this WebView now?\nChoose \"Close WebView\" to close now, or \"Later\" to keep it open.",
+    "oauthSuccessCloseTitle": "Account Added",
+    "oauthSuccessCloseNowLabel": "Close WebView",
+    "oauthSuccessCloseLaterLabel": "Later",
+    "oauthSuccessCloseNowStatus": "✅ Account added. Closing window...",
+    "oauthSuccessCloseLaterStatus": "✅ Account added. This WebView stays open.",
+    "instances": {
+      "unsupported": {
+        "descPlatform": "WorkBuddy multi-instance is supported on macOS, Windows, and Linux only."
       }
     }
   }

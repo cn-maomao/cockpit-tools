@@ -490,7 +490,12 @@
       "traeAppPathDesc": "留空則使用預設路徑",
       "traeAppPathPlaceholder": "預設路徑",
       "traePathSelect": "選擇",
-      "traePathReset": "重設預設"
+      "traePathReset": "重設預設",
+      "workbuddyAppPath": "WorkBuddy 啟動路徑",
+      "workbuddyAppPathDesc": "留空則使用預設路徑",
+      "workbuddyAppPathPlaceholder": "預設路徑",
+      "workbuddyPathSelect": "選擇",
+      "workbuddyPathReset": "重設預設"
     },
     "network": {
       "apiTitle": "反重力駕駛艙 API",
@@ -1448,6 +1453,10 @@
     },
     "codebuddyCn": {
       "appPath": "CodeBuddy CN 路徑"
+    },
+    "workbuddy": {
+      "title": "WorkBuddy 設定",
+      "appPath": "WorkBuddy 路徑"
     }
   },
   "quotaAlert": {
@@ -2194,6 +2203,104 @@
     "instances": {
       "unsupported": {
         "descPlatform": "CodeBuddy CN 多執行個體僅在 macOS、Windows 和 Linux 上支援。"
+      }
+    }
+  },
+  "workbuddy": {
+    "title": "WorkBuddy 帳號管理",
+    "noAccounts": "暫無 WorkBuddy 帳號",
+    "addAccount": "新增 WorkBuddy 帳號",
+    "flowNotice": {
+      "title": "WorkBuddy 帳號管理說明（點擊展開/收起）",
+      "desc": "切換帳號需讀取 WorkBuddy 本地認證儲存並呼叫系統憑證服務進行解密與重新加密，資料僅在本地處理。",
+      "permission": "權限範圍：讀取 WorkBuddy 認證資料庫（state.vscdb），呼叫系統憑證能力（macOS Keychain / Windows DPAPI / Linux Secret Service）進行解密與回寫。",
+      "network": "網路範圍：OAuth 登入與 Token 刷新需連線請求 WorkBuddy；配額查詢需呼叫計費 API。不會上傳本地金鑰或憑證。"
+    },
+    "nickname": "暱稱",
+    "enterprise": "企業",
+    "usage": "用量狀態",
+    "creditsBalance": "積分餘額",
+    "usageNormal": "正常",
+    "oauthWaiting": "等待授權完成...",
+    "oauthDesc": "點擊下方按鈕將在瀏覽器中開啟 WorkBuddy 授權頁面。",
+    "oauthDescWebview": "點擊下方按鈕將在內建 WebView 中開啟 WorkBuddy 授權頁面。",
+    "oauthFeature": {
+      "oauth": {
+        "title": "僅授權 IDE 登入資訊",
+        "item1": "在瀏覽器完成 OAuth 後即可新增帳號並用於 IDE 切換。",
+        "item2": "不會自動綁定配額查詢參數。",
+        "item3": "如需顯示配額，請在帳號卡片中手動執行「查詢配額」綁定。"
+      }
+    },
+    "oauthWebviewTab": "WebView 授權",
+    "oauthOpenWebview": "在 WebView 中開啟",
+    "oauthOpenWebviewIncognito": "在無痕 WebView 中開啟",
+    "oauthOpenWebviewFailed": "開啟 WebView 失敗：{{error}}",
+    "oauthOpenBrowserFallback": "在瀏覽器中開啟（備用）",
+    "oauthOpenBrowserFailed": "開啟瀏覽器失敗：{{error}}",
+    "oauthWebviewProgressHint": "WebView 頂部會顯示橫向步驟條，便於定位卡住的步驟。",
+    "oauthFlow": {
+      "prepare": "準備授權連結",
+      "authorize": "開啟授權連結並確認授權",
+      "bind": "輪詢授權結果並綁定帳號",
+      "retryPrepare": "重新產生授權連結",
+      "retryAuthorize": "重新請求授權連結",
+      "retryBind": "重新輪詢授權結果",
+      "error": "流程異常：{{error}}"
+    },
+    "tokenDesc": "貼上 WorkBuddy 的 access token：",
+    "jsonDesc": "選擇包含 WorkBuddy 帳號的 JSON 檔案：",
+    "import": {
+      "localDesc": "支援從本機 WorkBuddy 用戶端或 JSON 檔案匯入帳號資料。",
+      "localClient": "從本機 WorkBuddy 匯入"
+    },
+    "search": "搜尋 WorkBuddy 帳號...",
+    "quotaQuery": {
+      "failedRefreshCompact": "刷新配額失敗",
+      "sectionTitle": "配額查詢",
+      "empty": "暫無綁定的配額查詢資訊",
+      "packageUnknown": "套餐資訊未知",
+      "quotaLabel": "剩餘配額",
+      "updatedAt": "最近查詢：{{time}}",
+      "cycleRange": "週期：{{start}} - {{end}}",
+      "cycleUnknown": "週期資訊暫無",
+      "expireAt": "到期時間：{{time}}",
+      "expireUnknown": "到期時間：暫無",
+      "packageTitle": {
+        "base": "基礎體驗包",
+        "activity": "活動贈送包"
+      }
+    },
+    "extraCredit": {
+      "title": "加量包"
+    },
+    "oauthUrlInputPlaceholder": "可手動輸入授權網址",
+    "oauthInvalidUrl": "授權連結格式不正確，請輸入完整 URL。",
+    "oauthGotoWebview": "讓已開啟的 WebView 跳轉到輸入網址",
+    "oauthGotoWebviewSuccess": "已請求 WebView 跳轉到輸入網址。",
+    "oauthGotoWebviewFailed": "WebView 跳轉失敗：{{error}}",
+    "oauthWebviewInlineUrlPlaceholder": "在此輸入網址並在目前 WebView 跳轉",
+    "oauthWebviewInlineGo": "跳轉",
+    "oauthSuccessClosePrompt": "帳號新增完成，是否關閉 WebView？\n點擊「關閉 WebView」將立即關閉；點擊「稍後再說」則保持目前頁面開啟。",
+    "oauthSuccessCloseTitle": "帳號新增完成",
+    "oauthSuccessCloseNowLabel": "關閉 WebView",
+    "oauthSuccessCloseLaterLabel": "稍後再說",
+    "oauthSuccessCloseNowStatus": "✅ 帳號新增完成，視窗即將關閉…",
+    "oauthSuccessCloseLaterStatus": "✅ 帳號新增完成，已保持目前頁面開啟。",
+    "oauthWebviewOverlay": {
+      "steps": {
+        "prepare": "1 準備授權連結",
+        "authorize": "2 開啟授權連結並確認授權",
+        "bind": "3 輪詢授權結果並綁定帳號",
+        "complete": "5 完成（手動關閉）"
+      },
+      "status": {
+        "loginConfirm": "請在此頁面完成登入與授權。"
+      }
+    },
+    "instances": {
+      "unsupported": {
+        "descPlatform": "WorkBuddy 多執行個體僅在 macOS、Windows 和 Linux 上支援。"
       }
     }
   }

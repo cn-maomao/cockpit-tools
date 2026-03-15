@@ -490,7 +490,12 @@
       "traeAppPathDesc": "Pozostaw puste, aby użyć domyślnej ścieżki",
       "traeAppPathPlaceholder": "Domyślna ścieżka",
       "traePathSelect": "Wybierz",
-      "traePathReset": "Przywróć domyślne"
+      "traePathReset": "Przywróć domyślne",
+      "workbuddyAppPath": "Ścieżka uruchamiania WorkBuddy",
+      "workbuddyAppPathDesc": "Pozostaw puste, aby użyć domyślnej ścieżki",
+      "workbuddyAppPathPlaceholder": "Domyślna ścieżka",
+      "workbuddyPathSelect": "Wybierz",
+      "workbuddyPathReset": "Przywróć domyślne"
     },
     "network": {
       "apiTitle": "API kokpitu antygrawitacyjnego",
@@ -1448,6 +1453,10 @@
     },
     "codebuddyCn": {
       "appPath": "Ścieżka CodeBuddy CN"
+    },
+    "workbuddy": {
+      "title": "Ustawienia WorkBuddy",
+      "appPath": "Ścieżka WorkBuddy"
     }
   },
   "quotaAlert": {
@@ -2194,6 +2203,104 @@
     "instances": {
       "unsupported": {
         "descPlatform": "Wiele instancji CodeBuddy CN jest obsługiwane tylko na macOS, Windows i Linux."
+      }
+    }
+  },
+  "workbuddy": {
+    "title": "Zarządzanie kontami WorkBuddy",
+    "noAccounts": "Brak kont WorkBuddy",
+    "addAccount": "Dodaj konto WorkBuddy",
+    "flowNotice": {
+      "title": "Informacje o zarządzaniu kontami WorkBuddy (kliknij, aby rozwinąć/zwinąć)",
+      "desc": "Przełączanie kont wymaga odczytu lokalnego magazynu uwierzytelniania WorkBuddy oraz wywołania systemowych usług poświadczeń do odszyfrowania/ponownego zaszyfrowania. Dane są przetwarzane wyłącznie lokalnie.",
+      "permission": "Zakres uprawnień: odczyt bazy uwierzytelniania WorkBuddy (state.vscdb), wywołanie systemowych mechanizmów poświadczeń (macOS Keychain / Windows DPAPI / Linux Secret Service) do odszyfrowania i zapisu zwrotnego.",
+      "network": "Zakres sieci: logowanie OAuth i odświeżanie tokenu wymagają żądań do WorkBuddy; zapytania o limity wywołują API rozliczeń. Żadne lokalne klucze ani poświadczenia nie są wysyłane."
+    },
+    "nickname": "Pseudonim",
+    "enterprise": "Firmowe",
+    "usage": "Stan użycia",
+    "creditsBalance": "Saldo kredytów",
+    "usageNormal": "Normalny",
+    "oauthWaiting": "Oczekiwanie na autoryzację...",
+    "oauthDesc": "Kliknij przycisk poniżej, aby otworzyć stronę autoryzacji WorkBuddy w przeglądarce.",
+    "oauthDescWebview": "Kliknij przycisk poniżej, aby otworzyć stronę autoryzacji WorkBuddy we wbudowanym WebView.",
+    "oauthFeature": {
+      "oauth": {
+        "title": "Tylko logowanie IDE",
+        "item1": "Dodaj konto po zakończeniu OAuth w przeglądarce, a następnie użyj go do przełączania IDE.",
+        "item2": "Parametry zapytania limitu nie są automatycznie powiązywane.",
+        "item3": "Jeśli potrzebujesz podglądu limitu, uruchom ręcznie „Zapytaj limit” na karcie konta."
+      }
+    },
+    "oauthWebviewTab": "OAuth przez WebView",
+    "oauthOpenWebview": "Otwórz w WebView",
+    "oauthOpenWebviewIncognito": "Otwórz w prywatnym WebView",
+    "oauthOpenWebviewFailed": "Nie udało się otworzyć WebView: {{error}}",
+    "oauthOpenBrowserFallback": "Otwórz w przeglądarce (awaryjnie)",
+    "oauthOpenBrowserFailed": "Nie udało się otworzyć przeglądarki: {{error}}",
+    "oauthWebviewProgressHint": "U góry WebView wyświetlany jest poziomy pasek kroków, aby wskazać zablokowany etap.",
+    "oauthFlow": {
+      "prepare": "Przygotuj link OAuth",
+      "authorize": "Otwórz link autoryzacji i potwierdź",
+      "bind": "Odpytaj wynik autoryzacji i powiąż konto",
+      "retryPrepare": "Wygeneruj link OAuth ponownie",
+      "retryAuthorize": "Ponownie poproś o link autoryzacji",
+      "retryBind": "Ponów odpytywanie autoryzacji",
+      "error": "Błąd przepływu: {{error}}"
+    },
+    "tokenDesc": "Wklej token dostępu WorkBuddy:",
+    "jsonDesc": "Wybierz plik JSON zawierający konta WorkBuddy:",
+    "import": {
+      "localDesc": "Importuj dane konta z lokalnego klienta WorkBuddy lub z pliku JSON.",
+      "localClient": "Importuj z lokalnego WorkBuddy"
+    },
+    "search": "Szukaj kont WorkBuddy...",
+    "quotaQuery": {
+      "failedRefreshCompact": "Odświeżanie limitu nieudane",
+      "sectionTitle": "Zapytanie limitu",
+      "empty": "Brak powiązanych informacji o zapytaniu limitu",
+      "packageUnknown": "Nieznany pakiet",
+      "quotaLabel": "Pozostały limit",
+      "updatedAt": "Ostatnie zapytanie: {{time}}",
+      "cycleRange": "Cykl: {{start}} - {{end}}",
+      "cycleUnknown": "Brak informacji o cyklu",
+      "expireAt": "Wygasa: {{time}}",
+      "expireUnknown": "Wygasa: brak danych",
+      "packageTitle": {
+        "base": "Podstawowy pakiet doświadczenia",
+        "activity": "Pakiet prezentowy z wydarzeń"
+      }
+    },
+    "extraCredit": {
+      "title": "Pakiet kredytów"
+    },
+    "oauthUrlInputPlaceholder": "Możesz ręcznie wpisać URL autoryzacji",
+    "oauthInvalidUrl": "Nieprawidłowy URL autoryzacji. Wprowadź pełny URL.",
+    "oauthGotoWebview": "Przejdź w otwartym WebView do podanego URL",
+    "oauthGotoWebviewSuccess": "Wysłano żądanie nawigacji WebView do podanego URL.",
+    "oauthGotoWebviewFailed": "Nie udało się nawigować WebView: {{error}}",
+    "oauthWebviewInlineUrlPlaceholder": "Wprowadź URL, aby przejść w tym WebView",
+    "oauthWebviewInlineGo": "Przejdź",
+    "oauthSuccessClosePrompt": "Konto dodano pomyślnie. Zamknąć teraz to WebView?\nWybierz „Zamknij WebView”, aby zamknąć teraz, albo „Później”, aby pozostawić otwarte.",
+    "oauthSuccessCloseTitle": "Konto dodane",
+    "oauthSuccessCloseNowLabel": "Zamknij WebView",
+    "oauthSuccessCloseLaterLabel": "Później",
+    "oauthSuccessCloseNowStatus": "✅ Konto dodane. Zamykanie okna...",
+    "oauthSuccessCloseLaterStatus": "✅ Konto dodane. To WebView pozostanie otwarte.",
+    "oauthWebviewOverlay": {
+      "steps": {
+        "prepare": "1 Przygotuj link OAuth",
+        "authorize": "2 Otwórz link autoryzacji i potwierdź",
+        "bind": "3 Odpytaj wynik autoryzacji i powiąż konto",
+        "complete": "5 Gotowe (zamknij ręcznie)"
+      },
+      "status": {
+        "loginConfirm": "Na tej stronie dokończ logowanie i autoryzację."
+      }
+    },
+    "instances": {
+      "unsupported": {
+        "descPlatform": "Wiele instancji WorkBuddy jest obsługiwane tylko na macOS, Windows i Linux."
       }
     }
   }

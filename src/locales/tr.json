@@ -490,7 +490,12 @@
       "traeAppPathDesc": "Varsayılan yol için boş bırakın",
       "traeAppPathPlaceholder": "Varsayılan yol",
       "traePathSelect": "Seç",
-      "traePathReset": "Varsayılana sıfırla"
+      "traePathReset": "Varsayılana sıfırla",
+      "workbuddyAppPath": "WorkBuddy Başlatma Yolu",
+      "workbuddyAppPathDesc": "Varsayılan yol için boş bırakın",
+      "workbuddyAppPathPlaceholder": "Varsayılan yol",
+      "workbuddyPathSelect": "Seç",
+      "workbuddyPathReset": "Varsayılana sıfırla"
     },
     "network": {
       "apiTitle": "Yerçekimine Karşı Kokpit API'si",
@@ -1448,6 +1453,10 @@
     },
     "codebuddyCn": {
       "appPath": "CodeBuddy CN Yolu"
+    },
+    "workbuddy": {
+      "title": "WorkBuddy Ayarları",
+      "appPath": "WorkBuddy Yolu"
     }
   },
   "quotaAlert": {
@@ -2194,6 +2203,104 @@
     "instances": {
       "unsupported": {
         "descPlatform": "CodeBuddy CN çoklu örneği yalnızca macOS, Windows ve Linux'ta desteklenir."
+      }
+    }
+  },
+  "workbuddy": {
+    "title": "WorkBuddy Hesap Yönetimi",
+    "noAccounts": "WorkBuddy hesabı yok",
+    "addAccount": "WorkBuddy Hesabı Ekle",
+    "flowNotice": {
+      "title": "WorkBuddy hesap yönetimi bilgisi (genişlet/daralt için tıklayın)",
+      "desc": "Hesap değiştirme için WorkBuddy yerel kimlik doğrulama deposu okunur ve şifre çözme/yeniden şifreleme için sistem kimlik bilgisi servisleri çağrılır. Veriler yalnızca yerelde işlenir.",
+      "permission": "İzin kapsamı: WorkBuddy kimlik veritabanını (state.vscdb) okuma; şifre çözme/geri yazma için sistem kimlik yeteneklerini çağırma (macOS Keychain / Windows DPAPI / Linux Secret Service).",
+      "network": "Ağ kapsamı: OAuth girişi ve belirteç yenileme için WorkBuddy'ye ağ istekleri gerekir; kota sorguları faturalama API'lerini çağırır. Yerel anahtarlar veya kimlik bilgileri yüklenmez."
+    },
+    "nickname": "Takma ad",
+    "enterprise": "Kurumsal",
+    "usage": "Kullanım durumu",
+    "creditsBalance": "Kredi bakiyesi",
+    "usageNormal": "Normal",
+    "oauthWaiting": "Yetkilendirme bekleniyor...",
+    "oauthDesc": "Tarayıcınızda WorkBuddy yetkilendirme sayfasını açmak için aşağıdaki düğmeye tıklayın.",
+    "oauthDescWebview": "Yerleşik WebView'da WorkBuddy yetkilendirme sayfasını açmak için aşağıdaki düğmeye tıklayın.",
+    "oauthFeature": {
+      "oauth": {
+        "title": "Yalnızca IDE girişi",
+        "item1": "Tarayıcıda OAuth tamamlandıktan sonra hesabı ekleyin ve IDE geçişi için kullanın.",
+        "item2": "Kota sorgu parametreleri otomatik bağlanmaz.",
+        "item3": "Kota görüntülemek gerekiyorsa hesap kartında \"Kota Sorgula\"yı elle çalıştırın."
+      }
+    },
+    "oauthWebviewTab": "WebView ile OAuth",
+    "oauthOpenWebview": "WebView'da aç",
+    "oauthOpenWebviewIncognito": "Gizli WebView'da aç",
+    "oauthOpenWebviewFailed": "WebView açılamadı: {{error}}",
+    "oauthOpenBrowserFallback": "Tarayıcıda aç (yedek)",
+    "oauthOpenBrowserFailed": "Tarayıcı açılamadı: {{error}}",
+    "oauthWebviewProgressHint": "Takılan aşamayı bulmak için WebView üstünde yatay adım çubuğu gösterilir.",
+    "oauthFlow": {
+      "prepare": "OAuth bağlantısını hazırla",
+      "authorize": "Yetkilendirme bağlantısını aç ve onayla",
+      "bind": "Yetkilendirme sonucunu yokla ve hesabı bağla",
+      "retryPrepare": "OAuth bağlantısını yeniden oluştur",
+      "retryAuthorize": "Yetkilendirme bağlantısını yeniden iste",
+      "retryBind": "Yetki yoklamasını yeniden dene",
+      "error": "Akış hatası: {{error}}"
+    },
+    "tokenDesc": "WorkBuddy erişim belirtecinizi yapıştırın:",
+    "jsonDesc": "WorkBuddy hesaplarını içeren bir JSON dosyası seçin:",
+    "import": {
+      "localDesc": "Hesap verilerini yerel WorkBuddy istemcisinden veya bir JSON dosyasından içe aktarın.",
+      "localClient": "Yerel WorkBuddy'den içe aktar"
+    },
+    "search": "WorkBuddy hesaplarını ara...",
+    "quotaQuery": {
+      "failedRefreshCompact": "Kota yenileme başarısız",
+      "sectionTitle": "Kota Sorgusu",
+      "empty": "Henüz bağlı kota sorgu bilgisi yok",
+      "packageUnknown": "Bilinmeyen paket",
+      "quotaLabel": "Kalan kota",
+      "updatedAt": "Son sorgu: {{time}}",
+      "cycleRange": "Döngü: {{start}} - {{end}}",
+      "cycleUnknown": "Döngü bilgisi yok",
+      "expireAt": "Bitiş: {{time}}",
+      "expireUnknown": "Bitiş: Yok",
+      "packageTitle": {
+        "base": "Temel deneyim paketi",
+        "activity": "Etkinlik hediye paketi"
+      }
+    },
+    "extraCredit": {
+      "title": "Kredi Paketi"
+    },
+    "oauthUrlInputPlaceholder": "Yetkilendirme URL'sini elle girebilirsiniz",
+    "oauthInvalidUrl": "Geçersiz yetkilendirme URL'si. Lütfen tam bir URL girin.",
+    "oauthGotoWebview": "Açık WebView'ı girilen URL'ye yönlendir",
+    "oauthGotoWebviewSuccess": "WebView'ın girilen URL'ye gitmesi istendi.",
+    "oauthGotoWebviewFailed": "WebView yönlendirme başarısız: {{error}}",
+    "oauthWebviewInlineUrlPlaceholder": "Bu WebView içinde gitmek için bir URL girin",
+    "oauthWebviewInlineGo": "Git",
+    "oauthSuccessClosePrompt": "Hesap başarıyla eklendi. Bu WebView şimdi kapatılsın mı?\nHemen kapatmak için \"WebView'ı Kapat\", açık bırakmak için \"Daha Sonra\" seçin.",
+    "oauthSuccessCloseTitle": "Hesap Eklendi",
+    "oauthSuccessCloseNowLabel": "WebView'ı Kapat",
+    "oauthSuccessCloseLaterLabel": "Daha Sonra",
+    "oauthSuccessCloseNowStatus": "✅ Hesap eklendi. Pencere kapatılıyor...",
+    "oauthSuccessCloseLaterStatus": "✅ Hesap eklendi. Bu WebView açık kalacak.",
+    "oauthWebviewOverlay": {
+      "steps": {
+        "prepare": "1 OAuth bağlantısını hazırla",
+        "authorize": "2 Yetkilendirme bağlantısını aç ve onayla",
+        "bind": "3 Yetkilendirme sonucunu yokla ve hesabı bağla",
+        "complete": "5 Tamamlandı (elle kapat)"
+      },
+      "status": {
+        "loginConfirm": "Lütfen bu sayfada giriş ve yetkilendirmeyi tamamlayın."
+      }
+    },
+    "instances": {
+      "unsupported": {
+        "descPlatform": "WorkBuddy çoklu örneği yalnızca macOS, Windows ve Linux'ta desteklenir."
       }
     }
   }

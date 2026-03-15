@@ -490,7 +490,12 @@
       "traeAppPathDesc": "اتركه فارغًا لاستخدام المسار الافتراضي",
       "traeAppPathPlaceholder": "المسار الافتراضي",
       "traePathSelect": "اختيار",
-      "traePathReset": "إعادة إلى الافتراضي"
+      "traePathReset": "إعادة إلى الافتراضي",
+      "workbuddyAppPath": "مسار تشغيل WorkBuddy",
+      "workbuddyAppPathDesc": "اتركه فارغًا لاستخدام المسار الافتراضي",
+      "workbuddyAppPathPlaceholder": "المسار الافتراضي",
+      "workbuddyPathSelect": "اختيار",
+      "workbuddyPathReset": "إعادة إلى الافتراضي"
     },
     "network": {
       "apiTitle": "واجهة برمجة تطبيقات قمرة القيادة المضادة للجاذبية",
@@ -1448,6 +1453,10 @@
     },
     "codebuddyCn": {
       "appPath": "مسار CodeBuddy CN"
+    },
+    "workbuddy": {
+      "title": "إعدادات WorkBuddy",
+      "appPath": "مسار WorkBuddy"
     }
   },
   "quotaAlert": {
@@ -2194,6 +2203,104 @@
     "instances": {
       "unsupported": {
         "descPlatform": "تعدد مثيلات CodeBuddy CN مدعوم فقط على macOS وWindows وLinux."
+      }
+    }
+  },
+  "workbuddy": {
+    "title": "إدارة حسابات WorkBuddy",
+    "noAccounts": "لا توجد حسابات WorkBuddy",
+    "addAccount": "إضافة حساب WorkBuddy",
+    "flowNotice": {
+      "title": "معلومات إدارة حسابات WorkBuddy (انقر للتوسيع/الطي)",
+      "desc": "يتطلب تبديل الحسابات قراءة تخزين مصادقة WorkBuddy المحلي واستدعاء خدمات بيانات الاعتماد في النظام لفك التشفير/إعادة التشفير. تتم معالجة البيانات محليًا فقط.",
+      "permission": "نطاق الأذونات: قراءة قاعدة بيانات مصادقة WorkBuddy (state.vscdb)، واستدعاء قدرات بيانات الاعتماد بالنظام (macOS Keychain / Windows DPAPI / Linux Secret Service) لفك التشفير/إعادة الكتابة.",
+      "network": "نطاق الشبكة: تسجيل دخول OAuth وتحديث الرمز يتطلبان طلبات شبكة إلى WorkBuddy؛ واستعلامات الحصة تستدعي واجهات فوترة API. لا يتم رفع أي مفاتيح أو بيانات اعتماد محلية."
+    },
+    "nickname": "الاسم المستعار",
+    "enterprise": "المؤسسة",
+    "usage": "حالة الاستخدام",
+    "creditsBalance": "رصيد النقاط",
+    "usageNormal": "طبيعي",
+    "oauthWaiting": "بانتظار التفويض...",
+    "oauthDesc": "انقر الزر أدناه لفتح صفحة تفويض WorkBuddy في متصفحك.",
+    "oauthDescWebview": "انقر الزر أدناه لفتح صفحة تفويض WorkBuddy في WebView المدمج.",
+    "oauthFeature": {
+      "oauth": {
+        "title": "تسجيل دخول IDE فقط",
+        "item1": "أضف الحساب بعد إكمال OAuth في المتصفح، ثم استخدمه للتبديل داخل IDE.",
+        "item2": "لا يتم ربط معلمات استعلام الحصة تلقائيًا.",
+        "item3": "إذا احتجت عرض الحصة، شغّل \"استعلام الحصة\" يدويًا من بطاقة الحساب."
+      }
+    },
+    "oauthWebviewTab": "OAuth عبر WebView",
+    "oauthOpenWebview": "فتح في WebView",
+    "oauthOpenWebviewIncognito": "فتح في WebView المتخفي",
+    "oauthOpenWebviewFailed": "فشل فتح WebView: {{error}}",
+    "oauthOpenBrowserFallback": "فتح في المتصفح (بديل)",
+    "oauthOpenBrowserFailed": "فشل فتح المتصفح: {{error}}",
+    "oauthWebviewProgressHint": "يتم عرض شريط خطوات أفقي أعلى WebView لتحديد المرحلة المتوقفة.",
+    "oauthFlow": {
+      "prepare": "تحضير رابط OAuth",
+      "authorize": "فتح رابط التفويض وتأكيده",
+      "bind": "استطلاع نتيجة التفويض وربط الحساب",
+      "retryPrepare": "إعادة إنشاء رابط OAuth",
+      "retryAuthorize": "طلب رابط التفويض مرة أخرى",
+      "retryBind": "إعادة محاولة استطلاع التفويض",
+      "error": "خطأ في المسار: {{error}}"
+    },
+    "tokenDesc": "ألصق رمز الوصول الخاص بـ WorkBuddy:",
+    "jsonDesc": "اختر ملف JSON يحتوي على حسابات WorkBuddy:",
+    "import": {
+      "localDesc": "استيراد بيانات الحساب من عميل WorkBuddy المحلي أو من ملف JSON.",
+      "localClient": "استيراد من WorkBuddy المحلي"
+    },
+    "search": "ابحث في حسابات WorkBuddy...",
+    "quotaQuery": {
+      "failedRefreshCompact": "فشل تحديث الحصة",
+      "sectionTitle": "استعلام الحصة",
+      "empty": "لا توجد معلومات ربط لاستعلام الحصة بعد",
+      "packageUnknown": "باقة غير معروفة",
+      "quotaLabel": "الحصة المتبقية",
+      "updatedAt": "آخر استعلام: {{time}}",
+      "cycleRange": "الدورة: {{start}} - {{end}}",
+      "cycleUnknown": "معلومات الدورة غير متاحة",
+      "expireAt": "ينتهي في: {{time}}",
+      "expireUnknown": "وقت الانتهاء: غير متاح",
+      "packageTitle": {
+        "base": "حزمة التجربة الأساسية",
+        "activity": "حزمة هدية النشاط"
+      }
+    },
+    "extraCredit": {
+      "title": "باقة الرصيد"
+    },
+    "oauthUrlInputPlaceholder": "يمكنك إدخال رابط التفويض يدويًا",
+    "oauthInvalidUrl": "رابط تفويض غير صالح. يرجى إدخال رابط كامل.",
+    "oauthGotoWebview": "توجيه WebView المفتوح إلى الرابط المُدخل",
+    "oauthGotoWebviewSuccess": "تم طلب توجيه WebView إلى الرابط المُدخل.",
+    "oauthGotoWebviewFailed": "فشل توجيه WebView: {{error}}",
+    "oauthWebviewInlineUrlPlaceholder": "أدخل رابطًا للتنقل داخل WebView هذا",
+    "oauthWebviewInlineGo": "انتقال",
+    "oauthSuccessClosePrompt": "تمت إضافة الحساب بنجاح. هل تريد إغلاق WebView الآن؟\nاختر \"إغلاق WebView\" للإغلاق الآن، أو \"لاحقًا\" للإبقاء عليه مفتوحًا.",
+    "oauthSuccessCloseTitle": "تمت إضافة الحساب",
+    "oauthSuccessCloseNowLabel": "إغلاق WebView",
+    "oauthSuccessCloseLaterLabel": "لاحقًا",
+    "oauthSuccessCloseNowStatus": "✅ تمت إضافة الحساب. جارٍ إغلاق النافذة...",
+    "oauthSuccessCloseLaterStatus": "✅ تمت إضافة الحساب. سيبقى WebView مفتوحًا.",
+    "oauthWebviewOverlay": {
+      "steps": {
+        "prepare": "1 تحضير رابط OAuth",
+        "authorize": "2 فتح رابط التفويض وتأكيده",
+        "bind": "3 استطلاع نتيجة التفويض وربط الحساب",
+        "complete": "5 تم (إغلاق يدوي)"
+      },
+      "status": {
+        "loginConfirm": "يرجى إكمال تسجيل الدخول والتفويض في هذه الصفحة."
+      }
+    },
+    "instances": {
+      "unsupported": {
+        "descPlatform": "تعدد مثيلات WorkBuddy مدعوم فقط على macOS وWindows وLinux."
       }
     }
   }

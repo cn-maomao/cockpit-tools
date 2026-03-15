@@ -490,7 +490,12 @@
       "traeAppPathDesc": "Leer lassen, um den Standardpfad zu verwenden",
       "traeAppPathPlaceholder": "Standardpfad",
       "traePathSelect": "Auswählen",
-      "traePathReset": "Auf Standard zurücksetzen"
+      "traePathReset": "Auf Standard zurücksetzen",
+      "workbuddyAppPath": "WorkBuddy-Startpfad",
+      "workbuddyAppPathDesc": "Leer lassen, um den Standardpfad zu verwenden",
+      "workbuddyAppPathPlaceholder": "Standardpfad",
+      "workbuddyPathSelect": "Auswählen",
+      "workbuddyPathReset": "Auf Standard zurücksetzen"
     },
     "network": {
       "apiTitle": "Antigravity-Cockpit-API",
@@ -1448,6 +1453,10 @@
     },
     "codebuddyCn": {
       "appPath": "CodeBuddy CN-Pfad"
+    },
+    "workbuddy": {
+      "title": "WorkBuddy-Einstellungen",
+      "appPath": "WorkBuddy-Pfad"
     }
   },
   "quotaAlert": {
@@ -2194,6 +2203,104 @@
     "instances": {
       "unsupported": {
         "descPlatform": "CodeBuddy CN-Mehrinstanzen werden nur unter macOS, Windows und Linux unterstützt."
+      }
+    }
+  },
+  "workbuddy": {
+    "title": "WorkBuddy-Kontenverwaltung",
+    "noAccounts": "Keine WorkBuddy-Konten",
+    "addAccount": "WorkBuddy-Konto hinzufügen",
+    "flowNotice": {
+      "title": "Hinweise zur WorkBuddy-Kontoverwaltung (zum Ein-/Ausklappen klicken)",
+      "desc": "Zum Wechseln von Konten muss der lokale Auth-Speicher von WorkBuddy gelesen und der System-Zugangsdienst zum Entschlüsseln/Verschlüsseln verwendet werden. Die Daten werden nur lokal verarbeitet.",
+      "permission": "Berechtigungsumfang: Lesen der WorkBuddy-Authentifizierungsdatenbank (state.vscdb) und Nutzung der System-Zugangsdienste (macOS Keychain / Windows DPAPI / Linux Secret Service) zum Entschlüsseln und Zurückschreiben.",
+      "network": "Netzwerkumfang: OAuth-Anmeldung und Token-Aktualisierung senden Anfragen an WorkBuddy; Kontingentabfragen nutzen Billing-APIs. Lokale Schlüssel oder Zugangsdaten werden nicht hochgeladen."
+    },
+    "nickname": "Spitzname",
+    "enterprise": "Unternehmen",
+    "usage": "Nutzungsstatus",
+    "creditsBalance": "Guthaben",
+    "usageNormal": "Standard",
+    "oauthWaiting": "Warte auf Abschluss der Autorisierung...",
+    "oauthDesc": "Klicken Sie auf die Schaltfläche unten, um die WorkBuddy-Autorisierungsseite im Browser zu öffnen.",
+    "oauthDescWebview": "Klicken Sie auf die Schaltfläche unten, um die WorkBuddy-Autorisierungsseite im integrierten WebView zu öffnen.",
+    "oauthFeature": {
+      "oauth": {
+        "title": "Nur IDE-Anmeldedaten autorisieren",
+        "item1": "Nach Abschluss von OAuth im Browser kann das Konto hinzugefügt und für den IDE-Wechsel genutzt werden.",
+        "item2": "Parameter für die Kontingentabfrage werden nicht automatisch gebunden.",
+        "item3": "Wenn Sie Kontingente anzeigen möchten, führen Sie auf der Kontokarte manuell „Kontingent abfragen“ aus."
+      }
+    },
+    "oauthWebviewTab": "OAuth im WebView",
+    "oauthOpenWebview": "Im WebView öffnen",
+    "oauthOpenWebviewIncognito": "Im Inkognito-WebView öffnen",
+    "oauthOpenWebviewFailed": "WebView konnte nicht geöffnet werden: {{error}}",
+    "oauthOpenBrowserFallback": "Im Browser öffnen (Fallback)",
+    "oauthOpenBrowserFailed": "Browser konnte nicht geöffnet werden: {{error}}",
+    "oauthWebviewProgressHint": "Oben im WebView wird eine horizontale Schrittleiste angezeigt, damit blockierte Schritte leichter zu finden sind.",
+    "oauthFlow": {
+      "prepare": "Autorisierungslink vorbereiten",
+      "authorize": "Autorisierungslink öffnen und bestätigen",
+      "bind": "Autorisierungsergebnis abfragen und Konto binden",
+      "retryPrepare": "Autorisierungslink neu erzeugen",
+      "retryAuthorize": "Autorisierungslink erneut anfordern",
+      "retryBind": "Autorisierungsabfrage wiederholen",
+      "error": "Ablauffehler: {{error}}"
+    },
+    "tokenDesc": "Access Token von WorkBuddy einfügen:",
+    "jsonDesc": "JSON-Datei mit WorkBuddy-Konten auswählen:",
+    "import": {
+      "localDesc": "Kontodaten können aus dem lokalen WorkBuddy-Client oder aus einer JSON-Datei importiert werden.",
+      "localClient": "Aus lokalem WorkBuddy importieren"
+    },
+    "search": "WorkBuddy-Konten durchsuchen...",
+    "quotaQuery": {
+      "failedRefreshCompact": "Kontingentaktualisierung fehlgeschlagen",
+      "sectionTitle": "Kontingentabfrage",
+      "empty": "Noch keine gebundene Kontingentabfrage vorhanden",
+      "packageUnknown": "Unbekanntes Paket",
+      "quotaLabel": "Verbleibendes Kontingent",
+      "updatedAt": "Zuletzt abgefragt: {{time}}",
+      "cycleRange": "Zeitraum: {{start}} - {{end}}",
+      "cycleUnknown": "Keine Zeitraum-Information verfügbar",
+      "expireAt": "Läuft ab am: {{time}}",
+      "expireUnknown": "Ablaufzeit: keine Angabe",
+      "packageTitle": {
+        "base": "Basis-Erlebnispaket",
+        "activity": "Aktions-Geschenkpaket"
+      }
+    },
+    "extraCredit": {
+      "title": "Zusatzpaket"
+    },
+    "oauthUrlInputPlaceholder": "Autorisierungs-URL kann manuell eingegeben werden",
+    "oauthInvalidUrl": "Ungültige Autorisierungs-URL. Bitte eine vollständige URL eingeben.",
+    "oauthGotoWebview": "Bereits geöffnetes WebView zur eingegebenen URL navigieren",
+    "oauthGotoWebviewSuccess": "WebView wurde aufgefordert, zur eingegebenen URL zu navigieren.",
+    "oauthGotoWebviewFailed": "WebView-Navigation fehlgeschlagen: {{error}}",
+    "oauthWebviewInlineUrlPlaceholder": "URL eingeben, um innerhalb dieses WebViews zu navigieren",
+    "oauthWebviewInlineGo": "Los",
+    "oauthSuccessClosePrompt": "Konto erfolgreich hinzugefügt. Dieses WebView jetzt schließen?\nMit „WebView schließen“ wird sofort geschlossen, mit „Später“ bleibt es geöffnet.",
+    "oauthSuccessCloseTitle": "Konto hinzugefügt",
+    "oauthSuccessCloseNowLabel": "WebView schließen",
+    "oauthSuccessCloseLaterLabel": "Später",
+    "oauthSuccessCloseNowStatus": "✅ Konto hinzugefügt. Fenster wird geschlossen...",
+    "oauthSuccessCloseLaterStatus": "✅ Konto hinzugefügt. Dieses WebView bleibt geöffnet.",
+    "oauthWebviewOverlay": {
+      "steps": {
+        "prepare": "1 Autorisierungslink vorbereiten",
+        "authorize": "2 Autorisierungslink öffnen und bestätigen",
+        "bind": "3 Autorisierungsergebnis abfragen und Konto binden",
+        "complete": "5 Abgeschlossen (manuell schließen)"
+      },
+      "status": {
+        "loginConfirm": "Bitte schließen Sie die Anmeldung und Autorisierung auf dieser Seite ab."
+      }
+    },
+    "instances": {
+      "unsupported": {
+        "descPlatform": "WorkBuddy-Mehrinstanzen werden nur unter macOS, Windows und Linux unterstützt."
       }
     }
   }

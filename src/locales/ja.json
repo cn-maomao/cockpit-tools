@@ -490,7 +490,12 @@
       "traeAppPathDesc": "空欄の場合はデフォルトパスを使用します",
       "traeAppPathPlaceholder": "デフォルトパス",
       "traePathSelect": "選択",
-      "traePathReset": "デフォルトに戻す"
+      "traePathReset": "デフォルトに戻す",
+      "workbuddyAppPath": "WorkBuddy 起動パス",
+      "workbuddyAppPathDesc": "空欄の場合はデフォルトパスを使用します",
+      "workbuddyAppPathPlaceholder": "デフォルトパス",
+      "workbuddyPathSelect": "選択",
+      "workbuddyPathReset": "デフォルトに戻す"
     },
     "network": {
       "apiTitle": "反重力コックピット API",
@@ -1448,6 +1453,10 @@
     },
     "codebuddyCn": {
       "appPath": "CodeBuddy CN パス"
+    },
+    "workbuddy": {
+      "title": "WorkBuddy 設定",
+      "appPath": "WorkBuddy パス"
     }
   },
   "quotaAlert": {
@@ -2194,6 +2203,104 @@
     "instances": {
       "unsupported": {
         "descPlatform": "CodeBuddy CN のマルチインスタンスは macOS、Windows、Linux のみ対応しています。"
+      }
+    }
+  },
+  "workbuddy": {
+    "title": "WorkBuddyアカウント管理",
+    "noAccounts": "WorkBuddy アカウントがありません",
+    "addAccount": "WorkBuddy アカウントを追加",
+    "flowNotice": {
+      "title": "WorkBuddy アカウント管理ガイド（クリックで展開/折りたたみ）",
+      "desc": "アカウント切り替えには、WorkBuddy のローカル認証ストレージを読み取り、システム資格情報サービスで復号・再暗号化する必要があります。データはローカルでのみ処理されます。",
+      "permission": "権限範囲：WorkBuddy 認証データベース（state.vscdb）を読み取り、システム資格情報機能（macOS Keychain / Windows DPAPI / Linux Secret Service）を呼び出して復号・書き戻しを行います。",
+      "network": "ネットワーク範囲：OAuth ログインと Token 更新では WorkBuddy へのリクエストが必要で、クォータ照会では課金 API を呼び出します。ローカルの鍵や認証情報はアップロードされません。"
+    },
+    "nickname": "ニックネーム",
+    "enterprise": "企業",
+    "usage": "使用状況",
+    "creditsBalance": "クレジット残高",
+    "usageNormal": "正常",
+    "oauthWaiting": "認証完了を待機中...",
+    "oauthDesc": "下のボタンをクリックすると、ブラウザで WorkBuddy の認証ページを開きます。",
+    "oauthDescWebview": "下のボタンをクリックすると、内蔵 WebView で WorkBuddy の認証ページを開きます。",
+    "oauthFeature": {
+      "oauth": {
+        "title": "IDE ログイン情報のみを認証",
+        "item1": "ブラウザで OAuth を完了すると、アカウントを追加して IDE 切り替えに利用できます。",
+        "item2": "クォータ照会パラメータは自動では紐付けられません。",
+        "item3": "クォータ表示が必要な場合は、アカウントカードで「クォータ照会」を手動実行してください。"
+      }
+    },
+    "oauthWebviewTab": "WebView 認証",
+    "oauthOpenWebview": "WebView で開く",
+    "oauthOpenWebviewIncognito": "シークレット WebView で開く",
+    "oauthOpenWebviewFailed": "WebView を開けませんでした：{{error}}",
+    "oauthOpenBrowserFallback": "ブラウザで開く（代替）",
+    "oauthOpenBrowserFailed": "ブラウザを開けませんでした：{{error}}",
+    "oauthWebviewProgressHint": "WebView 上部に横向きのステップバーを表示し、停止した段階を特定しやすくします。",
+    "oauthFlow": {
+      "prepare": "認証リンクを準備",
+      "authorize": "認証リンクを開いて承認",
+      "bind": "認証結果をポーリングしてアカウントに紐付け",
+      "retryPrepare": "認証リンクを再生成",
+      "retryAuthorize": "認証リンクを再要求",
+      "retryBind": "認証ポーリングを再試行",
+      "error": "フローエラー：{{error}}"
+    },
+    "tokenDesc": "WorkBuddy の access token を貼り付けてください：",
+    "jsonDesc": "WorkBuddy アカウントを含む JSON ファイルを選択してください：",
+    "import": {
+      "localDesc": "ローカルの WorkBuddy クライアントまたは JSON ファイルからアカウントデータを取り込めます。",
+      "localClient": "ローカルの WorkBuddy から取り込む"
+    },
+    "search": "WorkBuddy アカウントを検索...",
+    "quotaQuery": {
+      "failedRefreshCompact": "クォータ更新失敗",
+      "sectionTitle": "クォータ照会",
+      "empty": "まだクォータ照会情報が紐付けられていません",
+      "packageUnknown": "プラン情報不明",
+      "quotaLabel": "残りクォータ",
+      "updatedAt": "最終照会：{{time}}",
+      "cycleRange": "期間：{{start}} - {{end}}",
+      "cycleUnknown": "期間情報なし",
+      "expireAt": "有効期限：{{time}}",
+      "expireUnknown": "有効期限：なし",
+      "packageTitle": {
+        "base": "基本体験パッケージ",
+        "activity": "アクティビティ特典パッケージ"
+      }
+    },
+    "extraCredit": {
+      "title": "追加クレジット"
+    },
+    "oauthUrlInputPlaceholder": "認証 URL を手動入力できます",
+    "oauthInvalidUrl": "認証 URL の形式が正しくありません。完全な URL を入力してください。",
+    "oauthGotoWebview": "開いている WebView を入力 URL に移動",
+    "oauthGotoWebviewSuccess": "WebView に入力 URL への移動を要求しました。",
+    "oauthGotoWebviewFailed": "WebView の移動に失敗しました：{{error}}",
+    "oauthWebviewInlineUrlPlaceholder": "この WebView 内で移動する URL を入力",
+    "oauthWebviewInlineGo": "移動",
+    "oauthSuccessClosePrompt": "アカウントの追加が完了しました。今すぐこの WebView を閉じますか？\n「WebView を閉じる」を選ぶとすぐ閉じ、「後で」を選ぶと開いたままにします。",
+    "oauthSuccessCloseTitle": "アカウント追加完了",
+    "oauthSuccessCloseNowLabel": "WebView を閉じる",
+    "oauthSuccessCloseLaterLabel": "後で",
+    "oauthSuccessCloseNowStatus": "✅ アカウント追加が完了しました。ウィンドウを閉じます...",
+    "oauthSuccessCloseLaterStatus": "✅ アカウント追加が完了しました。この WebView は開いたままです。",
+    "oauthWebviewOverlay": {
+      "steps": {
+        "prepare": "1 認証リンクを準備",
+        "authorize": "2 認証リンクを開いて承認",
+        "bind": "3 認証結果をポーリングしてアカウントに紐付け",
+        "complete": "5 完了（手動で閉じる）"
+      },
+      "status": {
+        "loginConfirm": "このページでサインインと認可を完了してください。"
+      }
+    },
+    "instances": {
+      "unsupported": {
+        "descPlatform": "WorkBuddy のマルチインスタンスは macOS、Windows、Linux のみ対応しています。"
       }
     }
   }

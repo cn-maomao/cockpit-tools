@@ -490,7 +490,12 @@
       "traeAppPathDesc": "비워 두면 기본 경로를 사용합니다",
       "traeAppPathPlaceholder": "기본 경로",
       "traePathSelect": "선택",
-      "traePathReset": "기본값으로 재설정"
+      "traePathReset": "기본값으로 재설정",
+      "workbuddyAppPath": "WorkBuddy 실행 경로",
+      "workbuddyAppPathDesc": "비워 두면 기본 경로를 사용합니다",
+      "workbuddyAppPathPlaceholder": "기본 경로",
+      "workbuddyPathSelect": "선택",
+      "workbuddyPathReset": "기본값으로 재설정"
     },
     "network": {
       "apiTitle": "반중력 조종석 API",
@@ -1448,6 +1453,10 @@
     },
     "codebuddyCn": {
       "appPath": "CodeBuddy CN 경로"
+    },
+    "workbuddy": {
+      "title": "WorkBuddy 설정",
+      "appPath": "WorkBuddy 경로"
     }
   },
   "quotaAlert": {
@@ -2194,6 +2203,104 @@
     "instances": {
       "unsupported": {
         "descPlatform": "CodeBuddy CN 다중 인스턴스는 macOS, Windows, Linux에서만 지원됩니다."
+      }
+    }
+  },
+  "workbuddy": {
+    "title": "WorkBuddy 계정 관리",
+    "noAccounts": "WorkBuddy 계정이 없습니다",
+    "addAccount": "WorkBuddy 계정 추가",
+    "flowNotice": {
+      "title": "WorkBuddy 계정 관리 안내 (클릭하여 펼치기/접기)",
+      "desc": "계정 전환 시 WorkBuddy 로컬 인증 저장소를 읽고 시스템 자격 증명 서비스를 호출해 복호화 및 재암호화를 수행해야 합니다. 데이터는 로컬에서만 처리됩니다.",
+      "permission": "권한 범위: WorkBuddy 인증 데이터베이스(state.vscdb)를 읽고, 시스템 자격 증명 기능(macOS Keychain / Windows DPAPI / Linux Secret Service)을 호출하여 복호화 및 다시 쓰기를 수행합니다.",
+      "network": "네트워크 범위: OAuth 로그인과 Token 갱신은 WorkBuddy 요청이 필요하고, 할당량 조회는 과금 API를 호출합니다. 로컬 키나 자격 증명은 업로드되지 않습니다."
+    },
+    "nickname": "닉네임",
+    "enterprise": "기업",
+    "usage": "사용 상태",
+    "creditsBalance": "크레딧 잔액",
+    "usageNormal": "정상",
+    "oauthWaiting": "인증 완료를 기다리는 중...",
+    "oauthDesc": "아래 버튼을 클릭하면 브라우저에서 WorkBuddy 인증 페이지를 엽니다.",
+    "oauthDescWebview": "아래 버튼을 클릭하면 내장 WebView에서 WorkBuddy 인증 페이지를 엽니다.",
+    "oauthFeature": {
+      "oauth": {
+        "title": "IDE 로그인 정보만 인증",
+        "item1": "브라우저에서 OAuth를 완료하면 계정을 추가해 IDE 전환에 사용할 수 있습니다.",
+        "item2": "할당량 조회 파라미터는 자동으로 바인딩되지 않습니다.",
+        "item3": "할당량 표시가 필요하면 계정 카드에서 \"할당량 조회\"를 수동 실행하세요."
+      }
+    },
+    "oauthWebviewTab": "WebView 인증",
+    "oauthOpenWebview": "WebView에서 열기",
+    "oauthOpenWebviewIncognito": "시크릿 WebView에서 열기",
+    "oauthOpenWebviewFailed": "WebView 열기 실패: {{error}}",
+    "oauthOpenBrowserFallback": "브라우저에서 열기 (대체)",
+    "oauthOpenBrowserFailed": "브라우저 열기 실패: {{error}}",
+    "oauthWebviewProgressHint": "WebView 상단에 가로 단계 표시줄이 표시되어 멈춘 단계를 쉽게 찾을 수 있습니다.",
+    "oauthFlow": {
+      "prepare": "인증 링크 준비",
+      "authorize": "인증 링크를 열고 승인",
+      "bind": "인증 결과를 폴링해 계정 바인딩",
+      "retryPrepare": "인증 링크 다시 생성",
+      "retryAuthorize": "인증 링크 다시 요청",
+      "retryBind": "인증 폴링 다시 시도",
+      "error": "흐름 오류: {{error}}"
+    },
+    "tokenDesc": "WorkBuddy access token을 붙여 넣으세요:",
+    "jsonDesc": "WorkBuddy 계정이 포함된 JSON 파일을 선택하세요:",
+    "import": {
+      "localDesc": "로컬 WorkBuddy 클라이언트 또는 JSON 파일에서 계정 데이터를 가져올 수 있습니다.",
+      "localClient": "로컬 WorkBuddy에서 가져오기"
+    },
+    "search": "WorkBuddy 계정 검색...",
+    "quotaQuery": {
+      "failedRefreshCompact": "할당량 새로고침 실패",
+      "sectionTitle": "할당량 조회",
+      "empty": "아직 바인딩된 할당량 조회 정보가 없습니다",
+      "packageUnknown": "플랜 정보 알 수 없음",
+      "quotaLabel": "남은 할당량",
+      "updatedAt": "최근 조회: {{time}}",
+      "cycleRange": "주기: {{start}} - {{end}}",
+      "cycleUnknown": "주기 정보 없음",
+      "expireAt": "만료 시간: {{time}}",
+      "expireUnknown": "만료 시간: 없음",
+      "packageTitle": {
+        "base": "기본 체험 패키지",
+        "activity": "활동 증정 패키지"
+      }
+    },
+    "extraCredit": {
+      "title": "추가 크레딧"
+    },
+    "oauthUrlInputPlaceholder": "인증 URL을 수동으로 입력할 수 있습니다",
+    "oauthInvalidUrl": "인증 URL 형식이 올바르지 않습니다. 전체 URL을 입력하세요.",
+    "oauthGotoWebview": "열려 있는 WebView를 입력한 URL로 이동",
+    "oauthGotoWebviewSuccess": "WebView에 입력한 URL로 이동하도록 요청했습니다.",
+    "oauthGotoWebviewFailed": "WebView 이동 실패: {{error}}",
+    "oauthWebviewInlineUrlPlaceholder": "이 WebView 안에서 이동할 URL 입력",
+    "oauthWebviewInlineGo": "이동",
+    "oauthSuccessClosePrompt": "계정 추가가 완료되었습니다. 지금 이 WebView를 닫을까요?\n\"WebView 닫기\"를 선택하면 바로 닫고, \"나중에\"를 선택하면 그대로 유지합니다.",
+    "oauthSuccessCloseTitle": "계정 추가 완료",
+    "oauthSuccessCloseNowLabel": "WebView 닫기",
+    "oauthSuccessCloseLaterLabel": "나중에",
+    "oauthSuccessCloseNowStatus": "✅ 계정 추가가 완료되었습니다. 창을 닫는 중...",
+    "oauthSuccessCloseLaterStatus": "✅ 계정 추가가 완료되었습니다. 이 WebView는 계속 열려 있습니다.",
+    "oauthWebviewOverlay": {
+      "steps": {
+        "prepare": "1 인증 링크 준비",
+        "authorize": "2 인증 링크를 열고 승인",
+        "bind": "3 인증 결과를 폴링해 계정 바인딩",
+        "complete": "5 완료(수동으로 닫기)"
+      },
+      "status": {
+        "loginConfirm": "이 페이지에서 로그인 및 권한 부여를 완료하세요."
+      }
+    },
+    "instances": {
+      "unsupported": {
+        "descPlatform": "WorkBuddy 다중 인스턴스는 macOS, Windows, Linux에서만 지원됩니다."
       }
     }
   }
