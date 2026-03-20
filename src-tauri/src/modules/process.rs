@@ -6344,6 +6344,10 @@ pub fn start_codex_default(extra_args: &[String]) -> Result<u32, String> {
             .collect();
         let app_user_model_id = detect_codex_store_app_user_model_id();
         if let Some(app_user_model_id) = app_user_model_id {
+            crate::modules::logger::log_info(&format!(
+                "[Codex Start] 启动策略候选=system-store-entry app_id={}",
+                app_user_model_id
+            ));
             match launch_codex_via_store_app_user_model_id(&app_user_model_id) {
                 Ok(()) => {
                     crate::modules::logger::log_info(&format!(
@@ -6360,17 +6364,29 @@ pub fn start_codex_default(extra_args: &[String]) -> Result<u32, String> {
                             .filter(|pid| !before_pids.contains(pid))
                             .collect();
                         if let Some(pid) = pick_preferred_pid(new_pids.clone()) {
+                            crate::modules::logger::log_info(&format!(
+                                "[Codex Start] 启动策略=system-store-entry app_id={} pid={}",
+                                app_user_model_id, pid
+                            ));
                             return Ok(pid);
                         }
                         if before_pids.is_empty() {
                             new_pids = entries.iter().map(|(pid, _)| *pid).collect();
                             if let Some(pid) = pick_preferred_pid(new_pids) {
+                                crate::modules::logger::log_info(&format!(
+                                    "[Codex Start] 启动策略=system-store-entry app_id={} pid={}",
+                                    app_user_model_id, pid
+                                ));
                                 return Ok(pid);
                             }
                         }
                         thread::sleep(Duration::from_millis(250));
                     }
                     if let Some(pid) = resolve_codex_pid(None, None) {
+                        crate::modules::logger::log_info(&format!(
+                            "[Codex Start] 启动策略=system-store-entry app_id={} pid={}",
+                            app_user_model_id, pid
+                        ));
                         return Ok(pid);
                     }
                     crate::modules::logger::log_warn(
@@ -6391,6 +6407,10 @@ pub fn start_codex_default(extra_args: &[String]) -> Result<u32, String> {
         }
 
         let launch_path = resolve_codex_launch_path()?;
+        crate::modules::logger::log_info(&format!(
+            "[Codex Start] 启动策略=exe-path launch_path={}",
+            launch_path.to_string_lossy()
+        ));
         let mut cmd = Command::new(&launch_path);
         apply_managed_proxy_env_to_command(&mut cmd);
         if should_detach_child() {
@@ -6409,7 +6429,11 @@ pub fn start_codex_default(extra_args: &[String]) -> Result<u32, String> {
 
         let child =
             spawn_command_with_trace(&mut cmd).map_err(|e| format!("启动 Codex 失败: {}", e))?;
-        crate::modules::logger::log_info("Codex 启动命令已发送");
+        crate::modules::logger::log_info(&format!(
+            "[Codex Start] 启动策略=exe-path launch_path={} pid={}",
+            launch_path.to_string_lossy(),
+            child.id()
+        ));
         return Ok(child.id());
     }
 
