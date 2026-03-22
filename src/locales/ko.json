@@ -707,7 +707,9 @@
         "tooLong": "태그는 최대 {{max}}자까지 입력할 수 있습니다",
         "duplicate": "이미 존재하는 태그입니다",
         "tooMany": "태그는 최대 {{max}}개까지 추가할 수 있습니다"
-      }
+      },
+      "notesLabel": "메모",
+      "notesPlaceholder": "메모를 입력하세요. 비워 두면 삭제됩니다"
     },
     "groupByTag": "태그별 그룹",
     "untagged": "태그 없음",
@@ -759,8 +761,11 @@
       "accountCount": "{{count}}개 계정",
       "rename": "이름 바꾸기",
       "addToGroup": "그룹에 추가",
+      "moveToGroup": "다른 그룹으로 이동",
       "createAndAdd": "새 그룹 만들고 추가...",
       "removeFromGroup": "그룹에서 제거",
+      "deleteTitle": "그룹 삭제",
+      "deleteConfirm": "\"{{name}}\" 그룹을 삭제하시겠습니까? 계정은 삭제되지 않습니다.",
       "allGroups": "모든 그룹",
       "noGroups": "그룹 없음",
       "noGroupsDesc": "그룹을 만들어 계정을 일괄 관리하세요",
@@ -772,7 +777,12 @@
         "deleteFailed": "그룹 삭제 실패: {{error}}",
         "addFailed": "그룹 추가 실패: {{error}}",
         "createAndAddFailed": "그룹 생성 및 추가 실패: {{error}}"
-      }
+      },
+      "addAccounts": "계정 추가",
+      "editTitle": "그룹 편집",
+      "ungrouped": "미분류",
+      "currentGroupLabel": "현재 그룹",
+      "accountPickerEmpty": "일치하는 계정이 없습니다"
     }
   },
   "overview": {

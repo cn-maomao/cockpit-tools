@@ -707,7 +707,9 @@
         "tooLong": "La etiqueta no puede tener más de {{max}} caracteres",
         "duplicate": "La etiqueta ya existe",
         "tooMany": "Puedes agregar hasta {{max}} etiquetas"
-      }
+      },
+      "notesLabel": "Notas",
+      "notesPlaceholder": "Introduce notas. Déjalo vacío para borrar"
     },
     "groupByTag": "Agrupar por etiqueta",
     "untagged": "Sin etiqueta",
@@ -759,8 +761,11 @@
       "accountCount": "{{count}} cuenta(s)",
       "rename": "Renombrar",
       "addToGroup": "Añadir al grupo",
+      "moveToGroup": "Mover a otro grupo",
       "createAndAdd": "Crear grupo y añadir...",
       "removeFromGroup": "Eliminar del grupo",
+      "deleteTitle": "Eliminar grupo",
+      "deleteConfirm": "¿Eliminar el grupo \"{{name}}\"? Las cuentas no se eliminarán.",
       "allGroups": "Todos los grupos",
       "noGroups": "Sin grupos",
       "noGroupsDesc": "Crea grupos para gestionar tus cuentas",
@@ -772,7 +777,12 @@
         "deleteFailed": "Error al eliminar el grupo: {{error}}",
         "addFailed": "Error al añadir al grupo: {{error}}",
         "createAndAddFailed": "Error al crear y añadir: {{error}}"
-      }
+      },
+      "addAccounts": "Agregar cuentas",
+      "editTitle": "Editar grupo",
+      "ungrouped": "Sin grupo",
+      "currentGroupLabel": "Grupo actual",
+      "accountPickerEmpty": "No hay cuentas coincidentes"
     }
   },
   "overview": {

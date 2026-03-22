@@ -707,7 +707,9 @@
         "tooLong": "Etiket en fazla {{max}} karakter olabilir",
         "duplicate": "Etiket zaten mevcut",
         "tooMany": "En fazla {{max}} etiket ekleyebilirsiniz"
-      }
+      },
+      "notesLabel": "Not",
+      "notesPlaceholder": "Not girin. Temizlemek için boş bırakın"
     },
     "groupByTag": "Etikete göre grupla",
     "untagged": "Etiketsiz",
@@ -759,8 +761,11 @@
       "accountCount": "{{count}} hesap",
       "rename": "Yeniden adlandır",
       "addToGroup": "Gruba ekle",
+      "moveToGroup": "Başka bir gruba taşı",
       "createAndAdd": "Grup oluştur ve ekle...",
       "removeFromGroup": "Gruptan kaldır",
+      "deleteTitle": "Grubu sil",
+      "deleteConfirm": "\"{{name}}\" grubunu silmek istiyor musunuz? Hesaplar silinmeyecek.",
       "allGroups": "Tüm gruplar",
       "noGroups": "Grup yok",
       "noGroupsDesc": "Hesaplarınızı toplu yönetmek için gruplar oluşturun",
@@ -772,7 +777,12 @@
         "deleteFailed": "Grup silinemedi: {{error}}",
         "addFailed": "Gruba eklenemedi: {{error}}",
         "createAndAddFailed": "Grup oluşturulamadı ve eklenemedi: {{error}}"
-      }
+      },
+      "addAccounts": "Hesap ekle",
+      "editTitle": "Grubu düzenle",
+      "ungrouped": "Gruplanmamış",
+      "currentGroupLabel": "Mevcut grup",
+      "accountPickerEmpty": "Eşleşen hesap yok"
     }
   },
   "overview": {

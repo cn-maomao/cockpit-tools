@@ -707,7 +707,9 @@
         "tooLong": "Thẻ không được dài quá {{max}} ký tự",
         "duplicate": "Thẻ đã tồn tại",
         "tooMany": "Bạn chỉ có thể thêm tối đa {{max}} thẻ"
-      }
+      },
+      "notesLabel": "Ghi chú",
+      "notesPlaceholder": "Nhập ghi chú. Để trống để xóa"
     },
     "groupByTag": "Nhóm theo thẻ",
     "untagged": "Chưa gắn thẻ",
@@ -759,8 +761,11 @@
       "accountCount": "{{count}} tài khoản",
       "rename": "Đổi tên",
       "addToGroup": "Thêm vào nhóm",
+      "moveToGroup": "Chuyển sang nhóm khác",
       "createAndAdd": "Tạo nhóm và thêm...",
       "removeFromGroup": "Xóa khỏi nhóm",
+      "deleteTitle": "Xóa nhóm",
+      "deleteConfirm": "Xóa nhóm \"{{name}}\"? Các tài khoản sẽ không bị xóa.",
       "allGroups": "Tất cả nhóm",
       "noGroups": "Chưa có nhóm",
       "noGroupsDesc": "Tạo nhóm để quản lý tài khoản hàng loạt",
@@ -772,7 +777,12 @@
         "deleteFailed": "Xóa nhóm thất bại: {{error}}",
         "addFailed": "Thêm vào nhóm thất bại: {{error}}",
         "createAndAddFailed": "Tạo nhóm và thêm thất bại: {{error}}"
-      }
+      },
+      "addAccounts": "Thêm tài khoản",
+      "editTitle": "Sửa nhóm",
+      "ungrouped": "Chưa phân nhóm",
+      "currentGroupLabel": "Nhóm hiện tại",
+      "accountPickerEmpty": "Không có tài khoản phù hợp"
     }
   },
   "overview": {

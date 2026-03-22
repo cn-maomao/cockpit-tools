@@ -707,7 +707,9 @@
         "tooLong": "Tag must be no longer than {{max}} characters",
         "duplicate": "Tag already exists",
         "tooMany": "You can add up to {{max}} tags"
-      }
+      },
+      "notesLabel": "Notes",
+      "notesPlaceholder": "Enter notes. Leave empty to clear"
     },
     "groupByTag": "Group by tags",
     "untagged": "Untagged",
@@ -759,8 +761,11 @@
       "accountCount": "{{count}} account(s)",
       "rename": "Rename",
       "addToGroup": "Add to Group",
+      "moveToGroup": "Move to Another Group",
       "createAndAdd": "Create group and add...",
       "removeFromGroup": "Remove from Group",
+      "deleteTitle": "Delete Group",
+      "deleteConfirm": "Delete group \"{{name}}\"? Accounts will not be deleted.",
       "allGroups": "All Groups",
       "noGroups": "No Groups",
       "noGroupsDesc": "Create groups to manage your accounts in batches",
@@ -772,7 +777,12 @@
         "deleteFailed": "Failed to delete group: {{error}}",
         "addFailed": "Failed to add to group: {{error}}",
         "createAndAddFailed": "Failed to create group and add: {{error}}"
-      }
+      },
+      "addAccounts": "Add Accounts",
+      "editTitle": "Edit Group",
+      "ungrouped": "Ungrouped",
+      "currentGroupLabel": "Current Group",
+      "accountPickerEmpty": "No matching accounts"
     }
   },
   "overview": {

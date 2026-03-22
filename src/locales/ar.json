@@ -707,7 +707,9 @@
         "tooLong": "يجب ألا يتجاوز الوسم {{max}} حرفًا",
         "duplicate": "الوسم موجود بالفعل",
         "tooMany": "يمكنك إضافة حتى {{max}} أوسمة"
-      }
+      },
+      "notesLabel": "ملاحظات",
+      "notesPlaceholder": "أدخل ملاحظات. اتركه فارغًا للمسح"
     },
     "groupByTag": "تجميع حسب العلامة",
     "untagged": "غير موسوم",
@@ -759,8 +761,11 @@
       "accountCount": "{{count}} حساب",
       "rename": "إعادة تسمية",
       "addToGroup": "إضافة إلى المجموعة",
+      "moveToGroup": "نقل إلى مجموعة أخرى",
       "createAndAdd": "إنشاء مجموعة وإضافة...",
       "removeFromGroup": "إزالة من المجموعة",
+      "deleteTitle": "حذف المجموعة",
+      "deleteConfirm": "هل تريد حذف المجموعة \"{{name}}\"؟ لن يتم حذف الحسابات.",
       "allGroups": "جميع المجموعات",
       "noGroups": "لا توجد مجموعات",
       "noGroupsDesc": "أنشئ مجموعات لإدارة حساباتك",
@@ -772,7 +777,12 @@
         "deleteFailed": "فشل حذف المجموعة: {{error}}",
         "addFailed": "فشل الإضافة إلى المجموعة: {{error}}",
         "createAndAddFailed": "فشل الإنشاء والإضافة: {{error}}"
-      }
+      },
+      "addAccounts": "إضافة حسابات",
+      "editTitle": "تحرير المجموعة",
+      "ungrouped": "غير مجمّع",
+      "currentGroupLabel": "المجموعة الحالية",
+      "accountPickerEmpty": "لا توجد حسابات مطابقة"
     }
   },
   "overview": {

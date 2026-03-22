@@ -707,7 +707,9 @@
         "tooLong": "タグは{{max}}文字以内で入力してください",
         "duplicate": "タグは既に存在します",
         "tooMany": "タグは最大{{max}}件まで追加できます"
-      }
+      },
+      "notesLabel": "メモ",
+      "notesPlaceholder": "メモを入力。空欄でクリア"
     },
     "groupByTag": "タグでグループ化",
     "untagged": "タグなし",
@@ -759,8 +761,11 @@
       "accountCount": "{{count}} 件のアカウント",
       "rename": "名前変更",
       "addToGroup": "グループに追加",
+      "moveToGroup": "別のグループに移動",
       "createAndAdd": "新規グループを作成して追加...",
       "removeFromGroup": "グループから削除",
+      "deleteTitle": "グループを削除",
+      "deleteConfirm": "グループ「{{name}}」を削除しますか？アカウントは削除されません。",
       "allGroups": "すべてのグループ",
       "noGroups": "グループなし",
       "noGroupsDesc": "グループを作成してアカウントを一括管理",
@@ -772,7 +777,12 @@
         "deleteFailed": "グループの削除に失敗しました：{{error}}",
         "addFailed": "グループへの追加に失敗しました：{{error}}",
         "createAndAddFailed": "グループの作成と追加に失敗しました：{{error}}"
-      }
+      },
+      "addAccounts": "アカウントを追加",
+      "editTitle": "グループを編集",
+      "ungrouped": "未分類",
+      "currentGroupLabel": "現在のグループ",
+      "accountPickerEmpty": "条件に一致するアカウントはありません"
     }
   },
   "overview": {

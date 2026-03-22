@@ -3,6 +3,7 @@ export interface Account {
     email: string;
     name?: string;
     tags?: string[];
+    notes?: string;
     token: TokenData;
     fingerprint_id?: string;
     quota?: QuotaData;
@@ -10,6 +11,7 @@ export interface Account {
     disabled?: boolean;
     disabled_reason?: string;
     disabled_at?: number;
+    protected_models?: string[];
     created_at: number;
     last_used: number;
 }
@@ -21,6 +23,9 @@ export interface TokenData {
     expiry_timestamp: number;
     token_type: string;
     email?: string;
+    project_id?: string;
+    is_gcp_tos?: boolean;
+    session_id?: string;
 }
 
 export interface QuotaData {

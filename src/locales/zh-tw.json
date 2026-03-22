@@ -707,7 +707,9 @@
         "tooLong": "標籤長度不可超過 {{max}} 個字元",
         "duplicate": "標籤已存在",
         "tooMany": "最多只能新增 {{max}} 個標籤"
-      }
+      },
+      "notesLabel": "備註",
+      "notesPlaceholder": "輸入備註，留空表示不設定"
     },
     "groupByTag": "依標籤分組",
     "untagged": "未標記",
@@ -759,8 +761,11 @@
       "accountCount": "{{count}} 個帳號",
       "rename": "重新命名",
       "addToGroup": "移入分組",
+      "moveToGroup": "移到其他分組",
       "createAndAdd": "新建分組並加入...",
       "removeFromGroup": "移出分組",
+      "deleteTitle": "刪除分組",
+      "deleteConfirm": "確定刪除分組「{{name}}」嗎？帳號不會被刪除。",
       "allGroups": "所有分組",
       "noGroups": "尚無分組",
       "noGroupsDesc": "建立分組來批次管理你的帳號",
@@ -772,7 +777,12 @@
         "deleteFailed": "刪除分組失敗：{{error}}",
         "addFailed": "加入分組失敗：{{error}}",
         "createAndAddFailed": "新建分組並加入失敗：{{error}}"
-      }
+      },
+      "addAccounts": "添加帳號",
+      "editTitle": "編輯分組",
+      "ungrouped": "未分組",
+      "currentGroupLabel": "目前分組",
+      "accountPickerEmpty": "沒有符合條件的帳號"
     }
   },
   "overview": {

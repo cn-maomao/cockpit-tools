@@ -14,6 +14,7 @@ import {
   deleteGroup,
   renameGroup,
   addAccountsToGroup,
+  moveAccountsBetweenGroups,
 } from '../services/accountGroupService';
 import './AccountGroupModal.css';
 
@@ -22,7 +23,7 @@ import './AccountGroupModal.css';
 interface AccountGroupModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onGroupsChanged: () => void;
+  onGroupsChanged: () => Promise<void> | void;
 }
 
 export const AccountGroupModal = ({ isOpen, onClose, onGroupsChanged }: AccountGroupModalProps) => {
@@ -34,8 +35,8 @@ export const AccountGroupModal = ({ isOpen, onClose, onGroupsChanged }: AccountG
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const reload = useCallback(() => {
-    setGroups(getAccountGroups());
+  const reload = useCallback(async () => {
+    setGroups(await getAccountGroups());
   }, []);
 
   useEffect(() => {
@@ -48,64 +49,61 @@ export const AccountGroupModal = ({ isOpen, onClose, onGroupsChanged }: AccountG
     }
   }, [isOpen, reload]);
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     const name = newName.trim();
     if (!name) return;
     setError(null);
     try {
       // 重名检查
       if (groups.some((g) => g.name === name)) {
-        setError(t('accounts.groups.error.duplicate', '分组名称已存在'));
+        setError(t('accounts.groups.error.duplicate'));
         return;
       }
-      createGroup(name);
+      await createGroup(name);
       setNewName('');
-      reload();
-      onGroupsChanged();
+      await reload();
+      await onGroupsChanged();
     } catch (err) {
       console.error('Failed to create group:', err);
       setError(t('accounts.groups.error.createFailed', {
         error: String(err),
-        defaultValue: '创建分组失败：{{error}}',
       }));
     }
   };
 
-  const handleRename = (groupId: string) => {
+  const handleRename = async (groupId: string) => {
     const name = renameValue.trim();
     if (!name) return;
     setError(null);
     try {
       // 重名检查（排除自己）
       if (groups.some((g) => g.id !== groupId && g.name === name)) {
-        setError(t('accounts.groups.error.duplicate', '分组名称已存在'));
+        setError(t('accounts.groups.error.duplicate'));
         return;
       }
-      renameGroup(groupId, name);
+      await renameGroup(groupId, name);
       setRenamingId(null);
-      reload();
-      onGroupsChanged();
+      await reload();
+      await onGroupsChanged();
     } catch (err) {
       console.error('Failed to rename group:', err);
       setError(t('accounts.groups.error.renameFailed', {
         error: String(err),
-        defaultValue: '重命名分组失败：{{error}}',
       }));
     }
   };
 
-  const handleDelete = (groupId: string) => {
+  const handleDelete = async (groupId: string) => {
     setError(null);
     try {
-      deleteGroup(groupId);
+      await deleteGroup(groupId);
       setDeleteConfirmId(null);
-      reload();
-      onGroupsChanged();
+      await reload();
+      await onGroupsChanged();
     } catch (err) {
       console.error('Failed to delete group:', err);
       setError(t('accounts.groups.error.deleteFailed', {
         error: String(err),
-        defaultValue: '删除分组失败：{{error}}',
       }));
     }
   };
@@ -118,7 +116,7 @@ export const AccountGroupModal = ({ isOpen, onClose, onGroupsChanged }: AccountG
         <div className="modal-header">
           <h2>
             <FolderOpen size={18} />
-            {t('accounts.groups.manageTitle', '分组管理')}
+            {t('accounts.groups.manageTitle')}
           </h2>
           <button className="modal-close" onClick={onClose}>
             <X size={18} />
@@ -133,7 +131,7 @@ export const AccountGroupModal = ({ isOpen, onClose, onGroupsChanged }: AccountG
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleCreate(); }}
-              placeholder={t('accounts.groups.newPlaceholder', '输入分组名称...')}
+              placeholder={t('accounts.groups.newPlaceholder')}
               maxLength={30}
             />
             <button
@@ -142,7 +140,7 @@ export const AccountGroupModal = ({ isOpen, onClose, onGroupsChanged }: AccountG
               disabled={!newName.trim()}
             >
               <Plus size={14} />
-              {t('accounts.groups.create', '创建')}
+              {t('accounts.groups.create')}
             </button>
           </div>
 
@@ -158,7 +156,7 @@ export const AccountGroupModal = ({ isOpen, onClose, onGroupsChanged }: AccountG
           {groups.length === 0 ? (
             <div className="group-modal-empty">
               <FolderPlus size={36} />
-              <div>{t('accounts.groups.empty', '暂无分组，创建一个开始使用吧')}</div>
+              <div>{t('accounts.groups.empty')}</div>
             </div>
           ) : (
             <div className="group-modal-list">
@@ -185,7 +183,6 @@ export const AccountGroupModal = ({ isOpen, onClose, onGroupsChanged }: AccountG
                         <span className="group-count">
                           {t('accounts.groups.accountCount', {
                             count: group.accountIds.length,
-                            defaultValue: '{{count}} 个账号',
                           })}
                         </span>
                       </>
@@ -197,14 +194,14 @@ export const AccountGroupModal = ({ isOpen, onClose, onGroupsChanged }: AccountG
                         <button
                           className="group-action-btn danger"
                           onClick={() => handleDelete(group.id)}
-                          title={t('common.confirm', '确认')}
+                          title={t('common.confirm')}
                         >
                           ✓
                         </button>
                         <button
                           className="group-action-btn"
                           onClick={() => setDeleteConfirmId(null)}
-                          title={t('common.cancel', '取消')}
+                          title={t('common.cancel')}
                         >
                           ✗
                         </button>
@@ -217,14 +214,14 @@ export const AccountGroupModal = ({ isOpen, onClose, onGroupsChanged }: AccountG
                             setRenamingId(group.id);
                             setRenameValue(group.name);
                           }}
-                          title={t('accounts.groups.rename', '重命名')}
+                          title={t('accounts.groups.rename')}
                         >
                           <Pencil size={14} />
                         </button>
                         <button
                           className="group-action-btn danger"
                           onClick={() => setDeleteConfirmId(group.id)}
-                          title={t('common.delete', '删除')}
+                          title={t('common.delete')}
                         >
                           <Trash2 size={14} />
                         </button>
@@ -239,7 +236,7 @@ export const AccountGroupModal = ({ isOpen, onClose, onGroupsChanged }: AccountG
 
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={onClose}>
-            {t('common.close', '关闭')}
+            {t('common.close')}
           </button>
         </div>
       </div>
@@ -253,10 +250,11 @@ interface AddToGroupModalProps {
   isOpen: boolean;
   onClose: () => void;
   accountIds: string[];
-  onAdded: () => void;
+  sourceGroupId?: string;
+  onAdded: () => Promise<void> | void;
 }
 
-export const AddToGroupModal = ({ isOpen, onClose, accountIds, onAdded }: AddToGroupModalProps) => {
+export const AddToGroupModal = ({ isOpen, onClose, accountIds, sourceGroupId, onAdded }: AddToGroupModalProps) => {
   const { t } = useTranslation();
   const [groups, setGroups] = useState<AccountGroup[]>([]);
   const [newName, setNewName] = useState('');
@@ -264,41 +262,47 @@ export const AddToGroupModal = ({ isOpen, onClose, accountIds, onAdded }: AddToG
 
   useEffect(() => {
     if (isOpen) {
-      setGroups(getAccountGroups());
+      (async () => setGroups(await getAccountGroups()))();
       setNewName('');
       setError(null);
     }
   }, [isOpen]);
 
-  const handleSelect = (groupId: string) => {
+  const handleSelect = async (groupId: string) => {
     setError(null);
     try {
-      addAccountsToGroup(groupId, accountIds);
-      onAdded();
+      if (sourceGroupId) {
+        await moveAccountsBetweenGroups(sourceGroupId, groupId, accountIds);
+      } else {
+        await addAccountsToGroup(groupId, accountIds);
+      }
+      await onAdded();
       onClose();
     } catch (err) {
       console.error('Failed to add accounts to group:', err);
       setError(t('accounts.groups.error.addFailed', {
         error: String(err),
-        defaultValue: '添加到分组失败：{{error}}',
       }));
     }
   };
 
-  const handleCreateAndAdd = () => {
+  const handleCreateAndAdd = async () => {
     const name = newName.trim();
     if (!name) return;
     setError(null);
     try {
-      const group = createGroup(name);
-      addAccountsToGroup(group.id, accountIds);
-      onAdded();
+      const group = await createGroup(name);
+      if (sourceGroupId) {
+        await moveAccountsBetweenGroups(sourceGroupId, group.id, accountIds);
+      } else {
+        await addAccountsToGroup(group.id, accountIds);
+      }
+      await onAdded();
       onClose();
     } catch (err) {
       console.error('Failed to create group and add accounts:', err);
       setError(t('accounts.groups.error.createAndAddFailed', {
         error: String(err),
-        defaultValue: '新建分组并添加失败：{{error}}',
       }));
     }
   };
@@ -311,7 +315,7 @@ export const AddToGroupModal = ({ isOpen, onClose, accountIds, onAdded }: AddToG
         <div className="modal-header">
           <h2>
             <FolderPlus size={18} />
-            {t('accounts.groups.addToGroup', '移入分组')}
+            {sourceGroupId ? t('accounts.groups.moveToGroup') : t('accounts.groups.addToGroup')}
           </h2>
           <button className="modal-close" onClick={onClose}>
             <X size={18} />
@@ -325,7 +329,7 @@ export const AddToGroupModal = ({ isOpen, onClose, accountIds, onAdded }: AddToG
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleCreateAndAdd(); }}
-              placeholder={t('accounts.groups.createAndAdd', '新建分组并添加...')}
+              placeholder={t('accounts.groups.createAndAdd')}
               maxLength={30}
             />
             <button
@@ -339,7 +343,7 @@ export const AddToGroupModal = ({ isOpen, onClose, accountIds, onAdded }: AddToG
 
           {groups.length > 0 && (
             <div className="add-to-group-list">
-              {groups.map((group) => (
+              {groups.filter((g) => g.id !== sourceGroupId).map((group) => (
                 <div
                   key={group.id}
                   className="add-to-group-item"

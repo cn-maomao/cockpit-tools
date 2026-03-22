@@ -37,7 +37,8 @@ import {
   FolderOpen,
   FolderPlus,
   ChevronRight,
-  LogOut
+  LogOut,
+  Pencil
 } from 'lucide-react'
 import { useTranslation, Trans } from 'react-i18next'
 import { useAccountStore } from '../stores/useAccountStore'
@@ -48,7 +49,6 @@ import {
   getAntigravityTierBadge,
   getQuotaClass,
   formatResetTimeDisplay,
-  getSubscriptionTier,
 } from '../utils/account'
 import { listen, UnlistenFn } from '@tauri-apps/api/event'
 import { invoke } from '@tauri-apps/api/core'
@@ -58,10 +58,14 @@ import { GroupSettingsModal } from '../components/GroupSettingsModal'
 import { TagEditModal } from '../components/TagEditModal'
 import { ExportJsonModal } from '../components/ExportJsonModal'
 import { AccountGroupModal, AddToGroupModal } from '../components/AccountGroupModal'
+import { GroupAccountPickerModal } from '../components/GroupAccountPickerModal'
 import {
   AccountGroup,
   getAccountGroups,
+  assignAccountsToGroup,
   removeAccountsFromGroup,
+  deleteGroup,
+  renameGroup,
 } from '../services/accountGroupService'
 import {
   GroupSettings,
@@ -94,13 +98,22 @@ import {
 } from '../utils/privacy'
 import { useExportJsonModal } from '../hooks/useExportJsonModal'
 import { MultiSelectFilterDropdown, type MultiSelectFilterOption } from '../components/MultiSelectFilterDropdown'
+import { AccountTagFilterDropdown } from '../components/AccountTagFilterDropdown'
+import {
+  accountMatchesTagFilters,
+  accountMatchesTypeFilters,
+  buildAccountTierCounts,
+  buildAccountTierFilterOptions,
+  collectAvailableAccountTags,
+  normalizeAccountTag,
+  type AccountFilterType,
+} from '../utils/accountFilters'
 
 interface AccountsPageProps {
   onNavigate?: (page: Page) => void
 }
 
 type ViewMode = 'grid' | 'list' | 'compact'
-type FilterType = 'PRO' | 'ULTRA' | 'FREE' | 'UNKNOWN' | 'VERIFICATION_REQUIRED' | 'TOS_VIOLATION'
 
 interface VerificationDetailRecord {
   status: string
@@ -262,12 +275,11 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
 
   // 筛选
   const [searchQuery, setSearchQuery] = useState('')
-  const [filterTypes, setFilterTypes] = useState<FilterType[]>([])
+  const [filterTypes, setFilterTypes] = useState<AccountFilterType[]>([])
   const [tagFilter, setTagFilter] = useState<string[]>([])
   const [groupByTag, setGroupByTag] = useState(false)
-  const [showTagFilter, setShowTagFilter] = useState(false)
 
-  const toggleFilterTypeValue = useCallback((value: FilterType) => {
+  const toggleFilterTypeValue = useCallback((value: AccountFilterType) => {
     setFilterTypes((prev) => {
       if (prev.includes(value)) {
         return prev.filter((item) => item !== value)
@@ -321,6 +333,12 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
     message: string
   } | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [groupDeleteConfirm, setGroupDeleteConfirm] = useState<{
+    id: string
+    name: string
+  } | null>(null)
+  const [deletingGroup, setDeletingGroup] = useState(false)
+  const [removingGroupAccountIds, setRemovingGroupAccountIds] = useState<Set<string>>(new Set())
   const [tagDeleteConfirm, setTagDeleteConfirm] = useState<{
     tag: string
     count: number
@@ -349,19 +367,29 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
   const [displayGroupsLoaded, setDisplayGroupsLoaded] = useState(false)
 
   // ─── 账号分组（文件夹）────────────────────────────────────
-  const [accountGroups, setAccountGroups] = useState<AccountGroup[]>(() => getAccountGroups())
+  const [accountGroups, setAccountGroups] = useState<AccountGroup[]>([])
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null)
   const [showAccountGroupModal, setShowAccountGroupModal] = useState(false)
   const [showAddToGroupModal, setShowAddToGroupModal] = useState(false)
+  const [groupAccountPickerGroupId, setGroupAccountPickerGroupId] = useState<string | null>(null)
 
-  const reloadAccountGroups = useCallback(() => {
-    setAccountGroups(getAccountGroups())
+  const reloadAccountGroups = useCallback(async () => {
+    setAccountGroups(await getAccountGroups())
   }, [])
+
+  useEffect(() => {
+    reloadAccountGroups()
+  }, [reloadAccountGroups])
 
   const activeGroup = useMemo(() => {
     if (!activeGroupId) return null
     return accountGroups.find((g) => g.id === activeGroupId) || null
   }, [accountGroups, activeGroupId])
+
+  const groupAccountPickerGroup = useMemo(() => {
+    if (!groupAccountPickerGroupId) return null
+    return accountGroups.find((group) => group.id === groupAccountPickerGroupId) || null
+  }, [accountGroups, groupAccountPickerGroupId])
 
   // 离开已删除的分组
   useEffect(() => {
@@ -407,16 +435,17 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
   const addTabRef = useRef(addTab)
   const oauthUrlRef = useRef(oauthUrl)
   const addStatusRef = useRef(addStatus)
+  const activeGroupIdRef = useRef(activeGroupId)
   const verificationHistoryRequestIdRef = useRef(0)
   const colorPickerRef = useRef<HTMLDivElement>(null)
-  const tagFilterRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     showAddModalRef.current = showAddModal
     addTabRef.current = addTab
     oauthUrlRef.current = oauthUrl
     addStatusRef.current = addStatus
-  }, [showAddModal, addTab, oauthUrl, addStatus])
+    activeGroupIdRef.current = activeGroupId
+  }, [showAddModal, addTab, oauthUrl, addStatus, activeGroupId])
 
   // 获取账号的配额数据 (modelId -> percentage)
   const getAccountQuotas = (account: Account): Record<string, number> => {
@@ -474,8 +503,6 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
     return total.toFixed(2).replace(/\.?0+$/, '')
   }
 
-  const normalizeTag = (tag: string) => tag.trim().toLowerCase()
-
   useEffect(() => {
     localStorage.setItem(ANTIGRAVITY_ACCOUNTS_SORT_BY_STORAGE_KEY, sortBy)
   }, [sortBy])
@@ -524,16 +551,7 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
     [displayGroups, sortBy, sortDirection]
   )
 
-  const availableTags = useMemo(() => {
-    const set = new Set<string>()
-    accounts.forEach((account) => {
-      ; (account.tags || []).forEach((tag) => {
-        const normalized = normalizeTag(tag)
-        if (normalized) set.add(normalized)
-      })
-    })
-    return Array.from(set).sort((a, b) => a.localeCompare(b))
-  }, [accounts])
+  const availableTags = useMemo(() => collectAvailableAccountTags(accounts), [accounts])
 
   // 筛选后的账号
   const filteredAccounts = useMemo(() => {
@@ -543,6 +561,17 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
     if (activeGroup) {
       const groupAccountSet = new Set(activeGroup.accountIds)
       result = result.filter((acc) => groupAccountSet.has(acc.id))
+    } else {
+      // 主界面：隐藏所有已被归入文件夹的账号
+      const allGroupedIds = new Set<string>()
+      for (const group of accountGroups) {
+        for (const id of group.accountIds) {
+          allGroupedIds.add(id)
+        }
+      }
+      if (allGroupedIds.size > 0) {
+        result = result.filter((acc) => !allGroupedIds.has(acc.id))
+      }
     }
 
     // 搜索过滤
@@ -554,32 +583,15 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
     // 类型过滤（多选）
     if (filterTypes.length > 0) {
       const selectedTypes = new Set(filterTypes)
-      result = result.filter((acc) => {
-        const verificationStatus = acc.disabled_reason || verificationStatusMap[acc.id]
-        const tier = getSubscriptionTier(acc.quota) as FilterType
-        if (
-          selectedTypes.has('VERIFICATION_REQUIRED') &&
-          verificationStatus === 'verification_required'
-        ) {
-          return true
-        }
-        if (
-          selectedTypes.has('TOS_VIOLATION') &&
-          verificationStatus === 'tos_violation'
-        ) {
-          return true
-        }
-        return selectedTypes.has(tier)
-      })
+      result = result.filter((acc) =>
+        accountMatchesTypeFilters(acc, selectedTypes, verificationStatusMap)
+      )
     }
 
     // 标签过滤
     if (tagFilter.length > 0) {
-      const selectedTags = new Set(tagFilter.map(normalizeTag))
-      result = result.filter((acc) => {
-        const tags = (acc.tags || []).map(normalizeTag)
-        return tags.some((tag) => selectedTags.has(tag))
-      })
+      const selectedTags = new Set(tagFilter.map(normalizeAccountTag))
+      result = result.filter((acc) => accountMatchesTagFilters(acc, selectedTags))
     }
     result.sort(accountSortComparator)
     return result
@@ -591,15 +603,16 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
     accountSortComparator,
     verificationStatusMap,
     activeGroup,
+    accountGroups,
   ])
 
   const groupedAccounts = useMemo(() => {
     if (!groupByTag) return [] as Array<[string, typeof filteredAccounts]>
     const groups = new Map<string, typeof filteredAccounts>()
-    const selectedTags = new Set(tagFilter.map(normalizeTag))
+    const selectedTags = new Set(tagFilter.map(normalizeAccountTag))
 
     filteredAccounts.forEach((account) => {
-      const tags = (account.tags || []).map(normalizeTag).filter(Boolean)
+      const tags = (account.tags || []).map(normalizeAccountTag).filter(Boolean)
       const matchedTags =
         selectedTags.size > 0
           ? tags.filter((tag) => selectedTags.has(tag))
@@ -624,37 +637,19 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
     })
   }, [filteredAccounts, groupByTag, tagFilter, untaggedKey])
 
+  const hasVisibleAccountGroups = useMemo(
+    () => !activeGroupId && !groupByTag && accountGroups.length > 0,
+    [activeGroupId, groupByTag, accountGroups]
+  )
+
   // 统计数量
-  const tierCounts = useMemo(() => {
-    const counts = { all: accounts.length, PRO: 0, ULTRA: 0, FREE: 0, UNKNOWN: 0, VERIFICATION_REQUIRED: 0, TOS_VIOLATION: 0 }
-    accounts.forEach((acc) => {
-      const tier = getSubscriptionTier(acc.quota)
-      if (tier === 'PRO') counts.PRO++
-      else if (tier === 'ULTRA') counts.ULTRA++
-      else if (tier === 'FREE') counts.FREE++
-      else counts.UNKNOWN++
-      const vStatus = acc.disabled_reason || verificationStatusMap[acc.id]
-      if (vStatus === 'verification_required') counts.VERIFICATION_REQUIRED++
-      else if (vStatus === 'tos_violation') counts.TOS_VIOLATION++
-    })
-    return counts
-  }, [accounts, verificationStatusMap])
+  const tierCounts = useMemo(
+    () => buildAccountTierCounts(accounts, verificationStatusMap),
+    [accounts, verificationStatusMap]
+  )
 
   const tierFilterOptions = useMemo<MultiSelectFilterOption[]>(
-    () => [
-      { value: 'PRO', label: `PRO (${tierCounts.PRO})` },
-      { value: 'ULTRA', label: `ULTRA (${tierCounts.ULTRA})` },
-      { value: 'FREE', label: `FREE (${tierCounts.FREE})` },
-      {
-        value: 'VERIFICATION_REQUIRED',
-        label: `${t('wakeup.errorUi.verificationRequiredTitle')} (${tierCounts.VERIFICATION_REQUIRED})`,
-      },
-      {
-        value: 'TOS_VIOLATION',
-        label: `${t('wakeup.errorUi.tosViolationTitle')} (${tierCounts.TOS_VIOLATION})`,
-      },
-      { value: 'UNKNOWN', label: `UNKNOWN (${tierCounts.UNKNOWN})` },
-    ],
+    () => buildAccountTierFilterOptions(t, tierCounts),
     [t, tierCounts.FREE, tierCounts.PRO, tierCounts.TOS_VIOLATION, tierCounts.ULTRA, tierCounts.UNKNOWN, tierCounts.VERIFICATION_REQUIRED]
   )
 
@@ -874,18 +869,6 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
   }, [showColorPicker])
 
   useEffect(() => {
-    if (!showTagFilter) return
-    const handleClick = (event: MouseEvent) => {
-      if (!tagFilterRef.current) return
-      if (!tagFilterRef.current.contains(event.target as Node)) {
-        setShowTagFilter(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [showTagFilter])
-
-  useEffect(() => {
     let unlistenUrl: UnlistenFn | undefined
     let unlistenCallback: UnlistenFn | undefined
 
@@ -906,9 +889,14 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
       setAddStatus('loading')
       setAddMessage(t('accounts.oauth.authorizing'))
       try {
-        await accountService.completeOAuthLogin()
+        const newAccount = await accountService.completeOAuthLogin()
         await fetchAccounts()
         await fetchCurrentAccount()
+        // 如果在文件夹内添加，自动归入当前文件夹
+        if (activeGroupIdRef.current && newAccount?.id) {
+          await assignAccountsToGroup(activeGroupIdRef.current, [newAccount.id])
+          await reloadAccountGroups()
+        }
         setAddStatus('success')
         setAddMessage(t('accounts.oauth.success'))
         setTimeout(() => {
@@ -1361,6 +1349,11 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
         importedAccounts.map((acc) => refreshQuota(acc.id))
       )
       await fetchAccounts()
+      // 如果在文件夹内添加，自动归入当前文件夹
+      if (activeGroupId) {
+        await assignAccountsToGroup(activeGroupId, importedAccounts.map((acc) => acc.id))
+        await reloadAccountGroups()
+      }
     }
 
     if (success === tokens.length) {
@@ -1425,72 +1418,77 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
   }
 
   // 从当前分组中移除选中账号
-  const handleRemoveFromGroup = () => {
+  const handleRemoveFromGroup = async () => {
     if (!activeGroupId || selected.size === 0) return
-    removeAccountsFromGroup(activeGroupId, Array.from(selected))
+    await removeAccountsFromGroup(activeGroupId, Array.from(selected))
     setSelected(new Set())
-    reloadAccountGroups()
+    await reloadAccountGroups()
   }
 
-  // 渲染分组文件夹卡片
-  const renderFolderGrid = () => {
-    if (accountGroups.length === 0) {
-      return (
-        <div className="empty-state">
-          <FolderPlus size={40} />
-          <h3>{t('accounts.groups.noGroups', '暂无分组')}</h3>
-          <p>{t('accounts.groups.noGroupsDesc', '创建分组来批量管理你的账号')}</p>
-          <button
-            className="btn btn-primary"
-            onClick={() => setShowAccountGroupModal(true)}
-          >
-            <Plus size={18} />
-            {t('accounts.groups.create', '创建分组')}
-          </button>
-        </div>
-      )
+  const handleRemoveSingleFromGroup = useCallback(
+    async (groupId: string, accountId: string) => {
+      setRemovingGroupAccountIds((prev) => {
+        const next = new Set(prev)
+        next.add(accountId)
+        return next
+      })
+
+      try {
+        await removeAccountsFromGroup(groupId, [accountId])
+        setSelected((prev) => {
+          if (!prev.has(accountId)) return prev
+          const next = new Set(prev)
+          next.delete(accountId)
+          return next
+        })
+        await reloadAccountGroups()
+      } catch (error) {
+        console.error('Failed to remove account from group:', error)
+        setMessage({
+          text: t('messages.actionFailed', {
+            action: t('accounts.groups.removeFromGroup'),
+            error: String(error),
+          }),
+          tone: 'error',
+        })
+      } finally {
+        setRemovingGroupAccountIds((prev) => {
+          const next = new Set(prev)
+          next.delete(accountId)
+          return next
+        })
+      }
+    },
+    [reloadAccountGroups, t]
+  )
+
+  const requestDeleteGroup = useCallback((groupId: string, groupName: string) => {
+    setGroupDeleteConfirm({
+      id: groupId,
+      name: groupName,
+    })
+  }, [])
+
+  const confirmDeleteGroup = useCallback(async () => {
+    if (!groupDeleteConfirm || deletingGroup) return
+
+    setDeletingGroup(true)
+    try {
+      await deleteGroup(groupDeleteConfirm.id)
+      await reloadAccountGroups()
+      setGroupDeleteConfirm(null)
+    } catch (error) {
+      console.error('Failed to delete account group:', error)
+      setMessage({
+        text: t('accounts.groups.error.deleteFailed', { error: String(error) }),
+        tone: 'error',
+      })
+    } finally {
+      setDeletingGroup(false)
     }
-    return (
-      <div className="account-folder-grid">
-        {accountGroups.map((group) => {
-          const groupAccounts = accounts.filter((acc) => group.accountIds.includes(acc.id))
-          return (
-            <div
-              key={group.id}
-              className="account-folder-card"
-              onClick={() => {
-                setActiveGroupId(group.id)
-                setSelected(new Set())
-              }}
-            >
-              <div className="folder-card-icon">
-                <FolderOpen size={32} />
-              </div>
-              <div className="folder-card-info">
-                <span className="folder-card-name">{group.name}</span>
-                <span className="folder-card-count">
-                  {t('accounts.groups.accountCount', {
-                    count: groupAccounts.length,
-                    defaultValue: '{{count}} 个账号',
-                  })}
-                </span>
-              </div>
-              <div className="folder-card-preview">
-                {groupAccounts.slice(0, 3).map((acc) => (
-                  <span key={acc.id} className="folder-preview-email" title={acc.email}>
-                    {acc.email.split('@')[0]}
-                  </span>
-                ))}
-                {groupAccounts.length > 3 && (
-                  <span className="folder-preview-more">+{groupAccounts.length - 3}</span>
-                )}
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    )
-  }
+  }, [deletingGroup, groupDeleteConfirm, reloadAccountGroups, t])
+
+  // 渲染分组文件夹卡片
 
   const toggleTagFilterValue = (tag: string) => {
     setTagFilter((prev) => {
@@ -1504,10 +1502,10 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
   };
 
   const requestDeleteTag = (tag: string) => {
-    const normalized = normalizeTag(tag)
+    const normalized = normalizeAccountTag(tag)
     if (!normalized) return
     const count = accounts.filter((account) =>
-      (account.tags || []).some((item) => normalizeTag(item) === normalized)
+      (account.tags || []).some((item) => normalizeAccountTag(item) === normalized)
     ).length
     setTagDeleteConfirm({ tag: normalized, count })
   }
@@ -1517,24 +1515,23 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
     setDeletingTag(true)
     const target = tagDeleteConfirm.tag
     const affected = accounts.filter((account) =>
-      (account.tags || []).some((item) => normalizeTag(item) === target)
+      (account.tags || []).some((item) => normalizeAccountTag(item) === target)
     )
 
     try {
       await Promise.allSettled(
         affected.map((account) => {
           const nextTags = (account.tags || []).filter(
-            (item) => normalizeTag(item) !== target
+            (item) => normalizeAccountTag(item) !== target
           )
           return accountService.updateAccountTags(account.id, nextTags)
         })
       )
-      setTagFilter((prev) => prev.filter((item) => normalizeTag(item) !== target))
+      setTagFilter((prev) => prev.filter((item) => normalizeAccountTag(item) !== target))
       await fetchAccounts()
     } finally {
       setDeletingTag(false)
       setTagDeleteConfirm(null)
-      setShowTagFilter(false)
     }
   }
 
@@ -1542,11 +1539,53 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
     setShowTagModal(accountId);
   };
 
-  const handleSaveTags = async (tags: string[]) => {
+  const handleSaveTags = async (tags: string[], notes?: string) => {
     if (!showTagModal) return;
-    await updateAccountTags(showTagModal, tags);
+    const accountId = showTagModal
+    await accountService.updateAccountNotes(accountId, notes ?? '')
+    await updateAccountTags(accountId, tags);
     setShowTagModal(null);
   };
+
+  const handleAssignAccountsToGroup = async (
+    groupId: string,
+    groupName: string,
+    accountIds: string[]
+  ) => {
+    const currentGroup = accountGroups.find((group) => group.id === groupId)
+    if (!currentGroup) return
+
+    const nextName = groupName.trim()
+    if (!nextName) {
+      throw new Error(t('platformLayout.groupNameRequired'))
+    }
+
+    if (accountGroups.some((group) => group.id !== groupId && group.name === nextName)) {
+      throw new Error(t('accounts.groups.error.duplicate'))
+    }
+
+    const currentIds = new Set(currentGroup.accountIds)
+    const nextIds = new Set(accountIds)
+    const addedIds = accountIds.filter((accountId) => !currentIds.has(accountId))
+    const removedIds = currentGroup.accountIds.filter((accountId) => !nextIds.has(accountId))
+    const shouldRename = nextName !== currentGroup.name
+
+    if (!shouldRename && addedIds.length === 0 && removedIds.length === 0) return
+
+    if (shouldRename) {
+      await renameGroup(groupId, nextName)
+    }
+
+    if (accountIds.length > 0) {
+      await assignAccountsToGroup(groupId, accountIds)
+    }
+
+    if (removedIds.length > 0) {
+      await removeAccountsFromGroup(groupId, removedIds)
+    }
+
+    await reloadAccountGroups()
+  }
 
   const openFpSelectModal = (accountId: string) => {
     const account = accounts.find((a) => a.id === accountId)
@@ -1768,14 +1807,9 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
             })()}
           </div>
 
-          {accountTags.length > 0 && (
-            <div className="card-tags">
-              {visibleTags.map((tag, idx) => (
-                <span key={`${account.id}-${tag}-${idx}`} className="tag-pill">
-                  {tag}
-                </span>
-              ))}
-              {moreTagCount > 0 && <span className="tag-pill more">+{moreTagCount}</span>}
+          {account.notes && (
+            <div className="card-notes">
+              <span className="notes-text" title={account.notes}>{account.notes}</span>
             </div>
           )}
 
@@ -1823,6 +1857,16 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
             </div>
           </div>
 
+          {accountTags.length > 0 && (
+            <div className="card-tags">
+              {visibleTags.map((tag, idx) => (
+                <span key={`${account.id}-${tag}-${idx}`} className="tag-pill">
+                  {tag}
+                </span>
+              ))}
+              {moreTagCount > 0 && <span className="tag-pill more">+{moreTagCount}</span>}
+            </div>
+          )}
           <div className="card-footer">
             <span className="card-date">{formatDate(account.created_at)}</span>
             <div className="card-actions">
@@ -1912,10 +1956,87 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
       )
     })
 
+  // 渲染文件夹卡片（嵌入accounts-grid内）
+  const renderInlineFolderCards = () => {
+    if (activeGroupId || accountGroups.length === 0) return null
+    return accountGroups.map((group) => {
+      const groupAccounts = accounts.filter((acc) => group.accountIds.includes(acc.id))
+      return (
+        <div
+          key={`folder-${group.id}`}
+          className="account-card folder-inline-card"
+          onClick={() => {
+            setActiveGroupId(group.id)
+            setSelected(new Set())
+          }}
+        >
+          <div className="folder-inline-header">
+            <div className="folder-inline-icon">
+              <FolderOpen size={24} />
+            </div>
+            <div className="folder-inline-info">
+              <span className="folder-inline-name">{group.name}</span>
+              <span className="folder-inline-count">
+                {t('accounts.groups.accountCount', { count: groupAccounts.length })}
+              </span>
+            </div>
+            <button
+              className="folder-icon-btn"
+              title={t('accounts.groups.editTitle')}
+              onClick={(e) => {
+                e.stopPropagation()
+                setGroupAccountPickerGroupId(group.id)
+              }}
+            >
+              <Pencil size={14} />
+            </button>
+            <button
+              className="folder-icon-btn folder-delete-btn"
+              title={t('accounts.groups.deleteTitle')}
+              onClick={(e) => {
+                e.stopPropagation()
+                requestDeleteGroup(group.id, group.name)
+              }}
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
+          <div className="folder-inline-preview">
+            {groupAccounts.map((acc) => (
+              <div key={acc.id} className={`folder-preview-item${acc.disabled ? ' disabled' : ''}`}>
+                <span className="folder-preview-email" title={maskAccountText(acc.email) || ''}>
+                  {maskAccountText(acc.email)}
+                </span>
+                {acc.quota?.subscription_tier && (
+                  <span className={`tier-badge ${(acc.quota.subscription_tier || '').replace(/-tier$/, '').replace('g1-', '').toLowerCase()}`}>
+                    {(acc.quota.subscription_tier || '').replace(/-tier$/, '').replace('g1-', '').toUpperCase()}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  className="folder-preview-remove-btn"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    void handleRemoveSingleFromGroup(group.id, acc.id)
+                  }}
+                  title={t('accounts.groups.removeFromGroup')}
+                  aria-label={`${t('accounts.groups.removeFromGroup')}: ${maskAccountText(acc.email)}`}
+                  disabled={removingGroupAccountIds.has(acc.id)}
+                >
+                  <LogOut size={12} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+    })
+  }
+
   // 渲染卡片视图
   const renderGridView = () => {
     if (!groupByTag) {
-      return <div className="accounts-grid">{renderGridCards(filteredAccounts)}</div>
+      return <div className="accounts-grid">{renderInlineFolderCards()}{renderGridCards(filteredAccounts)}</div>
     }
 
     return (
@@ -1945,7 +2066,7 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
   }
 
   // 渲染紧凑视图 - 只显示邮箱和配额百分比
-  const renderCompactView = () => {
+	  const renderCompactView = () => {
     // 获取排序后的分组
     const orderedGroups = getOrderedDisplayGroups()
     // 过滤隐藏的分组用于显示配额
@@ -2098,9 +2219,9 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
         )
       })
 
-    return (
-      <>
-        <div className={styles.container}>
+	    return (
+	      <>
+	        <div className={styles.container}>
           {/* 图例 - 支持拖拽排序、颜色选择、显示/隐藏 */}
           {orderedGroups.length > 0 && (
             <div
@@ -2163,10 +2284,10 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
             </div>
           )}
 
-          {/* 账号列表 */}
-          {groupByTag ? (
-            <div className="tag-group-list">
-              {groupedAccounts.map(([groupKey, groupAccounts]) => (
+	          {/* 账号列表 */}
+	          {groupByTag ? (
+	            <div className="tag-group-list">
+	              {groupedAccounts.map(([groupKey, groupAccounts]) => (
                 <div key={groupKey} className="tag-group-section">
                   <div className="tag-group-header">
                     <span className="tag-group-title">
@@ -2182,10 +2303,15 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
                 </div>
               ))}
             </div>
-          ) : (
-            <div className={styles.grid}>{renderCompactCards(filteredAccounts)}</div>
-          )}
-        </div>
+	          ) : (
+	            <>
+	              {hasVisibleAccountGroups && (
+	                <div className="accounts-grid">{renderInlineFolderCards()}</div>
+	              )}
+	              <div className={styles.grid}>{renderCompactCards(filteredAccounts)}</div>
+	            </>
+	          )}
+	        </div>
 
         {/* Color Picker Portal - rendered to body */}
         {showColorPicker &&
@@ -2470,6 +2596,55 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
           </tr>
         </thead>
         <tbody>
+          {!activeGroupId && accountGroups.length > 0 && accountGroups.map((group) => {
+            const groupAccounts = accounts.filter((acc) => group.accountIds.includes(acc.id))
+            return (
+              <tr
+                key={`folder-row-${group.id}`}
+                className="folder-table-row"
+                style={{ cursor: 'pointer' }}
+                onClick={() => {
+                  setActiveGroupId(group.id)
+                  setSelected(new Set())
+                }}
+              >
+                <td></td>
+                <td colSpan={3}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <FolderOpen size={16} style={{ color: 'var(--primary)' }} />
+                    <strong>{group.name}</strong>
+                    <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>
+                      {t('accounts.groups.accountCount', { count: groupAccounts.length })}
+                    </span>
+                  </div>
+                </td>
+                <td>
+                  <div className="folder-table-actions">
+                    <button
+                      className="folder-icon-btn"
+                      title={t('accounts.groups.editTitle')}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setGroupAccountPickerGroupId(group.id)
+                      }}
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    <button
+                      className="folder-icon-btn folder-delete-btn"
+                      title={t('accounts.groups.deleteTitle')}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        requestDeleteGroup(group.id, group.name)
+                      }}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            )
+          })}
           {groupByTag
             ? groupedAccounts.map(([groupKey, groupAccounts]) => (
               <Fragment key={groupKey}>
@@ -2513,7 +2688,7 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
               }}
             >
               <FolderOpen size={14} />
-              {t('accounts.groups.allGroups', '全部分组')}
+              {t('accounts.groups.allGroups')}
             </button>
             <ChevronRight size={14} className="breadcrumb-sep" />
             <span className="breadcrumb-current">
@@ -2521,37 +2696,29 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
               <span className="breadcrumb-count">({filteredAccounts.length})</span>
             </span>
             {selected.size > 0 && (
-              <button
-                className="btn btn-secondary breadcrumb-remove-btn"
-                onClick={handleRemoveFromGroup}
-                title={t('accounts.groups.removeFromGroup', '移出分组')}
-              >
-                <LogOut size={14} />
-                {t('accounts.groups.removeFromGroup', '移出分组')} ({selected.size})
-              </button>
+              <>
+                <button
+                  className="btn btn-secondary breadcrumb-remove-btn"
+                  onClick={() => setShowAddToGroupModal(true)}
+                  title={t('accounts.groups.moveToGroup')}
+                >
+                  <FolderPlus size={14} />
+                  {t('accounts.groups.moveToGroup')} ({selected.size})
+                </button>
+                <button
+                  className="btn btn-secondary breadcrumb-remove-btn"
+                  onClick={handleRemoveFromGroup}
+                  title={t('accounts.groups.removeFromGroup')}
+                >
+                  <LogOut size={14} />
+                  {t('accounts.groups.removeFromGroup')} ({selected.size})
+                </button>
+              </>
             )}
           </div>
         )}
 
-        {/* 分组文件夹网格（未进入分组且有分组时显示） */}
-        {!activeGroupId && accountGroups.length > 0 && (
-          <div className="folder-section">
-            <div className="folder-section-header">
-              <h3>
-                <FolderOpen size={16} />
-                {t('accounts.groups.title', '账号分组')}
-              </h3>
-              <button
-                className="btn btn-secondary btn-sm"
-                onClick={() => setShowAccountGroupModal(true)}
-              >
-                <Plus size={14} />
-                {t('accounts.groups.manage', '管理')}
-              </button>
-            </div>
-            {renderFolderGrid()}
-          </div>
-        )}
+        {/* 分组文件夹已嵌入到 accounts-grid 内，此处不再单独显示 */}
 
         {/* 工具栏 */}
         <div className="toolbar">
@@ -2598,81 +2765,19 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
               clearLabel={t('accounts.clearFilter', '清空筛选')}
               emptyLabel={t('common.none', '暂无')}
               ariaLabel={t('accounts.filterLabel', '筛选')}
-              onToggleValue={(value) => toggleFilterTypeValue(value as FilterType)}
+              onToggleValue={(value) => toggleFilterTypeValue(value as AccountFilterType)}
               onClear={clearFilterTypes}
             />
 
-            <div className="tag-filter" ref={tagFilterRef}>
-              <button
-                type="button"
-                className={`tag-filter-btn ${tagFilter.length > 0 ? 'active' : ''}`}
-                onClick={() => setShowTagFilter((prev) => !prev)}
-                aria-label={t('accounts.filterTags', '标签筛选')}
-              >
-                <Tag size={14} />
-                {tagFilter.length > 0
-                  ? `${t('accounts.filterTagsCount', '标签')}(${tagFilter.length})`
-                  : t('accounts.filterTags', '标签筛选')}
-              </button>
-              {showTagFilter && (
-                <div className="tag-filter-panel">
-                  {availableTags.length === 0 ? (
-                    <div className="tag-filter-empty">
-                      {t('accounts.noAvailableTags', '暂无可用标签')}
-                    </div>
-                  ) : (
-                    <div className="tag-filter-options">
-                      {availableTags.map((tag) => (
-                        <label
-                          key={tag}
-                          className={`tag-filter-option ${tagFilter.includes(tag) ? 'selected' : ''}`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={tagFilter.includes(tag)}
-                            onChange={() => toggleTagFilterValue(tag)}
-                          />
-                          <span className="tag-filter-name">{tag}</span>
-                          <button
-                            type="button"
-                            className="tag-filter-delete"
-                            onClick={(e) => {
-                              e.preventDefault()
-                              e.stopPropagation()
-                              requestDeleteTag(tag)
-                            }}
-                            aria-label={t('accounts.deleteTagAria', {
-                              tag,
-                              defaultValue: '删除标签 {{tag}}',
-                            })}
-                          >
-                            <X size={12} />
-                          </button>
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                  <div className="tag-filter-divider" />
-                  <label className="tag-filter-group-toggle">
-                    <input
-                      type="checkbox"
-                      checked={groupByTag}
-                      onChange={(e) => setGroupByTag(e.target.checked)}
-                    />
-                    <span>{t('accounts.groupByTag', '按标签分组展示')}</span>
-                  </label>
-                  {tagFilter.length > 0 && (
-                    <button
-                      type="button"
-                      className="tag-filter-clear"
-                      onClick={clearTagFilter}
-                    >
-                      {t('accounts.clearFilter', '清空筛选')}
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
+            <AccountTagFilterDropdown
+              availableTags={availableTags}
+              selectedTags={tagFilter}
+              onToggleTag={toggleTagFilterValue}
+              onClear={clearTagFilter}
+              onDeleteTag={requestDeleteTag}
+              groupByTag={groupByTag}
+              onToggleGroupByTag={setGroupByTag}
+            />
             {/* 排序下拉菜单 */}
             <div className="sort-select">
               <ArrowDownWideNarrow size={14} className="sort-icon" />
@@ -2796,8 +2901,8 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
                 <button
                   className="btn btn-secondary icon-only"
                   onClick={() => setShowAddToGroupModal(true)}
-                  title={t('accounts.groups.addToGroup', '移入分组')}
-                  aria-label={t('accounts.groups.addToGroup', '移入分组')}
+                  title={t('accounts.groups.addToGroup')}
+                  aria-label={t('accounts.groups.addToGroup')}
                 >
                   <FolderPlus size={14} />
                 </button>
@@ -2815,8 +2920,8 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
               <button
                 className="btn btn-secondary icon-only"
                 onClick={() => setShowAccountGroupModal(true)}
-                title={t('accounts.groups.manageTitle', '分组管理')}
-                aria-label={t('accounts.groups.manageTitle', '分组管理')}
+                title={t('accounts.groups.manageTitle')}
+                aria-label={t('accounts.groups.manageTitle')}
               >
                 <FolderOpen size={14} />
               </button>
@@ -2872,7 +2977,7 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
               </button>
             </div>
           </div>
-        ) : filteredAccounts.length === 0 ? (
+        ) : filteredAccounts.length === 0 && !hasVisibleAccountGroups ? (
           <div className="empty-state">
             <h3>{t('accounts.noMatch.title')}</h3>
             <p>{t('accounts.noMatch.desc')}</p>
@@ -3181,6 +3286,49 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
                 disabled={deleting}
               >
                 {t('common.confirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {groupDeleteConfirm && (
+        <div
+          className="modal-overlay"
+          onClick={() => !deletingGroup && setGroupDeleteConfirm(null)}
+        >
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>{t('accounts.groups.deleteTitle')}</h2>
+              <button
+                className="modal-close"
+                onClick={() => !deletingGroup && setGroupDeleteConfirm(null)}
+                aria-label={t('common.close', '关闭')}
+              >
+                <X />
+              </button>
+            </div>
+            <div className="modal-body">
+              <p>
+                {t('accounts.groups.deleteConfirm', {
+                  name: groupDeleteConfirm.name,
+                })}
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button
+                className="btn btn-secondary"
+                onClick={() => setGroupDeleteConfirm(null)}
+                disabled={deletingGroup}
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                className="btn btn-danger"
+                onClick={confirmDeleteGroup}
+                disabled={deletingGroup}
+              >
+                {t('common.delete')}
               </button>
             </div>
           </div>
@@ -3624,6 +3772,7 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
       <TagEditModal
         isOpen={!!showTagModal}
         initialTags={accounts.find((acc) => acc.id === showTagModal)?.tags || []}
+        initialNotes={accounts.find((acc) => acc.id === showTagModal)?.notes ?? ''}
         availableTags={availableTags}
         onClose={() => setShowTagModal(null)}
         onSave={handleSaveTags}
@@ -3651,10 +3800,25 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
         isOpen={showAddToGroupModal}
         onClose={() => setShowAddToGroupModal(false)}
         accountIds={Array.from(selected)}
-        onAdded={() => {
-          reloadAccountGroups()
+        sourceGroupId={activeGroupId || undefined}
+        onAdded={async () => {
+          await reloadAccountGroups()
           setSelected(new Set())
         }}
+      />
+
+      <GroupAccountPickerModal
+        isOpen={!!groupAccountPickerGroupId}
+        targetGroup={groupAccountPickerGroup}
+        accounts={accounts}
+        accountGroups={accountGroups}
+        verificationStatusMap={verificationStatusMap}
+        getVerificationBadge={getVerificationBadge}
+        maskAccountText={maskAccountText}
+        onClose={() => setGroupAccountPickerGroupId(null)}
+        onConfirm={({ name, accountIds }) =>
+          handleAssignAccountsToGroup(groupAccountPickerGroupId!, name, accountIds)
+        }
       />
 
       {/* 文件损坏弹窗 */}

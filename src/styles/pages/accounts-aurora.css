@@ -1078,15 +1078,14 @@
 }
 
 .folder-preview-email {
-  font-size: 0.65rem;
+  font-size: 12px;
   padding: 1px 6px;
   border-radius: 6px;
   background: var(--surface-tertiary, rgba(59,130,246,0.08));
   color: var(--text-secondary, #64748b);
-  max-width: 80px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  word-break: break-all;
+  white-space: normal;
+  overflow: visible;
 }
 
 .folder-preview-more {

@@ -707,7 +707,9 @@
         "tooLong": "标签长度不能超过 {{max}} 个字符",
         "duplicate": "标签已存在",
         "tooMany": "标签数量不能超过 {{max}} 个"
-      }
+      },
+      "notesLabel": "备注",
+      "notesPlaceholder": "输入备注，留空表示不设置"
     },
     "groupByTag": "按标签分组展示",
     "untagged": "默认分组",
@@ -759,8 +761,11 @@
       "accountCount": "{{count}} 个账号",
       "rename": "重命名",
       "addToGroup": "移入分组",
+      "moveToGroup": "移到其他分组",
       "createAndAdd": "新建分组并添加...",
       "removeFromGroup": "移出分组",
+      "deleteTitle": "删除分组",
+      "deleteConfirm": "确定删除分组「{{name}}」吗？账号不会被删除。",
       "allGroups": "全部分组",
       "noGroups": "暂无分组",
       "noGroupsDesc": "创建分组来批量管理你的账号",
@@ -772,7 +777,12 @@
         "deleteFailed": "删除分组失败：{{error}}",
         "addFailed": "添加到分组失败：{{error}}",
         "createAndAddFailed": "新建分组并添加失败：{{error}}"
-      }
+      },
+      "addAccounts": "添加账号",
+      "editTitle": "编辑分组",
+      "ungrouped": "未分组",
+      "currentGroupLabel": "当前分组",
+      "accountPickerEmpty": "没有符合条件的账号"
     }
   },
   "overview": {

@@ -28,6 +28,57 @@
   color: var(--text-muted);
 }
 
+.tag-notes-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tag-notes-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tag-notes-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.tag-notes-count {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.tag-notes-section textarea {
+  min-height: 88px;
+  resize: vertical;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.5;
+  outline: none;
+}
+
+[data-theme="dark"] .tag-notes-section textarea {
+  border-color: rgba(148, 163, 184, 0.26);
+  background: rgba(15, 23, 42, 0.38);
+}
+
+.tag-notes-section textarea:focus {
+  border-color: rgba(59, 130, 246, 0.6);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.tag-notes-section textarea::placeholder {
+  color: var(--text-muted);
+}
+
 .tag-list {
   display: flex;
   flex-wrap: wrap;

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Filter } from 'lucide-react';
+import './AccountFilterDropdown.css'
 
 export interface MultiSelectFilterOption {
   value: string;
@@ -46,7 +47,7 @@ export function MultiSelectFilterDropdown({
   }, [open]);
 
   return (
-    <div className="tag-filter multi-filter" ref={rootRef}>
+    <div className="tag-filter multi-filter account-filter-surface" ref={rootRef}>
       <button
         type="button"
         className={`tag-filter-btn ${selectedCount > 0 ? 'active' : ''}`}

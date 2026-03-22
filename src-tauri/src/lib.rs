@@ -193,6 +193,9 @@ pub fn run() {
             commands::account::bind_account_fingerprint,
             commands::account::get_bound_accounts,
             commands::account::update_account_tags,
+            commands::account::update_account_notes,
+            commands::account::load_account_groups,
+            commands::account::save_account_groups,
             commands::account::sync_current_from_client,
             commands::account::sync_from_extension,
             // Device Commands

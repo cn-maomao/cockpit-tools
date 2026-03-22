@@ -110,6 +110,10 @@ export async function updateAccountTags(accountId: string, tags: string[]): Prom
     return await invoke('update_account_tags', { accountId, tags });
 }
 
+export async function updateAccountNotes(accountId: string, notes: string): Promise<Account> {
+    return await invoke('update_account_notes', { accountId, notes });
+}
+
 export async function syncFromExtension(): Promise<number> {
     return await invoke('sync_from_extension');
 }

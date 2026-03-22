@@ -7,6 +7,16 @@ All notable changes to Cockpit Tools will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
+## [0.18.2] - 2026-03-22
+
+### Changed
+- **Account groups now follow the real local persistence path instead of browser-only storage**: group definitions are now saved in `~/.antigravity_cockpit/account_groups.json`, legacy `localStorage` data is migrated on first load, and moving accounts between groups updates the persisted group file rather than only changing frontend state.
+- **Grouped account management on the account page is now denser and easier to operate**: list and compact views surface group rows inline, selected accounts inside a group can be moved to another group or removed directly from the breadcrumb actions, and the group member picker reuses the same tier/tag filters as the main page.
+
+### Added
+- **Account tag editing now supports per-account notes saved with the account record**: the tag modal can edit up to 200 characters of notes alongside tags, and the new notes field is written through the account persistence layer so it stays available across restarts.
+
+---
 ## [0.18.1] - 2026-03-22
 
 ### Changed

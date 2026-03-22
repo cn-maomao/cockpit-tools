@@ -707,7 +707,9 @@
         "tooLong": "Il tag non può superare {{max}} caratteri",
         "duplicate": "Il tag esiste già",
         "tooMany": "Puoi aggiungere fino a {{max}} tag"
-      }
+      },
+      "notesLabel": "Note",
+      "notesPlaceholder": "Inserisci una nota. Lascia vuoto per cancellarla"
     },
     "groupByTag": "Raggruppa per tag",
     "untagged": "Senza tag",
@@ -759,8 +761,11 @@
       "accountCount": "{{count}} account",
       "rename": "Rinomina",
       "addToGroup": "Aggiungi al gruppo",
+      "moveToGroup": "Sposta in un altro gruppo",
       "createAndAdd": "Crea gruppo e aggiungi...",
       "removeFromGroup": "Rimuovi dal gruppo",
+      "deleteTitle": "Elimina gruppo",
+      "deleteConfirm": "Eliminare il gruppo \"{{name}}\"? Gli account non verranno eliminati.",
       "allGroups": "Tutti i gruppi",
       "noGroups": "Nessun gruppo",
       "noGroupsDesc": "Crea gruppi per gestire i tuoi account",
@@ -772,7 +777,12 @@
         "deleteFailed": "Eliminazione del gruppo non riuscita: {{error}}",
         "addFailed": "Aggiunta al gruppo non riuscita: {{error}}",
         "createAndAddFailed": "Creazione e aggiunta non riuscite: {{error}}"
-      }
+      },
+      "addAccounts": "Aggiungi account",
+      "editTitle": "Modifica gruppo",
+      "ungrouped": "Senza gruppo",
+      "currentGroupLabel": "Gruppo attuale",
+      "accountPickerEmpty": "Nessun account corrispondente"
     }
   },
   "overview": {

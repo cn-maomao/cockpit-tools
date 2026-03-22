@@ -293,6 +293,15 @@ pub async fn update_account_tags(
 }
 
 #[tauri::command]
+pub async fn update_account_notes(
+    account_id: String,
+    notes: String,
+) -> Result<models::Account, String> {
+    let account = modules::account::update_account_notes(&account_id, notes)?;
+    Ok(account)
+}
+
+#[tauri::command]
 pub async fn get_bound_accounts(fingerprint_id: String) -> Result<Vec<models::Account>, String> {
     modules::fingerprint::get_bound_accounts(&fingerprint_id)
 }
@@ -361,4 +370,29 @@ pub async fn sync_current_from_client() -> Result<Option<String>, String> {
     // 未找到匹配账号（可能是新账号，未导入到 Tools）
     modules::logger::log_info("[SyncClient] 本地客户端账号未在 Tools 中找到");
     Ok(None)
+}
+
+// ─── 账号分组持久化 ────────────────────────────────────────────
+
+const GROUPS_FILE: &str = "account_groups.json";
+
+#[tauri::command]
+pub async fn load_account_groups() -> Result<String, String> {
+    let home = dirs::home_dir().ok_or("Cannot find home directory")?;
+    let path = home.join(".antigravity_cockpit").join(GROUPS_FILE);
+    if !path.exists() {
+        return Ok("[]".to_string());
+    }
+    std::fs::read_to_string(&path).map_err(|e| format!("Failed to read groups: {}", e))
+}
+
+#[tauri::command]
+pub async fn save_account_groups(data: String) -> Result<(), String> {
+    let home = dirs::home_dir().ok_or("Cannot find home directory")?;
+    let dir = home.join(".antigravity_cockpit");
+    if !dir.exists() {
+        std::fs::create_dir_all(&dir).map_err(|e| format!("Failed to create dir: {}", e))?;
+    }
+    let path = dir.join(GROUPS_FILE);
+    std::fs::write(&path, data).map_err(|e| format!("Failed to write groups: {}", e))
 }

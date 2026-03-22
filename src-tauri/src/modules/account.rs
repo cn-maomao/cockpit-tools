@@ -318,6 +318,15 @@ pub fn update_account_tags(account_id: &str, tags: Vec<String>) -> Result<Accoun
     Ok(account)
 }
 
+/// 更新账号备注
+pub fn update_account_notes(account_id: &str, notes: String) -> Result<Account, String> {
+    let mut account = load_account(account_id)?;
+    let trimmed = notes.trim().to_string();
+    account.notes = if trimmed.is_empty() { None } else { Some(trimmed) };
+    save_account(&account)?;
+    Ok(account)
+}
+
 /// 列出所有账号
 pub fn list_accounts() -> Result<Vec<Account>, String> {
     if let Some(accounts) = read_list_accounts_cache() {

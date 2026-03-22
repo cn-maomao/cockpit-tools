@@ -707,7 +707,9 @@
         "tooLong": "Tag darf maximal {{max}} Zeichen lang sein",
         "duplicate": "Tag existiert bereits",
         "tooMany": "Sie können bis zu {{max}} Tags hinzufügen"
-      }
+      },
+      "notesLabel": "Notiz",
+      "notesPlaceholder": "Notiz eingeben. Leer lassen, um sie zu löschen"
     },
     "groupByTag": "Nach Tag gruppieren",
     "untagged": "Ohne Tag",
@@ -759,8 +761,11 @@
       "accountCount": "{{count}} Konto(en)",
       "rename": "Umbenennen",
       "addToGroup": "Zur Gruppe hinzufügen",
+      "moveToGroup": "In andere Gruppe verschieben",
       "createAndAdd": "Neue Gruppe erstellen und hinzufügen...",
       "removeFromGroup": "Aus Gruppe entfernen",
+      "deleteTitle": "Gruppe löschen",
+      "deleteConfirm": "Gruppe „{{name}}“ löschen? Die Konten werden nicht gelöscht.",
       "allGroups": "Alle Gruppen",
       "noGroups": "Keine Gruppen",
       "noGroupsDesc": "Erstellen Sie Gruppen, um Ihre Konten zu verwalten",
@@ -772,7 +777,12 @@
         "deleteFailed": "Gruppe konnte nicht gelöscht werden: {{error}}",
         "addFailed": "Hinzufügen zur Gruppe fehlgeschlagen: {{error}}",
         "createAndAddFailed": "Erstellen und Hinzufügen fehlgeschlagen: {{error}}"
-      }
+      },
+      "addAccounts": "Konten hinzufügen",
+      "editTitle": "Gruppe bearbeiten",
+      "ungrouped": "Nicht gruppiert",
+      "currentGroupLabel": "Aktuelle Gruppe",
+      "accountPickerEmpty": "Keine passenden Konten"
     }
   },
   "overview": {

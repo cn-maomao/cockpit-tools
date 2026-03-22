@@ -10,6 +10,9 @@ pub struct Account {
     pub name: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tags: Vec<String>,
+    /// 用户备注
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub notes: Option<String>,
     pub token: TokenData,
     /// 绑定的指纹ID（必须绑定，默认为 "original"）
     #[serde(default = "default_fingerprint_id")]
@@ -46,6 +49,7 @@ impl Account {
             email,
             name: None,
             tags: Vec::new(),
+            notes: None,
             token,
             fingerprint_id: Some("original".to_string()),
             quota: None,

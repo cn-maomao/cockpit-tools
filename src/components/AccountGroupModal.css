@@ -167,19 +167,22 @@
   padding: 16px 20px;
   max-height: 50vh;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .add-to-group-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .add-to-group-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
+  padding: 10px 14px;
   border-radius: 10px;
   border: 1px solid var(--border);
   background: var(--bg-tertiary);
@@ -192,6 +195,11 @@
   background: rgba(59, 130, 246, 0.06);
 }
 
+.add-to-group-item .group-icon {
+  flex-shrink: 0;
+  color: var(--primary);
+}
+
 .add-to-group-item .group-name {
   flex: 1;
   font-size: 13px;
@@ -200,8 +208,12 @@
 }
 
 .add-to-group-item .group-count {
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 500;
   color: var(--text-muted);
+  min-width: 24px;
+  text-align: right;
+  flex-shrink: 0;
 }
 
 /* 弹窗内错误提示 */

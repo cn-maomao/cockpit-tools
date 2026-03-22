@@ -6,13 +6,15 @@ import './TagEditModal.css';
 interface TagEditModalProps {
   isOpen: boolean;
   initialTags: string[];
+  initialNotes?: string;
   availableTags?: string[];
   onClose: () => void;
-  onSave: (tags: string[]) => void | Promise<void>;
+  onSave: (tags: string[], notes?: string) => void | Promise<void>;
 }
 
 const MAX_TAGS = 10;
 const MAX_TAG_LENGTH = 20;
+const MAX_NOTES_LENGTH = 200;
 
 const normalizeTag = (value: string) => value.trim().toLowerCase();
 
@@ -29,9 +31,10 @@ const normalizeTagList = (tags: string[]) => {
   return result;
 };
 
-export const TagEditModal = ({ isOpen, initialTags, availableTags = [], onClose, onSave }: TagEditModalProps) => {
+export const TagEditModal = ({ isOpen, initialTags, initialNotes, availableTags = [], onClose, onSave }: TagEditModalProps) => {
   const { t } = useTranslation();
   const [tags, setTags] = useState<string[]>([]);
+  const [notes, setNotes] = useState('');
   const [inputValue, setInputValue] = useState('');
   const [error, setError] = useState<string>('');
   const [saving, setSaving] = useState(false);
@@ -39,9 +42,10 @@ export const TagEditModal = ({ isOpen, initialTags, availableTags = [], onClose,
   useEffect(() => {
     if (!isOpen) return;
     setTags(normalizeTagList(initialTags));
+    setNotes(initialNotes ?? '');
     setInputValue('');
     setError('');
-  }, [isOpen, initialTags]);
+  }, [initialNotes, initialTags, isOpen]);
 
   const remaining = useMemo(() => MAX_TAGS - tags.length, [tags.length]);
   const normalizedAvailableTags = useMemo(() => normalizeTagList(availableTags), [availableTags]);
@@ -127,7 +131,7 @@ export const TagEditModal = ({ isOpen, initialTags, availableTags = [], onClose,
     }
     setSaving(true);
     try {
-      await onSave(nextTags);
+      await onSave(nextTags, notes.trim());
       onClose();
     } finally {
       setSaving(false);
@@ -156,6 +160,20 @@ export const TagEditModal = ({ isOpen, initialTags, availableTags = [], onClose,
               defaultValue: '最多 {{max}} 个标签，单个标签长度不超过 {{maxLength}} 个字符。',
             })}
           </div>
+          {initialNotes !== undefined && (
+            <div className="tag-notes-section">
+              <div className="tag-notes-header">
+                <span className="tag-notes-label">{t('accounts.tagModal.notesLabel')}</span>
+                <span className="tag-notes-count">{notes.length}/{MAX_NOTES_LENGTH}</span>
+              </div>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder={t('accounts.tagModal.notesPlaceholder')}
+                maxLength={MAX_NOTES_LENGTH}
+              />
+            </div>
+          )}
           <div className="tag-list">
             {tags.length === 0 ? (
               <div className="tag-empty">{t('accounts.tagModal.empty', '暂无标签')}</div>

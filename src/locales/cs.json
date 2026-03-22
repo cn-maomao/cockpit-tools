@@ -707,7 +707,9 @@
         "tooLong": "Štítek může mít maximálně {{max}} znaků",
         "duplicate": "Štítek už existuje",
         "tooMany": "Můžete přidat až {{max}} štítků"
-      }
+      },
+      "notesLabel": "Poznámka",
+      "notesPlaceholder": "Zadejte poznámku. Ponechte prázdné pro vymazání"
     },
     "groupByTag": "Seskupit podle štítku",
     "untagged": "Bez štítku",
@@ -759,8 +761,11 @@
       "accountCount": "{{count}} účet(ů)",
       "rename": "Přejmenovat",
       "addToGroup": "Přidat do skupiny",
+      "moveToGroup": "Přesunout do jiné skupiny",
       "createAndAdd": "Vytvořit skupinu a přidat...",
       "removeFromGroup": "Odebrat ze skupiny",
+      "deleteTitle": "Smazat skupinu",
+      "deleteConfirm": "Opravdu smazat skupinu „{{name}}“? Účty nebudou odstraněny.",
       "allGroups": "Všechny skupiny",
       "noGroups": "Žádné skupiny",
       "noGroupsDesc": "Vytvořte skupiny pro správu účtů",
@@ -772,7 +777,12 @@
         "deleteFailed": "Nepodařilo se smazat skupinu: {{error}}",
         "addFailed": "Nepodařilo se přidat do skupiny: {{error}}",
         "createAndAddFailed": "Nepodařilo se vytvořit a přidat: {{error}}"
-      }
+      },
+      "addAccounts": "Přidat účty",
+      "editTitle": "Upravit skupinu",
+      "ungrouped": "Bez skupiny",
+      "currentGroupLabel": "Aktuální skupina",
+      "accountPickerEmpty": "Žádné odpovídající účty"
     }
   },
   "overview": {
