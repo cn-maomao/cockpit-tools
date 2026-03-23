@@ -1065,7 +1065,7 @@ export function FloatingCardWindow() {
 
   const handleWindowDragStart = useCallback((event: ReactMouseEvent<HTMLElement>) => {
     if (event.button !== 0) return;
-    const target = event.target instanceof HTMLElement ? event.target : null;
+    const target = event.target instanceof Element ? event.target : null;
     if (target?.closest(FLOATING_CARD_NO_DRAG_SELECTOR)) {
       return;
     }

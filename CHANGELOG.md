@@ -7,6 +7,12 @@ All notable changes to Cockpit Tools will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
+## [0.19.2] - 2026-03-23
+
+### Fixed
+- **Windows floating-card action buttons no longer get swallowed by window dragging hit-tests**: clicking the floating card's close, pin, and account-navigation controls now consistently triggers the intended action instead of being misclassified as a drag start when the pointer lands on SVG icon nodes.
+
+---
 ## [0.19.1] - 2026-03-23
 
 ### Fixed
