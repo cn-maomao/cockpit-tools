@@ -1,10 +1,112 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { Account, RefreshStats } from '../types/account';
+import { Account, QuotaData, RefreshStats, TokenData } from '../types/account';
 import * as accountService from '../services/accountService';
 import { emitAccountsChanged, emitCurrentAccountChanged } from '../utils/accountSyncEvents';
 
 const ACCOUNTS_STORE_KEY = 'agtools.accounts.store.v1';
+const LEGACY_ACCOUNTS_CACHE_KEY = 'agtools.accounts.cache';
+const LEGACY_CURRENT_ACCOUNT_CACHE_KEY = 'agtools.accounts.current';
+
+let accountStoreQuotaCleanupScheduled = false;
+let accountStoreQuotaWarned = false;
+
+function isQuotaExceededError(error: unknown): boolean {
+  if (error instanceof DOMException) {
+    return (
+      error.name === 'QuotaExceededError' ||
+      error.code === 22 ||
+      error.code === 1014
+    );
+  }
+  const message = String(error);
+  return message.includes('QuotaExceededError') || message.includes('quota');
+}
+
+function scheduleAccountStoreQuotaRecovery(storageKey: string) {
+  if (typeof window === 'undefined' || accountStoreQuotaCleanupScheduled) return;
+  accountStoreQuotaCleanupScheduled = true;
+  setTimeout(() => {
+    try {
+      localStorage.removeItem(storageKey);
+      localStorage.removeItem(LEGACY_ACCOUNTS_CACHE_KEY);
+      localStorage.removeItem(LEGACY_CURRENT_ACCOUNT_CACHE_KEY);
+    } catch (error) {
+      console.warn('[AccountStore] 清理超限缓存失败:', error);
+    } finally {
+      accountStoreQuotaCleanupScheduled = false;
+    }
+  }, 0);
+}
+
+const accountStoreStorage = createJSONStorage(() => ({
+  getItem: (name: string) => {
+    try {
+      return localStorage.getItem(name);
+    } catch (error) {
+      console.warn(`[AccountStore] 读取持久化数据失败: ${name}`, error);
+      return null;
+    }
+  },
+  setItem: (name: string, value: string) => {
+    try {
+      localStorage.setItem(name, value);
+    } catch (error) {
+      if (isQuotaExceededError(error)) {
+        if (!accountStoreQuotaWarned) {
+          console.warn(
+            '[AccountStore] 本地缓存空间不足，已自动清理账号缓存并回退为仅内存态。',
+            error
+          );
+          accountStoreQuotaWarned = true;
+        }
+        scheduleAccountStoreQuotaRecovery(name);
+        return;
+      }
+      console.warn(`[AccountStore] 写入持久化数据失败: ${name}`, error);
+    }
+  },
+  removeItem: (name: string) => {
+    try {
+      localStorage.removeItem(name);
+    } catch (error) {
+      console.warn(`[AccountStore] 删除持久化数据失败: ${name}`, error);
+    }
+  },
+}));
+
+function toPersistedTokenSnapshot(token: TokenData): TokenData {
+  return {
+    access_token: '',
+    refresh_token: '',
+    expires_in: 0,
+    expiry_timestamp: 0,
+    token_type: token.token_type || 'Bearer',
+    email: token.email,
+    project_id: token.project_id,
+    is_gcp_tos: token.is_gcp_tos,
+    session_id: token.session_id,
+  };
+}
+
+function toPersistedQuotaSnapshot(quota?: QuotaData): QuotaData | undefined {
+  if (!quota) return undefined;
+  return {
+    models: [],
+    last_updated: quota.last_updated ?? 0,
+    is_forbidden: quota.is_forbidden,
+    subscription_tier: quota.subscription_tier,
+    tier_id: quota.tier_id,
+  };
+}
+
+function toPersistedAccountSnapshot(account: Account): Account {
+  return {
+    ...account,
+    token: toPersistedTokenSnapshot(account.token),
+    quota: toPersistedQuotaSnapshot(account.quota),
+  };
+}
 
 // 防抖状态（在 store 外部维护，避免触发 re-render）
 let fetchAccountsPromise: Promise<void> | null = null;
@@ -256,18 +358,20 @@ export const useAccountStore = create<AccountState>()(
   }),
   {
     name: ACCOUNTS_STORE_KEY,
-    storage: createJSONStorage(() => localStorage),
+    storage: accountStoreStorage,
     partialize: (state) => ({
-      accounts: state.accounts,
-      currentAccount: state.currentAccount,
+      accounts: state.accounts.map(toPersistedAccountSnapshot),
+      currentAccount: state.currentAccount
+        ? toPersistedAccountSnapshot(state.currentAccount)
+        : null,
     }),
     onRehydrateStorage: () => (state) => {
       // Migrate from old ACCOUNTS_CACHE_KEY if the new state is empty
       if (state && state.accounts.length === 0 && typeof window !== 'undefined') {
         setTimeout(() => {
           try {
-            const oldAccountsRaw = localStorage.getItem('agtools.accounts.cache');
-            const oldCurrentRaw = localStorage.getItem('agtools.accounts.current');
+            const oldAccountsRaw = localStorage.getItem(LEGACY_ACCOUNTS_CACHE_KEY);
+            const oldCurrentRaw = localStorage.getItem(LEGACY_CURRENT_ACCOUNT_CACHE_KEY);
             let hasMigrated = false;
             
             if (oldAccountsRaw) {
@@ -287,8 +391,8 @@ export const useAccountStore = create<AccountState>()(
             
             // Cleanup the old keys if we migrated successfully
             if (hasMigrated) {
-              localStorage.removeItem('agtools.accounts.cache');
-              localStorage.removeItem('agtools.accounts.current');
+              localStorage.removeItem(LEGACY_ACCOUNTS_CACHE_KEY);
+              localStorage.removeItem(LEGACY_CURRENT_ACCOUNT_CACHE_KEY);
             }
           } catch (error) {
             // ignore migration errors
@@ -298,4 +402,3 @@ export const useAccountStore = create<AccountState>()(
     },
   }
 ));
-

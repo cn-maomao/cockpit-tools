@@ -127,6 +127,7 @@ final class NativeMenuPopoverController: NSObject, ObservableObject, NSMenuDeleg
         if self.statusItem?.menu === menu {
             self.statusItem?.menu = nil
         }
+        self.clearStatusItemHighlight()
     }
 
     var selectedPlatform: NativeMenuPlatform? {
@@ -320,6 +321,7 @@ final class NativeMenuPopoverController: NSObject, ObservableObject, NSMenuDeleg
             return
         }
 
+        self.clearStatusItemHighlight()
         statusItem.menu = menu
         statusItem.popUpMenu(menu)
     }
@@ -329,6 +331,16 @@ final class NativeMenuPopoverController: NSObject, ObservableObject, NSMenuDeleg
         if let menu, self.statusItem?.menu === menu {
             self.statusItem?.menu = nil
         }
+        self.clearStatusItemHighlight()
+    }
+
+    private func clearStatusItemHighlight() {
+        guard let button = self.statusItem?.button else {
+            return
+        }
+        button.highlight(false)
+        button.needsDisplay = true
+        button.displayIfNeeded()
     }
 
     private func makeHostingItem<Content: View>(_ view: Content) -> NSMenuItem {

@@ -3269,9 +3269,16 @@ fn handle_tray_event<R: Runtime>(tray: &TrayIcon<R>, event: TrayIconEvent) {
         } => {
             #[cfg(target_os = "macos")]
             {
-                if button_state == MouseButtonState::Down
-                    && matches!(button, MouseButton::Left | MouseButton::Right)
-                {
+                if button == MouseButton::Left && button_state == MouseButtonState::Up {
+                    if let Some(window) = tray.app_handle().get_webview_window("main") {
+                        let _ = window.show();
+                        let _ = window.unminimize();
+                        let _ = window.set_focus();
+                    }
+                    return;
+                }
+
+                if button == MouseButton::Right && button_state == MouseButtonState::Down {
                     let app = tray.app_handle().clone();
                     let app_for_menu = app.clone();
                     let _ = app.run_on_main_thread(move || {
@@ -3293,6 +3300,12 @@ fn handle_tray_event<R: Runtime>(tray: &TrayIcon<R>, event: TrayIconEvent) {
             button: MouseButton::Left,
             ..
         } => {
+            #[cfg(target_os = "macos")]
+            {
+                return;
+            }
+
+            #[cfg(not(target_os = "macos"))]
             if let Some(window) = tray.app_handle().get_webview_window("main") {
                 let _ = window.show();
                 let _ = window.unminimize();

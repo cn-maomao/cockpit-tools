@@ -7,6 +7,13 @@ All notable changes to Cockpit Tools will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
+## [0.20.12] - 2026-03-27
+
+### Changed
+- **macOS tray interactions now align left-click and right-click behavior with native expectations while clearing stale menu highlight state**: left-click release now focuses and restores the main window, right-click press opens the tray context menu, and native menu teardown explicitly clears status-item highlight to avoid a stuck highlighted icon.
+- **Antigravity account store persistence now keeps only minimal account snapshots and recovers gracefully when localStorage quota is exceeded**: persisted token fields are sanitized, quota snapshots exclude heavy model payloads, and quota overflow now auto-cleans legacy/new cache keys instead of repeatedly failing writes.
+
+---
 ## [0.20.11] - 2026-03-27
 
 ### Added
