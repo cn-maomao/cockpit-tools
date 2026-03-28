@@ -2665,17 +2665,34 @@
     },
     "checkin": {
       "title": "Daily Check-in",
+      "modalTitle": "Daily Check-in",
       "status": "Check-in Status",
       "checkedIn": "Checked In",
       "notCheckedIn": "Not Checked In",
       "button": "Check In",
       "button.loading": "Checking in...",
+      "done": "Done",
       "success": "Check-in successful! {{days}} day streak",
       "failure": "Check-in failed: {{message}}",
       "failure.network": "Network error, please try again later",
       "lastCheckin": "Last check-in: {{time}}",
       "streak": "{{days}}-day streak",
-      "reward": "Reward: {{reward}}"
+      "reward": "Reward: {{reward}}",
+      "refreshStatus": "Refresh",
+      "checkAll": "Check In All",
+      "noAccounts": "No accounts",
+      "querying": "Loading...",
+      "streakDays": "{{days}} days",
+      "streakRewardCountdown": "{{days}} more days for bonus reward",
+      "streakRewardToday": "Bonus reward available today!",
+      "recentDates": "Recent: ",
+      "quotaCategory": {
+        "base": "Base Package",
+        "activity": "Activity Bonus",
+        "extra": "Extra Credits",
+        "other": "Other",
+        "empty": "No quota data"
+      }
     }
   },
   "workbuddy": {

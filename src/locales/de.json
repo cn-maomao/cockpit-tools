@@ -2551,18 +2551,35 @@
       }
     },
     "checkin": {
-      "title": "Daily Check-in",
-      "status": "Check-in Status",
-      "checkedIn": "Checked In",
-      "notCheckedIn": "Not Checked In",
-      "button": "Check In",
-      "button.loading": "Checking in...",
-      "success": "Check-in successful! {{days}} day streak",
-      "failure": "Check-in failed: {{message}}",
-      "failure.network": "Network error, please try again later",
-      "lastCheckin": "Last check-in: {{time}}",
-      "streak": "{{days}}-day streak",
-      "reward": "Reward: {{reward}}"
+      "title": "Täglicher Check-in",
+      "modalTitle": "Täglicher Check-in",
+      "status": "Check-in-Status",
+      "checkedIn": "Eingecheckt",
+      "notCheckedIn": "Nicht eingecheckt",
+      "button": "Einchecken",
+      "button.loading": "Check-in läuft...",
+      "done": "Fertig",
+      "success": "Check-in erfolgreich! {{days}} Tage Serie",
+      "failure": "Check-in fehlgeschlagen: {{message}}",
+      "failure.network": "Netzwerkfehler, bitte später erneut versuchen",
+      "lastCheckin": "Letzter Check-in: {{time}}",
+      "streak": "{{days}}-Tage-Serie",
+      "reward": "Belohnung: {{reward}}",
+      "refreshStatus": "Aktualisieren",
+      "checkAll": "Alle einchecken",
+      "noAccounts": "Keine Konten",
+      "querying": "Wird geladen...",
+      "streakDays": "{{days}} Tage",
+      "streakRewardCountdown": "Noch {{days}} Tage bis zur Bonusbelohnung",
+      "streakRewardToday": "Bonusbelohnung heute verfügbar!",
+      "recentDates": "Kürzlich: ",
+      "quotaCategory": {
+        "base": "Basispaket",
+        "activity": "Aktivitätsbonus",
+        "extra": "Zusatzguthaben",
+        "other": "Sonstiges",
+        "empty": "Keine Kontingentdaten"
+      }
     }
   },
   "workbuddy": {

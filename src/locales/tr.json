@@ -2551,18 +2551,35 @@
       }
     },
     "checkin": {
-      "title": "Daily Check-in",
-      "status": "Check-in Status",
-      "checkedIn": "Checked In",
-      "notCheckedIn": "Not Checked In",
-      "button": "Check In",
-      "button.loading": "Checking in...",
-      "success": "Check-in successful! {{days}} day streak",
-      "failure": "Check-in failed: {{message}}",
-      "failure.network": "Network error, please try again later",
-      "lastCheckin": "Last check-in: {{time}}",
-      "streak": "{{days}}-day streak",
-      "reward": "Reward: {{reward}}"
+      "title": "Günlük check-in",
+      "modalTitle": "Günlük check-in",
+      "status": "Check-in durumu",
+      "checkedIn": "Check-in yapıldı",
+      "notCheckedIn": "Check-in yapılmadı",
+      "button": "Check-in yap",
+      "button.loading": "Check-in yapılıyor...",
+      "done": "Tamam",
+      "success": "Check-in başarılı! {{days}} günlük seri",
+      "failure": "Check-in başarısız: {{message}}",
+      "failure.network": "Ağ hatası, lütfen daha sonra tekrar deneyin",
+      "lastCheckin": "Son check-in: {{time}}",
+      "streak": "{{days}} günlük seri",
+      "reward": "Ödül: {{reward}}",
+      "refreshStatus": "Yenile",
+      "checkAll": "Tümünü check-in yap",
+      "noAccounts": "Hesap yok",
+      "querying": "Yükleniyor...",
+      "streakDays": "{{days}} gün",
+      "streakRewardCountdown": "Bonus ödüle {{days}} gün kaldı",
+      "streakRewardToday": "Bonus ödül bugün kullanılabilir!",
+      "recentDates": "Son: ",
+      "quotaCategory": {
+        "base": "Temel paket",
+        "activity": "Etkinlik bonusu",
+        "extra": "Ek krediler",
+        "other": "Diğer",
+        "empty": "Kota verisi yok"
+      }
     }
   },
   "workbuddy": {

@@ -2551,18 +2551,35 @@
       }
     },
     "checkin": {
-      "title": "Daily Check-in",
-      "status": "Check-in Status",
-      "checkedIn": "Checked In",
-      "notCheckedIn": "Not Checked In",
-      "button": "Check In",
-      "button.loading": "Checking in...",
-      "success": "Check-in successful! {{days}} day streak",
-      "failure": "Check-in failed: {{message}}",
-      "failure.network": "Network error, please try again later",
-      "lastCheckin": "Last check-in: {{time}}",
-      "streak": "{{days}}-day streak",
-      "reward": "Reward: {{reward}}"
+      "title": "デイリーチェックイン",
+      "modalTitle": "デイリーチェックイン",
+      "status": "チェックイン状態",
+      "checkedIn": "チェックイン済み",
+      "notCheckedIn": "未チェックイン",
+      "button": "チェックイン",
+      "button.loading": "チェックイン中...",
+      "done": "完了",
+      "success": "チェックイン成功！{{days}}日連続",
+      "failure": "チェックインに失敗しました: {{message}}",
+      "failure.network": "ネットワークエラーです。しばらくしてから再試行してください",
+      "lastCheckin": "最終チェックイン: {{time}}",
+      "streak": "{{days}}日連続",
+      "reward": "報酬: {{reward}}",
+      "refreshStatus": "更新",
+      "checkAll": "一括チェックイン",
+      "noAccounts": "アカウントがありません",
+      "querying": "読み込み中...",
+      "streakDays": "{{days}}日",
+      "streakRewardCountdown": "ボーナス報酬まであと{{days}}日",
+      "streakRewardToday": "本日はボーナス報酬を受け取れます！",
+      "recentDates": "最近: ",
+      "quotaCategory": {
+        "base": "基本パッケージ",
+        "activity": "アクティビティボーナス",
+        "extra": "追加クレジット",
+        "other": "その他",
+        "empty": "クォータデータがありません"
+      }
     }
   },
   "workbuddy": {

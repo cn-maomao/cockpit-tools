@@ -2551,18 +2551,35 @@
       }
     },
     "checkin": {
-      "title": "Daily Check-in",
-      "status": "Check-in Status",
-      "checkedIn": "Checked In",
-      "notCheckedIn": "Not Checked In",
-      "button": "Check In",
-      "button.loading": "Checking in...",
-      "success": "Check-in successful! {{days}} day streak",
-      "failure": "Check-in failed: {{message}}",
-      "failure.network": "Network error, please try again later",
-      "lastCheckin": "Last check-in: {{time}}",
-      "streak": "{{days}}-day streak",
-      "reward": "Reward: {{reward}}"
+      "title": "Denní check-in",
+      "modalTitle": "Denní check-in",
+      "status": "Stav check-inu",
+      "checkedIn": "Zaregistrováno",
+      "notCheckedIn": "Nezaregistrováno",
+      "button": "Zaregistrovat",
+      "button.loading": "Probíhá check-in...",
+      "done": "Hotovo",
+      "success": "Check-in úspěšný! Série {{days}} dní",
+      "failure": "Check-in selhal: {{message}}",
+      "failure.network": "Chyba sítě, zkuste to prosím později",
+      "lastCheckin": "Poslední check-in: {{time}}",
+      "streak": "{{days}}denní série",
+      "reward": "Odměna: {{reward}}",
+      "refreshStatus": "Obnovit",
+      "checkAll": "Check-in všeho",
+      "noAccounts": "Žádné účty",
+      "querying": "Načítání...",
+      "streakDays": "{{days}} dní",
+      "streakRewardCountdown": "Do bonusové odměny zbývá {{days}} dní",
+      "streakRewardToday": "Bonusová odměna je dnes dostupná!",
+      "recentDates": "Nedávno: ",
+      "quotaCategory": {
+        "base": "Základní balíček",
+        "activity": "Aktivní bonus",
+        "extra": "Extra kredity",
+        "other": "Ostatní",
+        "empty": "Žádná data kvóty"
+      }
     }
   },
   "workbuddy": {

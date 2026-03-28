@@ -2551,18 +2551,35 @@
       }
     },
     "checkin": {
-      "title": "Daily Check-in",
-      "status": "Check-in Status",
-      "checkedIn": "Checked In",
-      "notCheckedIn": "Not Checked In",
-      "button": "Check In",
-      "button.loading": "Checking in...",
-      "success": "Check-in successful! {{days}} day streak",
-      "failure": "Check-in failed: {{message}}",
-      "failure.network": "Network error, please try again later",
-      "lastCheckin": "Last check-in: {{time}}",
-      "streak": "{{days}}-day streak",
-      "reward": "Reward: {{reward}}"
+      "title": "Check-in quotidien",
+      "modalTitle": "Check-in quotidien",
+      "status": "Statut du check-in",
+      "checkedIn": "Check-in effectué",
+      "notCheckedIn": "Pas encore check-in",
+      "button": "Faire le check-in",
+      "button.loading": "Check-in en cours...",
+      "done": "Terminé",
+      "success": "Check-in réussi ! Série de {{days}} jours",
+      "failure": "Échec du check-in : {{message}}",
+      "failure.network": "Erreur réseau, veuillez réessayer plus tard",
+      "lastCheckin": "Dernier check-in : {{time}}",
+      "streak": "Série de {{days}} jours",
+      "reward": "Récompense : {{reward}}",
+      "refreshStatus": "Actualiser",
+      "checkAll": "Tout check-in",
+      "noAccounts": "Aucun compte",
+      "querying": "Chargement...",
+      "streakDays": "{{days}} jours",
+      "streakRewardCountdown": "Encore {{days}} jours avant la récompense bonus",
+      "streakRewardToday": "Récompense bonus disponible aujourd’hui !",
+      "recentDates": "Récent : ",
+      "quotaCategory": {
+        "base": "Forfait de base",
+        "activity": "Bonus d’activité",
+        "extra": "Crédits supplémentaires",
+        "other": "Autre",
+        "empty": "Aucune donnée de quota"
+      }
     }
   },
   "workbuddy": {
