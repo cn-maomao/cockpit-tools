@@ -39,7 +39,8 @@
         "title": "Nessun account"
       },
       "export": {
-        "title": "Esporta"
+        "title": "Esporta",
+        "copyFailed": "Copia non riuscita, copia manualmente"
       },
       "filter": {
         "all": "Tutti ({{count}})",

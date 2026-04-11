@@ -39,7 +39,8 @@
         "title": "계정 없음"
       },
       "export": {
-        "title": "내보내기"
+        "title": "내보내기",
+        "copyFailed": "복사에 실패했습니다. 수동으로 복사해 주세요"
       },
       "filter": {
         "all": "전체 ({{count}})",

@@ -39,7 +39,8 @@
         "title": "Chưa có tài khoản"
       },
       "export": {
-        "title": "Xuất"
+        "title": "Xuất",
+        "copyFailed": "Sao chép thất bại, vui lòng sao chép thủ công"
       },
       "filter": {
         "all": "Tất cả ({{count}})",

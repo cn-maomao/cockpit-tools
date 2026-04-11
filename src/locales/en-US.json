@@ -46,7 +46,8 @@
         "title": "No Accounts"
       },
       "export": {
-        "title": "Export"
+        "title": "Export",
+        "copyFailed": "Copy failed, please copy manually"
       },
       "filter": {
         "all": "All ({{count}})",

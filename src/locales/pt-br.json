@@ -39,7 +39,8 @@
         "title": "Sem contas"
       },
       "export": {
-        "title": "Exportar"
+        "title": "Exportar",
+        "copyFailed": "Falha ao copiar, copie manualmente"
       },
       "filter": {
         "all": "Todas ({{count}})",

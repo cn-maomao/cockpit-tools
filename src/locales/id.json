@@ -46,7 +46,8 @@
         "title": "Belum Ada Akun"
       },
       "export": {
-        "title": "Ekspor"
+        "title": "Ekspor",
+        "copyFailed": "Gagal menyalin, silakan salin secara manual"
       },
       "filter": {
         "all": "Semua ({{count}})",

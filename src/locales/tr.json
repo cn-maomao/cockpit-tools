@@ -39,7 +39,8 @@
         "title": "Hesap yok"
       },
       "export": {
-        "title": "Dışa aktar"
+        "title": "Dışa aktar",
+        "copyFailed": "Kopyalama başarısız, lütfen manuel kopyalayın"
       },
       "filter": {
         "all": "Tümü ({{count}})",

@@ -39,7 +39,8 @@
         "title": "Žádné účty"
       },
       "export": {
-        "title": "Exportovat"
+        "title": "Exportovat",
+        "copyFailed": "Kopírování se nezdařilo, zkopírujte prosím ručně"
       },
       "filter": {
         "all": "Vše ({{count}})",
