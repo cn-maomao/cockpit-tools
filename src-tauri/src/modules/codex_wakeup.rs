@@ -1941,12 +1941,7 @@ async fn run_single_account(
         }
     };
 
-    let account = match codex_account::prepare_account_for_injection_from_auth_dir(
-        account_id,
-        Some(&managed_home),
-    )
-    .await
-    {
+    let account = match codex_account::prepare_account_for_injection_from_store(account_id).await {
         Ok(account) => account,
         Err(err) => {
             return create_failure_record(

@@ -77,8 +77,11 @@ pub fn run() {
                 "[SingleInstance] 收到唤起请求: arg_count={}",
                 args.len()
             ));
-            let handled =
-                modules::external_import::handle_external_import_args(app, &args, "single-instance");
+            let handled = modules::external_import::handle_external_import_args(
+                app,
+                &args,
+                "single-instance",
+            );
             logger::log_info(&format!(
                 "[SingleInstance] 外部导入处理结果: handled={}",
                 handled
@@ -241,15 +244,13 @@ pub fn run() {
             }
 
             let startup_args: Vec<String> = std::env::args().collect();
-            logger::log_info(&format!(
-                "[Startup] 启动参数数量: {}",
-                startup_args.len()
-            ));
-            let startup_external_import_handled = modules::external_import::handle_external_import_args(
-                &app.handle(),
-                &startup_args,
-                "startup",
-            );
+            logger::log_info(&format!("[Startup] 启动参数数量: {}", startup_args.len()));
+            let startup_external_import_handled =
+                modules::external_import::handle_external_import_args(
+                    &app.handle(),
+                    &startup_args,
+                    "startup",
+                );
             logger::log_info(&format!(
                 "[Startup] 外部导入处理结果: handled={}",
                 startup_external_import_handled
@@ -385,7 +386,7 @@ pub fn run() {
             commands::system::open_folder,
             commands::system::delete_corrupted_file,
             // Logs Commands
-            commands::logs::logs_get_latest_snapshot,
+            commands::logs::logs_get_snapshot,
             commands::logs::logs_open_log_directory,
             // Wakeup Commands
             commands::wakeup::wakeup_ensure_runtime_ready,
@@ -480,7 +481,6 @@ pub fn run() {
             commands::codex::codex_local_access_clear_stats,
             commands::codex::codex_local_access_update_port,
             commands::codex::codex_local_access_update_routing_strategy,
-            commands::codex::codex_local_access_update_service_tier,
             commands::codex::codex_local_access_set_enabled,
             commands::codex::codex_local_access_activate,
             // GitHub Copilot Commands

@@ -1752,16 +1752,7 @@
       "enableAndActivateAction": "Bật và chuyển",
       "apiPortUrl": "URL cổng API",
       "modelId": "ID mô hình",
-      "modelIdPlaceholder": "Chọn ID mô hình",
-      "serviceTierSaveSuccess": "Đã cập nhật tốc độ dịch vụ API",
-      "serviceTier": {
-        "label": "Tốc độ",
-        "placeholder": "Chọn tốc độ",
-        "standard": "Tiêu chuẩn",
-        "fast": "Nhanh",
-        "standardHint": "Tốc độ mặc định",
-        "fastHint": "Tốc độ 1.5x, dùng gói 2x"
-      }
+      "modelIdPlaceholder": "Chọn ID mô hình"
     },
     "local": {
       "desc": "Nhập tài khoản hiện tại từ ~/.codex/auth.json",
@@ -3669,5 +3660,16 @@
     "cancelEditAccountName": "Hủy chỉnh sửa",
     "accountNameRequired": "Tên tài khoản là bắt buộc.",
     "copySecret": "Sao chép mã bí mật"
+  },
+  "logViewer": {
+    "fileLabel": "Tệp nhật ký",
+    "levelLabel": "Mức",
+    "noMatches": "Không có nhật ký nào khớp với bộ lọc hiện tại",
+    "levels": {
+      "all": "Tất cả",
+      "info": "Thông tin",
+      "warn": "Cảnh báo",
+      "error": "Lỗi"
+    }
   }
 }

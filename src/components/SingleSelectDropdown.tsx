@@ -6,7 +6,6 @@ import "./SingleSelectDropdown.css";
 export interface SingleSelectOption {
   value: string;
   label: string;
-  description?: string;
 }
 
 interface SingleSelectDropdownProps {
@@ -18,8 +17,6 @@ interface SingleSelectDropdownProps {
   placeholder?: string;
   menuPlacement?: "down" | "up";
   menuMaxHeight?: number;
-  menuMinWidth?: number;
-  menuAlign?: "left" | "right";
 }
 
 export function SingleSelectDropdown({
@@ -31,8 +28,6 @@ export function SingleSelectDropdown({
   placeholder,
   menuPlacement = "down",
   menuMaxHeight = 280,
-  menuMinWidth,
-  menuAlign = "left",
 }: SingleSelectDropdownProps) {
   const [open, setOpen] = useState(false);
   const [menuStyle, setMenuStyle] = useState<{
@@ -57,20 +52,12 @@ export function SingleSelectDropdown({
     const updateMenuPosition = () => {
       const rect = triggerRef.current?.getBoundingClientRect();
       if (!rect) return;
-      const autoMinWidth = options.some((option) => !!option.description) ? 220 : 0;
-      const minimumWidth =
-        typeof menuMinWidth === "number" ? menuMinWidth : autoMinWidth;
-      const maxWidth = Math.max(160, window.innerWidth - 16);
-      const width = Math.min(Math.max(rect.width, minimumWidth), maxWidth);
-      const preferredLeft = menuAlign === "right" ? rect.right - width : rect.left;
-      const maxLeft = Math.max(8, window.innerWidth - width - 8);
-      const left = Math.min(Math.max(8, preferredLeft), maxLeft);
       if (menuPlacement === "up") {
         const availableHeight = Math.max(160, rect.top - 20);
         setMenuStyle({
           bottom: window.innerHeight - rect.top + 10,
-          left,
-          width,
+          left: rect.left,
+          width: rect.width,
           maxHeight: Math.min(menuMaxHeight, availableHeight),
         });
         return;
@@ -79,8 +66,8 @@ export function SingleSelectDropdown({
       const availableHeight = Math.max(160, window.innerHeight - rect.bottom - 20);
       setMenuStyle({
         top: rect.bottom + 10,
-        left,
-        width,
+        left: rect.left,
+        width: rect.width,
         maxHeight: Math.min(menuMaxHeight, availableHeight),
       });
     };
@@ -103,7 +90,7 @@ export function SingleSelectDropdown({
       window.removeEventListener("resize", updateMenuPosition);
       window.removeEventListener("scroll", updateMenuPosition, true);
     };
-  }, [menuAlign, menuMaxHeight, menuMinWidth, menuPlacement, open, options]);
+  }, [menuMaxHeight, menuPlacement, open]);
 
   useEffect(() => {
     if (!disabled) return;
@@ -157,14 +144,11 @@ export function SingleSelectDropdown({
             >
               {options.map((option) => {
                 const active = option.value === value;
-                const hasDescription = !!option.description;
                 return (
                   <button
                     key={option.value}
                     type="button"
-                    className={`single-select-dropdown-item${active ? " active" : ""}${
-                      hasDescription ? " has-description" : ""
-                    }`}
+                    className={`single-select-dropdown-item${active ? " active" : ""}`}
                     onClick={() => {
                       onChange(option.value);
                       setOpen(false);
@@ -172,21 +156,11 @@ export function SingleSelectDropdown({
                     role="option"
                     aria-selected={active}
                   >
-                    <span className="single-select-dropdown-item-content">
-                      <span
-                        className="single-select-dropdown-item-label"
-                        title={option.label}
-                      >
-                        {option.label}
-                      </span>
-                      {hasDescription ? (
-                        <span
-                          className="single-select-dropdown-item-description"
-                          title={option.description}
-                        >
-                          {option.description}
-                        </span>
-                      ) : null}
+                    <span
+                      className="single-select-dropdown-item-label"
+                      title={option.label}
+                    >
+                      {option.label}
                     </span>
                     <span className="single-select-dropdown-item-check">
                       {active ? <Check size={15} /> : null}

@@ -15,7 +15,11 @@ use crate::modules::logger;
 
 const WINDSURF_AUTH_BASE_URL: &str = "https://www.windsurf.com";
 const WINDSURF_REGISTER_API_BASE_URL: &str = "https://register.windsurf.com";
+const WINDSURF_WEB_BACKEND_API_BASE_URL: &str = "https://web-backend.windsurf.com";
+const WINDSURF_BACKEND_API_BASE_URL: &str = "https://windsurf.com/_backend";
+const WINDSURF_DEVIN_AUTH_BASE_URL: &str = "https://windsurf.com/_devin-auth";
 const WINDSURF_DEFAULT_API_SERVER_URL: &str = "https://server.codeium.com";
+const WINDSURF_AUTH1_API_SERVER_URL: &str = "https://server.self-serve.windsurf.com";
 const WINDSURF_CLIENT_ID: &str = "3GUryQ7ldAeKEuD2obYnppsnmj58eP5u";
 const APP_USER_AGENT: &str = "antigravity-cockpit-tools";
 const OAUTH_TIMEOUT_SECONDS: u64 = 600;
@@ -23,6 +27,13 @@ const OAUTH_STATE_FILE: &str = "windsurf_oauth_pending.json";
 const FIREBASE_API_KEY: &str = "AIzaSyDsOl-1XpT5err0Tcnx8FFod1H8gVGIycY";
 const FIREBASE_SIGN_IN_URL: &str =
     "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword";
+
+const POST_AUTH_METHOD_PATH: &str =
+    "/exa.seat_management_pb.SeatManagementService/WindsurfPostAuth";
+const GET_CURRENT_USER_METHOD_PATH: &str =
+    "/exa.seat_management_pb.SeatManagementService/GetCurrentUser";
+const GET_PLAN_STATUS_METHOD_PATH: &str =
+    "/exa.seat_management_pb.SeatManagementService/GetPlanStatus";
 
 #[derive(Clone, Serialize, Deserialize)]
 struct PendingOAuthState {
@@ -44,8 +55,31 @@ struct RegisterResult {
     name: Option<String>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum WindsurfPasswordAuthMethod {
+    Firebase,
+    Auth1,
+}
+
+impl WindsurfPasswordAuthMethod {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Self::Firebase => "firebase",
+            Self::Auth1 => "auth1",
+        }
+    }
+}
+
 lazy_static::lazy_static! {
     static ref PENDING_OAUTH_STATE: Arc<Mutex<Option<PendingOAuthState>>> = Arc::new(Mutex::new(None));
+    static ref DEVIN_SYNTHETIC_API_KEY_RE: regex::Regex =
+        regex::Regex::new(r#"devin-synthetic-apikey\$[^\x00-\x1f\s"\\]+"#).unwrap();
+}
+
+#[derive(Debug, Clone)]
+enum ProtoFieldValue {
+    Varint(u64),
+    Bytes(Vec<u8>),
 }
 
 fn now_timestamp() -> i64 {
@@ -1241,20 +1275,510 @@ pub async fn build_payload_from_token(token: &str) -> Result<WindsurfOAuthComple
         return build_payload_from_firebase_token(trimmed, None).await;
     }
 
-    Err("Token 格式不支持：请使用 Windsurf API Key 或 Firebase JWT".to_string())
-}
-
-pub async fn build_payload_from_password(
-    email: &str,
-    password: &str,
-) -> Result<WindsurfOAuthCompletePayload, String> {
-    let email = email.trim();
-    if email.is_empty() || password.is_empty() {
-        return Err("邮箱和密码不能为空".to_string());
+    if trimmed.starts_with("devin-session-token$") {
+        return build_payload_from_auth1_session_token(trimmed, None).await;
     }
 
-    logger::log_info("[Windsurf PasswordLogin] 开始 Firebase 邮箱密码登录");
+    Err(
+        "Token 格式不支持：请使用 Windsurf API Key、Firebase JWT 或 Devin Session Token"
+            .to_string(),
+    )
+}
 
+fn parse_error_message_from_body_text(body_text: &str) -> Option<String> {
+    let parsed = serde_json::from_str::<Value>(body_text).ok()?;
+    let message = pick_string_from_object(Some(&parsed), &["detail", "message", "error"])
+        .or_else(|| {
+            parsed
+                .get("error")
+                .and_then(|value| pick_string_from_object(Some(value), &["message", "detail"]))
+        })
+        .or_else(|| {
+            parsed
+                .get("error")
+                .and_then(Value::as_str)
+                .map(|value| value.to_string())
+        })?;
+    let trimmed = message.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed.to_string())
+    }
+}
+
+async fn detect_password_auth_method(
+    email: &str,
+) -> Result<(WindsurfPasswordAuthMethod, Option<bool>), String> {
+    let url = format!("{}/connections", WINDSURF_DEVIN_AUTH_BASE_URL);
+    let body = json!({
+        "product": "windsurf",
+        "email": email
+    });
+    let client = reqwest::Client::new();
+    let response = client
+        .post(url)
+        .header("Content-Type", "application/json")
+        .header("Accept", "application/json")
+        .header("User-Agent", APP_USER_AGENT)
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| format!("检测账号认证方式失败: {}", e))?;
+
+    let status = response.status();
+    let body_text = response
+        .text()
+        .await
+        .unwrap_or_else(|_| "<no-body>".to_string());
+    if !status.is_success() {
+        let detail =
+            parse_error_message_from_body_text(&body_text).unwrap_or_else(|| body_text.clone());
+        return Err(format!(
+            "检测账号认证方式失败: HTTP {}{}",
+            status.as_u16(),
+            if detail.is_empty() {
+                String::new()
+            } else {
+                format!(" ({})", detail)
+            }
+        ));
+    }
+
+    let parsed: Value =
+        serde_json::from_str(&body_text).map_err(|e| format!("解析账号认证方式失败: {}", e))?;
+    let auth_method = parsed.get("auth_method");
+    let method = pick_string_from_object(auth_method, &["method"])
+        .unwrap_or_else(|| "firebase".to_string())
+        .to_lowercase();
+    let has_password = auth_method
+        .and_then(Value::as_object)
+        .and_then(|obj| obj.get("has_password"))
+        .and_then(Value::as_bool);
+
+    let resolved = if method == "auth1" {
+        WindsurfPasswordAuthMethod::Auth1
+    } else {
+        WindsurfPasswordAuthMethod::Firebase
+    };
+
+    Ok((resolved, has_password))
+}
+
+async fn login_with_auth1_password(email: &str, password: &str) -> Result<String, String> {
+    let url = format!("{}/password/login", WINDSURF_DEVIN_AUTH_BASE_URL);
+    let body = json!({
+        "email": email,
+        "password": password
+    });
+    let client = reqwest::Client::new();
+    let response = client
+        .post(url)
+        .header("Content-Type", "application/json")
+        .header("Accept", "application/json")
+        .header("User-Agent", APP_USER_AGENT)
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| format!("Devin Auth 登录请求失败: {}", e))?;
+
+    let status = response.status();
+    let body_text = response
+        .text()
+        .await
+        .unwrap_or_else(|_| "<no-body>".to_string());
+    if !status.is_success() {
+        if status.as_u16() == 401 || status.as_u16() == 403 {
+            return Err("邮箱或密码错误".to_string());
+        }
+        let detail =
+            parse_error_message_from_body_text(&body_text).unwrap_or_else(|| body_text.clone());
+        return Err(format!(
+            "Devin Auth 登录失败: HTTP {}{}",
+            status.as_u16(),
+            if detail.is_empty() {
+                String::new()
+            } else {
+                format!(" ({})", detail)
+            }
+        ));
+    }
+
+    let parsed: Value = serde_json::from_str(&body_text)
+        .map_err(|e| format!("解析 Devin Auth 登录响应失败: {}", e))?;
+    pick_string_from_object(Some(&parsed), &["token"])
+        .ok_or_else(|| "Devin Auth 响应缺少 token".to_string())
+}
+
+fn pick_auth1_org_id(payload: &Value) -> Option<String> {
+    let orgs = payload.get("orgs")?.as_array()?;
+    let preferred = orgs.iter().find(|org| {
+        let Some(obj) = org.as_object() else {
+            return false;
+        };
+        if !pick_string_from_object(Some(org), &["id"])
+            .map(|value| !value.trim().is_empty())
+            .unwrap_or(false)
+        {
+            return false;
+        }
+        obj.get("primary").and_then(Value::as_bool).unwrap_or(false)
+            || obj
+                .get("isPrimary")
+                .and_then(Value::as_bool)
+                .unwrap_or(false)
+            || obj.get("isAdmin").and_then(Value::as_bool).unwrap_or(false)
+    });
+    let fallback = orgs.iter().find(|org| {
+        pick_string_from_object(Some(org), &["id"])
+            .map(|value| !value.trim().is_empty())
+            .unwrap_or(false)
+    });
+    preferred
+        .and_then(|org| pick_string_from_object(Some(org), &["id"]))
+        .or_else(|| fallback.and_then(|org| pick_string_from_object(Some(org), &["id"])))
+}
+
+async fn request_auth1_session(auth1_token: &str, org_id: &str) -> Result<Value, String> {
+    let url = format!(
+        "{}{}",
+        WINDSURF_WEB_BACKEND_API_BASE_URL, POST_AUTH_METHOD_PATH
+    );
+    let body = json!({
+        "auth1Token": auth1_token,
+        "orgId": org_id
+    });
+    let client = reqwest::Client::new();
+    let response = client
+        .post(url)
+        .header("Content-Type", "application/json")
+        .header("Accept", "application/json")
+        .header("Connect-Protocol-Version", "1")
+        .header("User-Agent", APP_USER_AGENT)
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| format!("WindsurfPostAuth 请求失败: {}", e))?;
+
+    let status = response.status();
+    let body_text = response
+        .text()
+        .await
+        .unwrap_or_else(|_| "<no-body>".to_string());
+    if !status.is_success() {
+        let detail =
+            parse_error_message_from_body_text(&body_text).unwrap_or_else(|| body_text.clone());
+        return Err(format!(
+            "WindsurfPostAuth 失败: HTTP {}{}",
+            status.as_u16(),
+            if detail.is_empty() {
+                String::new()
+            } else {
+                format!(" ({})", detail)
+            }
+        ));
+    }
+    serde_json::from_str(&body_text).map_err(|e| format!("解析 WindsurfPostAuth 响应失败: {}", e))
+}
+
+async fn exchange_auth1_for_session(
+    auth1_token: &str,
+) -> Result<(String, Option<String>, Option<String>), String> {
+    let first = request_auth1_session(auth1_token, "").await?;
+    let first_session = pick_string_from_object(Some(&first), &["sessionToken", "session_token"]);
+    let first_account_id = pick_string_from_object(Some(&first), &["accountId", "account_id"]);
+    let first_primary_org_id =
+        pick_string_from_object(Some(&first), &["primaryOrgId", "primary_org_id"]);
+    if let Some(session_token) = first_session {
+        return Ok((session_token, first_account_id, first_primary_org_id));
+    }
+
+    let retry_org_id = pick_auth1_org_id(&first);
+    if let Some(org_id) = retry_org_id {
+        let second = request_auth1_session(auth1_token, &org_id).await?;
+        let second_session =
+            pick_string_from_object(Some(&second), &["sessionToken", "session_token"]);
+        if let Some(session_token) = second_session {
+            return Ok((
+                session_token,
+                pick_string_from_object(Some(&second), &["accountId", "account_id"])
+                    .or(first_account_id),
+                pick_string_from_object(Some(&second), &["primaryOrgId", "primary_org_id"])
+                    .or(first_primary_org_id)
+                    .or(Some(org_id)),
+            ));
+        }
+    }
+
+    Err("WindsurfPostAuth 未返回 sessionToken".to_string())
+}
+
+fn extract_auth1_synthetic_api_key(proto_response: &[u8]) -> Option<String> {
+    let text = String::from_utf8_lossy(proto_response);
+    DEVIN_SYNTHETIC_API_KEY_RE
+        .find(&text)
+        .map(|matched| matched.as_str().to_string())
+}
+
+async fn fetch_auth1_synthetic_api_key(session_token: &str) -> Result<String, String> {
+    let mut body = crate::utils::protobuf::encode_string_field(1, session_token);
+    body.extend(crate::utils::protobuf::encode_varint((2 << 3) as u64));
+    body.extend(crate::utils::protobuf::encode_varint(1));
+
+    let url = format!(
+        "{}{}",
+        WINDSURF_BACKEND_API_BASE_URL, GET_CURRENT_USER_METHOD_PATH
+    );
+    let client = reqwest::Client::new();
+    let response = client
+        .post(url)
+        .header("Content-Type", "application/proto")
+        .header("Accept", "*/*")
+        .header("Connect-Protocol-Version", "1")
+        .header("X-Auth-Token", session_token)
+        .header("Origin", "https://windsurf.com")
+        .header("Referer", "https://windsurf.com/profile")
+        .header("User-Agent", APP_USER_AGENT)
+        .body(body)
+        .send()
+        .await
+        .map_err(|e| format!("Auth1 获取用户信息失败: {}", e))?;
+
+    let status = response.status();
+    let bytes = response
+        .bytes()
+        .await
+        .map_err(|e| format!("读取 Auth1 用户信息响应失败: {}", e))?;
+    if !status.is_success() {
+        return Err(format!(
+            "Auth1 获取用户信息失败: HTTP {}, body_len={}",
+            status.as_u16(),
+            bytes.len()
+        ));
+    }
+
+    extract_auth1_synthetic_api_key(bytes.as_ref())
+        .ok_or_else(|| "Auth1 响应中未找到可用的 synthetic apiKey".to_string())
+}
+
+fn parse_proto_fields(
+    data: &[u8],
+) -> Result<std::collections::HashMap<u32, Vec<ProtoFieldValue>>, String> {
+    let mut fields: std::collections::HashMap<u32, Vec<ProtoFieldValue>> =
+        std::collections::HashMap::new();
+    let mut offset = 0usize;
+    while offset < data.len() {
+        let (tag, new_offset) = crate::utils::protobuf::read_varint(data, offset)?;
+        if tag == 0 {
+            break;
+        }
+        let field_no = (tag >> 3) as u32;
+        let wire_type = (tag & 0x7) as u8;
+        match wire_type {
+            0 => {
+                let (value, next) = crate::utils::protobuf::read_varint(data, new_offset)?;
+                fields
+                    .entry(field_no)
+                    .or_default()
+                    .push(ProtoFieldValue::Varint(value));
+                offset = next;
+            }
+            2 => {
+                let (len, content_offset) = crate::utils::protobuf::read_varint(data, new_offset)?;
+                let len = len as usize;
+                if content_offset + len > data.len() {
+                    return Err("protobuf 长度字段越界".to_string());
+                }
+                let value = data[content_offset..content_offset + len].to_vec();
+                fields
+                    .entry(field_no)
+                    .or_default()
+                    .push(ProtoFieldValue::Bytes(value));
+                offset = content_offset + len;
+            }
+            _ => {
+                let next = crate::utils::protobuf::skip_field(data, new_offset, wire_type)?;
+                offset = next;
+            }
+        }
+    }
+    Ok(fields)
+}
+
+fn proto_first_varint(
+    fields: &std::collections::HashMap<u32, Vec<ProtoFieldValue>>,
+    field_no: u32,
+) -> Option<u64> {
+    fields.get(&field_no).and_then(|items| {
+        items.iter().find_map(|item| match item {
+            ProtoFieldValue::Varint(v) => Some(*v),
+            _ => None,
+        })
+    })
+}
+
+fn proto_first_bytes(
+    fields: &std::collections::HashMap<u32, Vec<ProtoFieldValue>>,
+    field_no: u32,
+) -> Option<Vec<u8>> {
+    fields.get(&field_no).and_then(|items| {
+        items.iter().find_map(|item| match item {
+            ProtoFieldValue::Bytes(v) => Some(v.clone()),
+            _ => None,
+        })
+    })
+}
+
+fn proto_first_string(
+    fields: &std::collections::HashMap<u32, Vec<ProtoFieldValue>>,
+    field_no: u32,
+) -> Option<String> {
+    proto_first_bytes(fields, field_no).and_then(|bytes| String::from_utf8(bytes).ok())
+}
+
+fn parse_auth1_plan_status_proto_response(proto_bytes: &[u8]) -> Result<Value, String> {
+    let root = parse_proto_fields(proto_bytes)?;
+    let plan_status_bytes = proto_first_bytes(&root, 1)
+        .ok_or_else(|| "Auth1 planStatus 响应缺少 field#1(planStatus)".to_string())?;
+    let plan_status_fields = parse_proto_fields(&plan_status_bytes)?;
+
+    let plan_info_fields =
+        proto_first_bytes(&plan_status_fields, 1).and_then(|bytes| parse_proto_fields(&bytes).ok());
+    let plan_name = plan_info_fields
+        .as_ref()
+        .and_then(|fields| proto_first_string(fields, 2))
+        .filter(|text| !text.trim().is_empty())
+        .unwrap_or_else(|| "Unknown".to_string());
+
+    let plan_end_seconds = proto_first_bytes(&plan_status_fields, 3)
+        .and_then(|bytes| parse_proto_fields(&bytes).ok())
+        .and_then(|fields| proto_first_varint(&fields, 1))
+        .map(|value| value as i64);
+
+    let daily_remaining = proto_first_varint(&plan_status_fields, 14).map(|value| value as i64);
+    let weekly_remaining = proto_first_varint(&plan_status_fields, 15).map(|value| value as i64);
+    let overage_micros = proto_first_varint(&plan_status_fields, 16).map(|value| value as i64);
+    let daily_reset_at = proto_first_varint(&plan_status_fields, 17).map(|value| value as i64);
+    let weekly_reset_at = proto_first_varint(&plan_status_fields, 18).map(|value| value as i64);
+
+    let mut plan_status_json = json!({
+        "planInfo": {
+            "planName": plan_name,
+            "billingStrategy": "BILLING_STRATEGY_QUOTA"
+        }
+    });
+    if let Some(obj) = plan_status_json.as_object_mut() {
+        if let Some(v) = daily_remaining {
+            obj.insert("dailyQuotaRemainingPercent".to_string(), json!(v));
+        }
+        if let Some(v) = weekly_remaining {
+            obj.insert("weeklyQuotaRemainingPercent".to_string(), json!(v));
+        }
+        if let Some(v) = overage_micros {
+            obj.insert("overageBalanceMicros".to_string(), json!(v));
+        }
+        if let Some(v) = daily_reset_at {
+            obj.insert("dailyQuotaResetAtUnix".to_string(), json!(v));
+        }
+        if let Some(v) = weekly_reset_at {
+            obj.insert("weeklyQuotaResetAtUnix".to_string(), json!(v));
+        }
+        if let Some(v) = plan_end_seconds {
+            obj.insert("planEnd".to_string(), json!({ "seconds": v }));
+        }
+    }
+
+    Ok(json!({ "planStatus": plan_status_json }))
+}
+
+async fn fetch_auth1_plan_status(session_token: &str) -> Result<Value, String> {
+    let mut body = crate::utils::protobuf::encode_string_field(1, session_token);
+    body.extend(crate::utils::protobuf::encode_varint((2 << 3) as u64));
+    body.extend(crate::utils::protobuf::encode_varint(1));
+
+    let url = format!(
+        "{}{}",
+        WINDSURF_BACKEND_API_BASE_URL, GET_PLAN_STATUS_METHOD_PATH
+    );
+    let client = reqwest::Client::new();
+    let response = client
+        .post(url)
+        .header("Content-Type", "application/proto")
+        .header("Accept", "*/*")
+        .header("Connect-Protocol-Version", "1")
+        .header("X-Auth-Token", session_token)
+        .header("Origin", "https://windsurf.com")
+        .header("Referer", "https://windsurf.com/")
+        .header("User-Agent", APP_USER_AGENT)
+        .body(body)
+        .send()
+        .await
+        .map_err(|e| format!("Auth1 获取套餐信息失败: {}", e))?;
+
+    let status = response.status();
+    let bytes = response
+        .bytes()
+        .await
+        .map_err(|e| format!("读取 Auth1 套餐响应失败: {}", e))?;
+    if !status.is_success() {
+        return Err(format!(
+            "Auth1 获取套餐信息失败: HTTP {}, body_len={}",
+            status.as_u16(),
+            bytes.len()
+        ));
+    }
+    parse_auth1_plan_status_proto_response(bytes.as_ref())
+}
+
+async fn build_payload_from_auth1_session_token(
+    session_token: &str,
+    auth_status_raw: Option<Value>,
+) -> Result<WindsurfOAuthCompletePayload, String> {
+    let api_key = fetch_auth1_synthetic_api_key(session_token).await?;
+    let api_server_url = resolve_api_server_url(
+        auth_status_raw.as_ref(),
+        Some(WINDSURF_AUTH1_API_SERVER_URL),
+    );
+    let user_status = match get_user_status_by_api_key(&api_server_url, &api_key).await {
+        Ok(value) => Some(value),
+        Err(err) => {
+            logger::log_warn(&format!(
+                "[Windsurf OAuth] Auth1 模式 GetUserStatus 失败（将导致邮箱/配额缺失）: {}",
+                err
+            ));
+            None
+        }
+    };
+    let plan_status = match fetch_auth1_plan_status(session_token).await {
+        Ok(value) => Some(value),
+        Err(err) => {
+            logger::log_warn(&format!(
+                "[Windsurf OAuth] Auth1 模式 GetPlanStatus 失败（将导致 quota 缺失）: {}",
+                err
+            ));
+            None
+        }
+    };
+
+    if user_status.is_none() && plan_status.is_none() {
+        return Err("Auth1 登录后未获取到有效配额快照".to_string());
+    }
+
+    Ok(build_payload_from_remote(
+        session_token.to_string(),
+        Some("Bearer".to_string()),
+        api_key,
+        api_server_url,
+        Some(session_token.to_string()),
+        None,
+        None,
+        user_status,
+        plan_status,
+        auth_status_raw,
+    ))
+}
+
+async fn sign_in_with_firebase_password(email: &str, password: &str) -> Result<String, String> {
     let url = format!("{}?key={}", FIREBASE_SIGN_IN_URL, FIREBASE_API_KEY);
     let body = json!({
         "email": email,
@@ -1317,22 +1841,87 @@ pub async fn build_payload_from_password(
 
     let firebase_resp: Value =
         serde_json::from_str(&text).map_err(|e| format!("解析 Firebase 响应失败: {}", e))?;
-
-    let id_token = firebase_resp
+    firebase_resp
         .get("idToken")
         .and_then(Value::as_str)
-        .ok_or_else(|| "Firebase 响应缺少 idToken".to_string())?;
+        .map(|value| value.to_string())
+        .ok_or_else(|| "Firebase 响应缺少 idToken".to_string())
+}
 
-    logger::log_info("[Windsurf PasswordLogin] Firebase 登录成功，开始获取账号信息");
+pub async fn build_payload_from_password(
+    email: &str,
+    password: &str,
+) -> Result<WindsurfOAuthCompletePayload, String> {
+    let email = email.trim();
+    if email.is_empty() || password.is_empty() {
+        return Err("邮箱和密码不能为空".to_string());
+    }
 
-    build_payload_from_firebase_token(id_token, None).await
+    logger::log_info("[Windsurf PasswordLogin] 开始邮箱密码登录");
+    let (auth_method, has_password) = detect_password_auth_method(email).await?;
+    logger::log_info(&format!(
+        "[Windsurf PasswordLogin] 账号认证方式: method={}, has_password={}",
+        auth_method.as_str(),
+        has_password
+            .map(|value| value.to_string())
+            .unwrap_or_else(|| "unknown".to_string())
+    ));
+
+    match auth_method {
+        WindsurfPasswordAuthMethod::Firebase => {
+            let id_token = sign_in_with_firebase_password(email, password).await?;
+            logger::log_info("[Windsurf PasswordLogin] Firebase 登录成功，开始获取账号信息");
+            build_payload_from_firebase_token(&id_token, None).await
+        }
+        WindsurfPasswordAuthMethod::Auth1 => {
+            if has_password == Some(false) {
+                return Err(
+                    "该账号未开启密码登录，可能是 Google/SSO 登录账号，请先在 Windsurf 账号中设置密码后再添加"
+                        .to_string(),
+                );
+            }
+
+            logger::log_info("[Windsurf PasswordLogin] Auth1 登录开始");
+            let auth1_token = login_with_auth1_password(email, password).await?;
+            let (session_token, account_id, primary_org_id) =
+                exchange_auth1_for_session(&auth1_token).await?;
+            let auth_status_raw = Some(json!({
+                "authMethod": "auth1",
+                "sessionToken": session_token.clone(),
+                "devinAccountId": account_id,
+                "devinPrimaryOrgId": primary_org_id,
+                "email": email
+            }));
+            logger::log_info("[Windsurf PasswordLogin] Auth1 登录成功，开始获取账号信息");
+            build_payload_from_auth1_session_token(&session_token, auth_status_raw).await
+        }
+    }
 }
 
 pub async fn build_payload_from_local_auth_status(
     auth_status: Value,
 ) -> Result<WindsurfOAuthCompletePayload, String> {
-    let api_key = pick_string_from_object(Some(&auth_status), &["apiKey", "api_key"])
-        .ok_or_else(|| "本地 Windsurf 登录信息缺少 apiKey".to_string())?;
+    let auth_method_is_auth1 =
+        pick_string_from_object(Some(&auth_status), &["authMethod", "auth_method"])
+            .map(|value| value.eq_ignore_ascii_case("auth1"))
+            .unwrap_or(false);
+    let session_token =
+        pick_string_from_object(Some(&auth_status), &["sessionToken", "session_token"]).and_then(
+            |value| {
+                let trimmed = value.trim();
+                if trimmed.starts_with("devin-session-token$") {
+                    Some(trimmed.to_string())
+                } else {
+                    None
+                }
+            },
+        );
+
+    if auth_method_is_auth1 {
+        let session_token = session_token
+            .ok_or_else(|| "本地 Windsurf 登录信息缺少 Auth1 sessionToken".to_string())?;
+        return build_payload_from_auth1_session_token(&session_token, Some(auth_status)).await;
+    }
 
     let payload = if auth_status
         .get("firebaseIdToken")
@@ -1346,7 +1935,11 @@ pub async fn build_payload_from_local_auth_status(
             .unwrap_or_default()
             .to_string();
         build_payload_from_firebase_token(&firebase_token, Some(auth_status.clone())).await?
+    } else if let Some(session_token) = session_token {
+        build_payload_from_auth1_session_token(&session_token, Some(auth_status.clone())).await?
     } else {
+        let api_key = pick_string_from_object(Some(&auth_status), &["apiKey", "api_key"])
+            .ok_or_else(|| "本地 Windsurf 登录信息缺少 apiKey".to_string())?;
         build_payload_from_api_key(&api_key, Some(auth_status.clone()), None).await?
     };
 
@@ -1399,6 +1992,59 @@ pub async fn refresh_payload_for_account(
         {
             obj.insert("email".to_string(), Value::String(email.to_string()));
         }
+        if let Some(session_token) = account
+            .windsurf_auth_token
+            .as_ref()
+            .map(|value| value.trim())
+            .filter(|value| value.starts_with("devin-session-token$"))
+        {
+            obj.insert(
+                "sessionToken".to_string(),
+                Value::String(session_token.to_string()),
+            );
+            obj.insert("authMethod".to_string(), Value::String("auth1".to_string()));
+        }
+    }
+
+    let auth_method_is_auth1 =
+        pick_string_from_object(Some(&auth_status_hint), &["authMethod", "auth_method"])
+            .map(|value| value.eq_ignore_ascii_case("auth1"))
+            .unwrap_or(false);
+    let auth1_session_token = account
+        .windsurf_auth_token
+        .as_ref()
+        .map(|value| value.trim())
+        .filter(|value| value.starts_with("devin-session-token$"))
+        .map(|value| value.to_string())
+        .or_else(|| {
+            pick_string_from_object(Some(&auth_status_hint), &["sessionToken", "session_token"])
+                .and_then(|value| {
+                    let trimmed = value.trim();
+                    if trimmed.starts_with("devin-session-token$") {
+                        Some(trimmed.to_string())
+                    } else {
+                        None
+                    }
+                })
+        })
+        .or_else(|| {
+            let token = account.github_access_token.trim();
+            if token.starts_with("devin-session-token$") {
+                Some(token.to_string())
+            } else {
+                None
+            }
+        });
+
+    if auth_method_is_auth1 || auth1_session_token.is_some() {
+        if let Some(session_token) = auth1_session_token {
+            return build_payload_from_auth1_session_token(
+                &session_token,
+                Some(auth_status_hint.clone()),
+            )
+            .await;
+        }
+        return Err("Auth1 账号缺少可用 sessionToken，无法刷新配额".to_string());
     }
 
     if let Some(api_key) = account
@@ -1419,8 +2065,26 @@ pub async fn refresh_payload_for_account(
         .as_deref()
         .map(|value| value.eq_ignore_ascii_case("bearer"))
         .unwrap_or(false)
-        && !account.github_access_token.trim().starts_with("sk-ws-")
     {
+        if account
+            .github_access_token
+            .trim()
+            .starts_with("devin-session-token$")
+        {
+            return build_payload_from_auth1_session_token(
+                account.github_access_token.trim(),
+                Some(auth_status_hint.clone()),
+            )
+            .await;
+        }
+        if account.github_access_token.trim().starts_with("sk-ws-") {
+            return build_payload_from_api_key(
+                account.github_access_token.trim(),
+                Some(auth_status_hint.clone()),
+                account.windsurf_api_server_url.as_deref(),
+            )
+            .await;
+        }
         return build_payload_from_firebase_token(
             &account.github_access_token,
             Some(auth_status_hint.clone()),

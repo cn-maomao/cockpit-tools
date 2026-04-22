@@ -7,6 +7,20 @@
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
 ---
+## [0.22.9] - 2026-04-23
+
+### 新增
+- **Windsurf 账号登录/导入现已支持 Auth1 账号与 Devin Session Token**：导入时可直接识别 `devin-session-token$...`；邮箱密码登录会自动识别 Firebase / Auth1；Auth1 会话可补齐 synthetic API Key 与套餐快照。
+- **日志查看器现已支持切换日志文件并按级别筛选**：弹框可浏览受管的 `app.log` / `codex-api.log` 日志文件，并按 `INFO` / `WARN` / `ERROR` 过滤日志条目。
+
+### 变更
+- **Codex 本地 API 服务现已移除手动“速度”档位，并改为跟随上游默认 tier 行为**：弹框不再展示速度选择；请求转发不再注入 `service_tier`；统计范围会记住上次选择。
+- **Codex 本地 API 服务在账号池下的流式转发与路由开销已收敛**：`/v1/chat/completions` 流式响应改为边读边转，不再整段缓冲后回放；路由阶段会短暂缓存已准备账号；请求统计改为异步批量落盘。
+
+### 修复
+- **Codex 账号注入现已改为以账号中心存储为 Token 真源**：当前账号解析与实例注入不再回读受管本地 auth 快照，避免旧本地状态反向覆盖已刷新的凭据。
+
+---
 ## [0.22.8] - 2026-04-22
 
 ### 新增

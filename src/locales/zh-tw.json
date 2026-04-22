@@ -1752,16 +1752,7 @@
       "enableAndActivateAction": "啟用並切號",
       "apiPortUrl": "API 連接埠 URL",
       "modelId": "模型 ID",
-      "modelIdPlaceholder": "選擇模型 ID",
-      "serviceTierSaveSuccess": "API 服務速度已更新",
-      "serviceTier": {
-        "label": "速度",
-        "placeholder": "選擇速度",
-        "standard": "標準",
-        "fast": "快速",
-        "standardHint": "預設速度",
-        "fastHint": "1.5 倍速度，2 倍方案用量"
-      }
+      "modelIdPlaceholder": "選擇模型 ID"
     },
     "api": {
       "baseUrl": "基礎網址",
@@ -3669,5 +3660,16 @@
     "cancelEditAccountName": "取消編輯",
     "accountNameRequired": "帳號名不能為空。",
     "copySecret": "複製秘鑰"
+  },
+  "logViewer": {
+    "fileLabel": "日誌檔案",
+    "levelLabel": "級別",
+    "noMatches": "目前篩選下沒有符合的日誌",
+    "levels": {
+      "all": "全部",
+      "info": "資訊",
+      "warn": "警告",
+      "error": "錯誤"
+    }
   }
 }

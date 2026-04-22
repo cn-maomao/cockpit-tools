@@ -1752,16 +1752,7 @@
       "enableAndActivateAction": "Aktivieren und wechseln",
       "apiPortUrl": "API-Port-URL",
       "modelId": "Modell-ID",
-      "modelIdPlaceholder": "Modell-ID wählen",
-      "serviceTierSaveSuccess": "API-Service-Geschwindigkeit wurde aktualisiert",
-      "serviceTier": {
-        "label": "Geschwindigkeit",
-        "placeholder": "Geschwindigkeit wählen",
-        "standard": "Normal",
-        "fast": "Schnell",
-        "standardHint": "Standardgeschwindigkeit",
-        "fastHint": "1,5x Geschwindigkeit, 2x Tarifverbrauch"
-      }
+      "modelIdPlaceholder": "Modell-ID wählen"
     },
     "local": {
       "desc": "Aktuell eingeloggtes Konto aus ~/.codex/auth.json importieren",
@@ -3669,5 +3660,16 @@
     "cancelEditAccountName": "Bearbeiten abbrechen",
     "accountNameRequired": "Kontoname ist erforderlich.",
     "copySecret": "Secret kopieren"
+  },
+  "logViewer": {
+    "fileLabel": "Logdatei",
+    "levelLabel": "Stufe",
+    "noMatches": "Keine Protokolle entsprechen dem aktuellen Filter",
+    "levels": {
+      "all": "Alle",
+      "info": "Info",
+      "warn": "Warnung",
+      "error": "Fehler"
+    }
   }
 }

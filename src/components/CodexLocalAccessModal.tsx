@@ -23,7 +23,6 @@ import type { CodexAccount } from '../types/codex';
 import type { CodexAccountGroup } from '../services/codexAccountGroupService';
 import type {
   CodexLocalAccessRoutingStrategy,
-  CodexLocalAccessServiceTier,
   CodexLocalAccessState,
   CodexLocalAccessStatsWindow,
 } from '../types/codexLocalAccess';
@@ -61,9 +60,6 @@ interface CodexLocalAccessModalProps {
   onUpdateRoutingStrategy: (
     strategy: CodexLocalAccessRoutingStrategy,
   ) => Promise<unknown> | unknown;
-  onUpdateServiceTier: (
-    serviceTier: CodexLocalAccessServiceTier | null,
-  ) => Promise<unknown> | unknown;
   onRotateApiKey: () => Promise<unknown> | unknown;
   onToggleEnabled: () => Promise<unknown> | unknown;
   onTest: () => Promise<number> | number;
@@ -74,6 +70,31 @@ interface CodexLocalAccessModalProps {
 
 type StatsRangeKey = 'daily' | 'weekly' | 'monthly';
 type CopyableField = 'apiPortUrl' | 'baseUrl' | 'apiKey' | 'modelId';
+const CODEX_LOCAL_ACCESS_STATS_RANGE_STORAGE_KEY =
+  'agtools.codex.local_access.stats_range.v1';
+
+function normalizeStatsRangeKey(value: string | null | undefined): StatsRangeKey {
+  if (value === 'weekly' || value === 'monthly') {
+    return value;
+  }
+  return 'daily';
+}
+
+function readStoredStatsRange(): StatsRangeKey {
+  try {
+    return normalizeStatsRangeKey(localStorage.getItem(CODEX_LOCAL_ACCESS_STATS_RANGE_STORAGE_KEY));
+  } catch {
+    return 'daily';
+  }
+}
+
+function persistStatsRange(value: StatsRangeKey): void {
+  try {
+    localStorage.setItem(CODEX_LOCAL_ACCESS_STATS_RANGE_STORAGE_KEY, value);
+  } catch {
+    // ignore storage write failures
+  }
+}
 
 function formatCompactNumber(value: number): string {
   return new Intl.NumberFormat('en', {
@@ -104,14 +125,13 @@ export function CodexLocalAccessModal({
   accountGroups,
   initialSelectedIds,
   maskAccountText,
-  onClose,
-  onSaveAccounts,
-  onClearStats,
-  onRefreshStats,
-  onUpdatePort,
-  onUpdateRoutingStrategy,
-  onUpdateServiceTier,
-  onRotateApiKey,
+    onClose,
+    onSaveAccounts,
+    onClearStats,
+    onRefreshStats,
+    onUpdatePort,
+    onUpdateRoutingStrategy,
+    onRotateApiKey,
   onToggleEnabled,
   onTest,
   saving,
@@ -131,7 +151,7 @@ export function CodexLocalAccessModal({
   const [keyVisible, setKeyVisible] = useState(false);
   const [copiedField, setCopiedField] = useState<CopyableField | null>(null);
   const [selectedModelId, setSelectedModelId] = useState('');
-  const [statsRange, setStatsRange] = useState<StatsRangeKey>('daily');
+  const [statsRange, setStatsRange] = useState<StatsRangeKey>(() => readStoredStatsRange());
   const selectAllCheckboxRef = useRef<HTMLInputElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -155,7 +175,6 @@ export function CodexLocalAccessModal({
   }, [stats, statsRange]);
   const selectedTotals = selectedStatsWindow?.totals;
   const routingStrategy = collection?.routingStrategy ?? 'auto';
-  const serviceTier = collection?.defaultServiceTier ?? null;
   const modelIdOptions = useMemo(
     () => modelIds.map((modelId) => ({ value: modelId, label: modelId })),
     [modelIds],
@@ -241,7 +260,6 @@ export function CodexLocalAccessModal({
     setNotice('');
     setKeyVisible(false);
     setCopiedField(null);
-    setStatsRange('daily');
     setPortInput(collection?.port ? String(collection.port) : '');
     if (mode === 'members') {
       window.setTimeout(() => {
@@ -257,6 +275,10 @@ export function CodexLocalAccessModal({
     }
     setSelectedModelId((current) => (modelIds.includes(current) ? current : modelIds[0]));
   }, [modelIds]);
+
+  useEffect(() => {
+    persistStatsRange(statsRange);
+  }, [statsRange]);
 
   const normalizeTag = (value: string) => value.trim().toLowerCase();
 
@@ -484,22 +506,6 @@ export function CodexLocalAccessModal({
     [t],
   );
 
-  const serviceTierOptions = useMemo(
-    () => [
-      {
-        value: 'standard',
-        label: t('codex.localAccess.serviceTier.standard', '标准'),
-        description: t('codex.localAccess.serviceTier.standardHint', '默认速度'),
-      },
-      {
-        value: 'fast',
-        label: t('codex.localAccess.serviceTier.fast', '快速'),
-        description: t('codex.localAccess.serviceTier.fastHint', '1.5 倍速度，2 倍套餐用量'),
-      },
-    ] satisfies Array<{ value: 'standard' | 'fast'; label: string; description: string }>,
-    [t],
-  );
-
   const renderQuotaPreview = (
     presentation: ReturnType<typeof buildCodexAccountPresentation>,
     limit = 2,
@@ -642,20 +648,6 @@ export function CodexLocalAccessModal({
         await onUpdateRoutingStrategy(nextStrategy as CodexLocalAccessRoutingStrategy);
       },
       t('codex.localAccess.routingSaveSuccess', 'API 服务调度策略已更新'),
-    );
-  };
-
-  const handleChangeServiceTier = async (nextTier: string) => {
-    if (!collection) return;
-    const normalizedNextTier: CodexLocalAccessServiceTier | null =
-      nextTier === 'fast' ? 'fast' : null;
-    if (normalizedNextTier === serviceTier) return;
-
-    await runAction(
-      async () => {
-        await onUpdateServiceTier(normalizedNextTier);
-      },
-      t('codex.localAccess.serviceTierSaveSuccess', 'API 服务速度已更新'),
     );
   };
 
@@ -809,22 +801,6 @@ export function CodexLocalAccessModal({
                         onChange={(value) => void handleChangeRoutingStrategy(value)}
                         disabled={saving || testing || starting}
                         ariaLabel={t('codex.localAccess.routingLabel', '调度策略')}
-                      />
-                    </div>
-                  )}
-                  {collection && (
-                    <div className="codex-local-access-header-service-tier">
-                      <SingleSelectDropdown
-                        value={serviceTier === 'fast' ? 'fast' : 'standard'}
-                        options={serviceTierOptions}
-                        onChange={(value) => {
-                          void handleChangeServiceTier(value);
-                        }}
-                        disabled={actionBusy}
-                        ariaLabel={t('codex.localAccess.serviceTier.label', '速度')}
-                        menuMinWidth={268}
-                        menuMaxHeight={300}
-                        menuAlign="right"
                       />
                     </div>
                   )}
@@ -1130,7 +1106,6 @@ export function CodexLocalAccessModal({
                         </div>
                       </div>
                     ) : null}
-
                   </div>
                 ) : null}
               </section>

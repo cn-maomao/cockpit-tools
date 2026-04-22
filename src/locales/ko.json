@@ -1752,16 +1752,7 @@
       "enableAndActivateAction": "활성화 후 전환",
       "apiPortUrl": "API 포트 URL",
       "modelId": "모델 ID",
-      "modelIdPlaceholder": "모델 ID 선택",
-      "serviceTierSaveSuccess": "API 서비스 속도가 업데이트되었습니다",
-      "serviceTier": {
-        "label": "속도",
-        "placeholder": "속도 선택",
-        "standard": "표준",
-        "fast": "빠름",
-        "standardHint": "기본 속도",
-        "fastHint": "1.5배 속도, 플랜 사용량 2배"
-      }
+      "modelIdPlaceholder": "모델 ID 선택"
     },
     "local": {
       "desc": "~/.codex/auth.json에서 현재 로그인된 계정 가져오기",
@@ -3669,5 +3660,16 @@
     "cancelEditAccountName": "편집 취소",
     "accountNameRequired": "계정 이름은 필수입니다.",
     "copySecret": "시크릿 복사"
+  },
+  "logViewer": {
+    "fileLabel": "로그 파일",
+    "levelLabel": "레벨",
+    "noMatches": "현재 필터와 일치하는 로그가 없습니다",
+    "levels": {
+      "all": "전체",
+      "info": "정보",
+      "warn": "경고",
+      "error": "오류"
+    }
   }
 }

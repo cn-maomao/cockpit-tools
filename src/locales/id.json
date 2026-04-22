@@ -1801,16 +1801,7 @@
       "enableAndActivateAction": "Aktifkan dan alihkan",
       "apiPortUrl": "URL Port API",
       "modelId": "ID Model",
-      "modelIdPlaceholder": "Pilih ID model",
-      "serviceTierSaveSuccess": "Kecepatan layanan API telah diperbarui",
-      "serviceTier": {
-        "label": "Kecepatan",
-        "placeholder": "Pilih kecepatan",
-        "standard": "Standar",
-        "fast": "Cepat",
-        "standardHint": "Kecepatan default",
-        "fastHint": "Kecepatan 1,5x, pemakaian paket 2x"
-      }
+      "modelIdPlaceholder": "Pilih ID model"
     },
     "api": {
       "baseUrl": "URL Dasar",
@@ -3669,5 +3660,16 @@
     "importErrorMsg": "Impor gagal. Pastikan format berkas adalah array JSON yang diekspor valid.",
     "btnImportTitle": "Impor Cadangan JSON Lokal",
     "btnExportTitle": "Ekspor Tersimpan sebagai JSON"
+  },
+  "logViewer": {
+    "fileLabel": "File log",
+    "levelLabel": "Tingkat",
+    "noMatches": "Tidak ada log yang cocok dengan filter saat ini",
+    "levels": {
+      "all": "Semua",
+      "info": "Info",
+      "warn": "Peringatan",
+      "error": "Galat"
+    }
   }
 }

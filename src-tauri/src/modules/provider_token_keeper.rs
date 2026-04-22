@@ -9,8 +9,8 @@ use tauri::AppHandle;
 
 use crate::modules::{
     codebuddy_account, codebuddy_cn_account, codex_account, codex_oauth, cursor_account,
-    gemini_account, github_copilot_account, kiro_account, kiro_instance, logger, trae_account,
-    process, windsurf_account, windsurf_instance, workbuddy_account,
+    gemini_account, github_copilot_account, kiro_account, kiro_instance, logger, process,
+    trae_account, windsurf_account, windsurf_instance, workbuddy_account,
 };
 
 const TOKEN_KEEPER_TICK_SECONDS: u64 = 60;

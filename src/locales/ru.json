@@ -1752,16 +1752,7 @@
       "enableAndActivateAction": "Включить и переключить",
       "apiPortUrl": "URL API-порта",
       "modelId": "ID модели",
-      "modelIdPlaceholder": "Выберите ID модели",
-      "serviceTierSaveSuccess": "Скорость API-сервиса обновлена",
-      "serviceTier": {
-        "label": "Скорость",
-        "placeholder": "Выбрать скорость",
-        "standard": "Стандартная",
-        "fast": "Быстрая",
-        "standardHint": "Скорость по умолчанию",
-        "fastHint": "Скорость 1,5x, расход плана 2x"
-      }
+      "modelIdPlaceholder": "Выберите ID модели"
     },
     "local": {
       "desc": "Импортировать текущий аккаунт из ~/.codex/auth.json",
@@ -3669,5 +3660,16 @@
     "cancelEditAccountName": "Отменить редактирование",
     "accountNameRequired": "Имя аккаунта обязательно.",
     "copySecret": "Скопировать секрет"
+  },
+  "logViewer": {
+    "fileLabel": "Файл журнала",
+    "levelLabel": "Уровень",
+    "noMatches": "Нет журналов, соответствующих текущему фильтру",
+    "levels": {
+      "all": "Все",
+      "info": "Инфо",
+      "warn": "Предупр.",
+      "error": "Ошибка"
+    }
   }
 }

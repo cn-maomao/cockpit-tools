@@ -1752,16 +1752,7 @@
       "enableAndActivateAction": "有効化して切り替え",
       "apiPortUrl": "APIポートURL",
       "modelId": "モデル ID",
-      "modelIdPlaceholder": "モデル ID を選択",
-      "serviceTierSaveSuccess": "APIサービスの速度を更新しました",
-      "serviceTier": {
-        "label": "速度",
-        "placeholder": "速度を選択",
-        "standard": "標準",
-        "fast": "高速",
-        "standardHint": "デフォルト速度",
-        "fastHint": "速度1.5倍、プラン消費2倍"
-      }
+      "modelIdPlaceholder": "モデル ID を選択"
     },
     "local": {
       "desc": "~/.codex/auth.json から現在ログイン中のアカウントをインポート",
@@ -3669,5 +3660,16 @@
     "cancelEditAccountName": "編集をキャンセル",
     "accountNameRequired": "アカウント名は必須です。",
     "copySecret": "シークレットをコピー"
+  },
+  "logViewer": {
+    "fileLabel": "ログファイル",
+    "levelLabel": "レベル",
+    "noMatches": "現在のフィルターに一致するログはありません",
+    "levels": {
+      "all": "すべて",
+      "info": "情報",
+      "warn": "警告",
+      "error": "エラー"
+    }
   }
 }

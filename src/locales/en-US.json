@@ -1728,7 +1728,6 @@
       "portSaveSuccess": "API service port updated",
       "routingLabel": "Routing",
       "routingSaveSuccess": "API service routing updated",
-      "serviceTierSaveSuccess": "API service speed updated",
       "routingDescriptionAuto": "Prefer higher-tier accounts with more remaining quota, then rotate within the same tier.",
       "routingDescriptionQuotaHighFirst": "Prefer accounts with more remaining quota.",
       "routingDescriptionQuotaLowFirst": "Prefer accounts with less remaining quota.",
@@ -1773,14 +1772,6 @@
         "quotaLowFirst": "Low Quota First",
         "planHighFirst": "High Plan First",
         "planLowFirst": "Low Plan First"
-      },
-      "serviceTier": {
-        "label": "Speed",
-        "placeholder": "Select speed",
-        "standard": "Standard",
-        "standardHint": "Default speed",
-        "fast": "Fast",
-        "fastHint": "1.5x speed, 2x plan usage"
       },
       "stats": {
         "requests": "Requests",
@@ -3629,6 +3620,17 @@
     "cancelEditAccountName": "Cancel Edit",
     "accountNameRequired": "Account name is required.",
     "copySecret": "Copy Secret"
+  },
+  "logViewer": {
+    "fileLabel": "Log File",
+    "levelLabel": "Level",
+    "noMatches": "No logs match the current filter",
+    "levels": {
+      "all": "All",
+      "info": "INFO",
+      "warn": "WARN",
+      "error": "ERROR"
+    }
   },
   "twoFactorAuth": {
     "pageTitle": "2FA",

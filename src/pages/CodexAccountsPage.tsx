@@ -96,7 +96,6 @@ import {
 import type { CodexAccount } from '../types/codex';
 import type {
   CodexLocalAccessRoutingStrategy,
-  CodexLocalAccessServiceTier,
   CodexLocalAccessState,
 } from '../types/codexLocalAccess';
 import {
@@ -2431,25 +2430,6 @@ export function CodexAccountsPage() {
       return nextState;
     } catch (error) {
       console.error('Failed to update local access routing strategy:', error);
-      throw new Error(String(error).replace(/^Error:\s*/, ''));
-    } finally {
-      setLocalAccessSaving(false);
-    }
-  }, [setMessage, t]);
-
-  const handleUpdateLocalAccessServiceTier = useCallback(async (
-    serviceTier: CodexLocalAccessServiceTier | null,
-  ) => {
-    setLocalAccessSaving(true);
-    try {
-      const nextState = await codexLocalAccessService.updateCodexLocalAccessServiceTier(serviceTier);
-      setLocalAccessState(nextState);
-      setMessage({
-        text: t('codex.localAccess.serviceTierSaveSuccess', 'API 服务速度已更新'),
-      });
-      return nextState;
-    } catch (error) {
-      console.error('Failed to update local access service tier:', error);
       throw new Error(String(error).replace(/^Error:\s*/, ''));
     } finally {
       setLocalAccessSaving(false);
@@ -4808,7 +4788,6 @@ export function CodexAccountsPage() {
           onRefreshStats={reloadLocalAccessState}
           onUpdatePort={handleUpdateLocalAccessPort}
           onUpdateRoutingStrategy={handleUpdateLocalAccessRoutingStrategy}
-          onUpdateServiceTier={handleUpdateLocalAccessServiceTier}
           onRotateApiKey={handleRotateLocalAccessApiKey}
           onToggleEnabled={handleToggleLocalAccessEnabled}
           onTest={handleTestLocalAccess}

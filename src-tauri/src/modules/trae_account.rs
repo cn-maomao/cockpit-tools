@@ -121,7 +121,13 @@ fn normalize_email(value: Option<&str>) -> Option<String> {
 }
 
 fn normalize_identity_email(value: Option<&str>) -> Option<String> {
-    normalize_email(value).and_then(|email| if email == "unknown" { None } else { Some(email) })
+    normalize_email(value).and_then(|email| {
+        if email == "unknown" {
+            None
+        } else {
+            Some(email)
+        }
+    })
 }
 
 fn account_matches_import_identity(
@@ -2336,7 +2342,9 @@ fn ensure_entitlement_raw_for_inject(account: &TraeAccount) -> Option<Value> {
     account.trae_entitlement_raw.clone()
 }
 
-fn read_local_trae_auth_from_storage_path(storage_path: &Path) -> Result<Option<TraeImportPayload>, String> {
+fn read_local_trae_auth_from_storage_path(
+    storage_path: &Path,
+) -> Result<Option<TraeImportPayload>, String> {
     if !storage_path.exists() {
         return Ok(None);
     }
@@ -3303,7 +3311,11 @@ fn apply_runtime_storage_payload_for_usage_refresh(
 
     let payload_user_id = normalize_non_empty(payload.user_id.as_deref());
     let payload_email = normalize_identity_email(Some(payload.email.as_str()));
-    if !account_matches_import_identity(account, payload_user_id.as_deref(), payload_email.as_deref()) {
+    if !account_matches_import_identity(
+        account,
+        payload_user_id.as_deref(),
+        payload_email.as_deref(),
+    ) {
         logger::log_warn(&format!(
             "[Trae Refresh] 运行中实例 storage 与目标账号不匹配，跳过本地会话同步: account_id={}, path={}",
             account.id,
@@ -3326,7 +3338,11 @@ fn apply_runtime_storage_payload_for_usage_refresh(
     ));
 }
 
-async fn refresh_quota_snapshot(account: &mut TraeAccount, client: &reqwest::Client, cookie: Option<&str>) {
+async fn refresh_quota_snapshot(
+    account: &mut TraeAccount,
+    client: &reqwest::Client,
+    cookie: Option<&str>,
+) {
     let entitlement_urls = build_refresh_api_urls(account, TRAE_PAY_STATUS_PATH);
     let entitlement_response = request_trae_pay_json_with_candidates(
         client,
@@ -3573,7 +3589,8 @@ pub async fn refresh_all_tokens() -> Result<Vec<(String, Result<TraeAccount, Str
                     .unwrap_or_else(|| "-".to_string())
             ));
             let result =
-                refresh_account_usage_only_async(account_id.as_str(), storage_path.as_deref()).await;
+                refresh_account_usage_only_async(account_id.as_str(), storage_path.as_deref())
+                    .await;
             results.push((account_id, result));
             continue;
         }

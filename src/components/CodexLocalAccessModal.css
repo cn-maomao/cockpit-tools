@@ -138,20 +138,13 @@
   min-width: 0;
 }
 
-.codex-local-access-header-service-tier {
-  width: 128px;
-  min-width: 0;
-}
-
-.codex-local-access-header-routing .single-select-dropdown-trigger,
-.codex-local-access-header-service-tier .single-select-dropdown-trigger {
+.codex-local-access-header-routing .single-select-dropdown-trigger {
   min-height: 34px;
   padding: 0 10px 0 12px;
   border-radius: 12px;
 }
 
-.codex-local-access-header-routing .single-select-dropdown-value,
-.codex-local-access-header-service-tier .single-select-dropdown-value {
+.codex-local-access-header-routing .single-select-dropdown-value {
   font-size: 13px;
 }
 
@@ -1147,10 +1140,6 @@
     width: min(180px, 100%);
   }
 
-  .codex-local-access-header-service-tier {
-    width: min(136px, 100%);
-  }
-
   .codex-local-access-modal .group-account-picker-title {
     padding-right: 64px;
   }
@@ -1184,10 +1173,6 @@
     flex: 1 1 160px;
   }
 
-  .codex-local-access-header-service-tier {
-    flex: 1 1 130px;
-  }
-
   .codex-local-access-summary-head {
     align-items: stretch;
     flex-direction: column;
@@ -1203,8 +1188,7 @@
   }
 
   .codex-local-access-port-row input,
-  .codex-local-access-header-routing,
-  .codex-local-access-header-service-tier {
+  .codex-local-access-header-routing {
     width: 100%;
   }
 
@@ -1236,10 +1220,6 @@
   }
 
   .codex-local-access-header-routing {
-    flex-basis: 100%;
-  }
-
-  .codex-local-access-header-service-tier {
     flex-basis: 100%;
   }
 
@@ -1313,7 +1293,6 @@
 }
 
 [data-theme="dark"] .codex-local-access-header-routing .single-select-dropdown-trigger,
-[data-theme="dark"] .codex-local-access-header-service-tier .single-select-dropdown-trigger,
 [data-theme="dark"] .codex-local-access-modal .folder-icon-btn {
   background: rgba(15, 23, 42, 0.58);
   border-color: rgba(148, 163, 184, 0.16);

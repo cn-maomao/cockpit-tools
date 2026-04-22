@@ -5,14 +5,11 @@ export type CodexLocalAccessRoutingStrategy =
   | 'plan_high_first'
   | 'plan_low_first';
 
-export type CodexLocalAccessServiceTier = 'fast';
-
 export interface CodexLocalAccessCollection {
   enabled: boolean;
   port: number;
   apiKey: string;
   routingStrategy: CodexLocalAccessRoutingStrategy;
-  defaultServiceTier: CodexLocalAccessServiceTier | null;
   restrictFreeAccounts: boolean;
   accountIds: string[];
   createdAt: number;

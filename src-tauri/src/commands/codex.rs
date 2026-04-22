@@ -30,10 +30,7 @@ fn restart_codex_specified_app_if_enabled(user_config: &config::UserConfig) {
             logger::log_info(&format!("已重启指定应用: {}", path));
         }
         Err(error) => {
-            logger::log_warn(&format!(
-                "重启指定应用失败（path={}）：{}",
-                path, error
-            ));
+            logger::log_warn(&format!("重启指定应用失败（path={}）：{}", path, error));
         }
     }
 }
@@ -752,13 +749,6 @@ pub async fn codex_local_access_update_routing_strategy(
 }
 
 #[tauri::command]
-pub async fn codex_local_access_update_service_tier(
-    service_tier: Option<String>,
-) -> Result<CodexLocalAccessState, String> {
-    codex_local_access::update_local_access_service_tier(service_tier).await
-}
-
-#[tauri::command]
 pub async fn codex_local_access_set_enabled(
     enabled: bool,
 ) -> Result<CodexLocalAccessState, String> {
@@ -811,8 +801,6 @@ pub async fn codex_local_access_activate(app: AppHandle) -> Result<CodexLocalAcc
     } else {
         logger::log_info("已关闭切换 Codex 时自动启动 Codex App");
     }
-
-    restart_codex_specified_app_if_enabled(&user_config);
 
     let _ = crate::modules::tray::update_tray_menu(&app);
     Ok(state)

@@ -339,7 +339,8 @@ pub struct TraeRunningBoundAccountContext {
     pub storage_path: PathBuf,
 }
 
-pub fn resolve_running_bound_account_contexts() -> Result<Vec<TraeRunningBoundAccountContext>, String> {
+pub fn resolve_running_bound_account_contexts(
+) -> Result<Vec<TraeRunningBoundAccountContext>, String> {
     let store = load_instance_store()?;
     let mut contexts = Vec::new();
     let mut seen_ids = BTreeSet::new();

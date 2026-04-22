@@ -1862,18 +1862,15 @@ fn sync_api_key_account_from_local_state(account: &mut CodexAccount, base_dir: &
     let _ = save_account(account);
 }
 
-/// 获取当前激活的账号（基于 Tools 显式 current_account_id，并同步当前本地状态）
+/// 获取当前激活的账号（基于 Tools 显式 current_account_id）
 pub fn get_current_account() -> Option<CodexAccount> {
     let current_id = load_account_index().current_account_id?;
     let mut account = load_account(&current_id)?;
-    let base_dir = get_codex_home();
 
     if account.is_api_key_auth() {
+        let base_dir = get_codex_home();
         sync_api_key_account_from_local_state(&mut account, &base_dir);
-        return Some(account);
     }
-
-    let _ = sync_account_from_auth_dir_if_current(&mut account, &base_dir);
     Some(account)
 }
 
@@ -2181,7 +2178,45 @@ pub async fn prepare_account_for_injection_from_auth_dir(
 }
 
 pub async fn prepare_account_for_injection(account_id: &str) -> Result<CodexAccount, String> {
-    prepare_account_for_injection_from_auth_dir(account_id, None).await
+    prepare_account_for_injection_from_store(account_id).await
+}
+
+/// 准备账号注入（存储真源模式）：
+/// 仅使用账号中心存储作为 Token 真源，不从受管目录/本地 auth.json 回读，避免旧快照反向覆盖。
+pub async fn prepare_account_for_injection_from_store(
+    account_id: &str,
+) -> Result<CodexAccount, String> {
+    let mut account =
+        load_account(account_id).ok_or_else(|| format!("账号不存在: {}", account_id))?;
+    if account.is_api_key_auth() {
+        return Ok(account);
+    }
+
+    if codex_oauth::is_token_expired(&account.tokens.access_token) {
+        logger::log_info(&format!("账号 {} 的 Token 已过期，尝试刷新", account.email));
+        if let Some(ref refresh_token) = account.tokens.refresh_token {
+            match codex_oauth::refresh_access_token_with_fallback(
+                refresh_token,
+                Some(account.tokens.id_token.as_str()),
+            )
+            .await
+            {
+                Ok(new_tokens) => {
+                    logger::log_info(&format!("账号 {} 的 Token 刷新成功", account.email));
+                    account.tokens = new_tokens;
+                    save_account(&account)?;
+                }
+                Err(e) => {
+                    logger::log_error(&format!("账号 {} Token 刷新失败: {}", account.email, e));
+                    return Err(format!("Token 已过期且刷新失败: {}", e));
+                }
+            }
+        } else {
+            return Err("Token 已过期且无 refresh_token，请重新登录".to_string());
+        }
+    }
+
+    Ok(account)
 }
 
 /// 切换账号（写入 auth.json）
@@ -2800,7 +2835,7 @@ mod tests {
     }
 
     #[test]
-    fn current_account_syncs_latest_tokens_from_local_auth_json() {
+    fn current_account_prefers_stored_tokens_over_local_auth_json() {
         let _lock = TEST_ENV_LOCK.lock().unwrap_or_else(|err| err.into_inner());
         let env = TestEnvGuard::new("codex-current-account-sync-test");
 
@@ -2822,17 +2857,17 @@ mod tests {
 
         let current = get_current_account().expect("current account");
         assert_eq!(current.id, stored.id);
-        assert_eq!(current.tokens.access_token, latest_tokens.access_token);
+        assert_eq!(current.tokens.access_token, stored.tokens.access_token);
         assert_eq!(
             current.tokens.refresh_token.as_deref(),
-            latest_tokens.refresh_token.as_deref()
+            stored.tokens.refresh_token.as_deref()
         );
 
         let persisted = load_account(&stored.id).expect("persisted account");
-        assert_eq!(persisted.tokens.access_token, latest_tokens.access_token);
+        assert_eq!(persisted.tokens.access_token, stored.tokens.access_token);
         assert_eq!(
             persisted.tokens.refresh_token.as_deref(),
-            latest_tokens.refresh_token.as_deref()
+            stored.tokens.refresh_token.as_deref()
         );
     }
 

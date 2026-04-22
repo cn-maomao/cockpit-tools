@@ -7,6 +7,20 @@ All notable changes to Cockpit Tools will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
+## [0.22.9] - 2026-04-23
+
+### Added
+- **Windsurf account login/import now supports Auth1 accounts and Devin Session Tokens**: token import can read `devin-session-token$...`, password login auto-detects Firebase vs Auth1, and Auth1 sessions can recover synthetic API keys plus plan snapshots.
+- **Log Viewer now supports switching log files and filtering by level**: the modal can browse managed `app.log` / `codex-api.log` files and filter entries by `INFO` / `WARN` / `ERROR`.
+
+### Changed
+- **Codex Local API Service now removes the manual `Speed` selector and follows upstream default tier behavior**: the modal no longer exposes the tier control, request rewriting no longer injects `service_tier`, and the stats range keeps the last selected view.
+- **Codex Local API Service streaming and routing are now lighter under account pools**: `/v1/chat/completions` stream responses are transformed chunk-by-chunk instead of full-buffer replay, prepared accounts are cached briefly for routing, and request stats are flushed asynchronously in batches.
+
+### Fixed
+- **Codex account injection now uses account-store tokens as the source of truth**: current-account resolution and profile injection stop reading managed local auth snapshots back into the store, preventing stale local state from overriding refreshed credentials.
+
+---
 ## [0.22.8] - 2026-04-22
 
 ### Added

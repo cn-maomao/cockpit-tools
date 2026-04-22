@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Copy, FileText, FolderOpen, RefreshCw, X } from 'lucide-react';
+import { ChevronDown, Copy, FileText, FolderOpen, RefreshCw, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import {
-  getLatestLogSnapshot,
-  openLogDirectory,
-  type LatestLogSnapshot,
-} from '../services/logService';
+import { getLogSnapshot, openLogDirectory, type LogSnapshot } from '../services/logService';
 import './LogViewerModal.css';
 
 interface LogViewerModalProps {
@@ -13,11 +9,14 @@ interface LogViewerModalProps {
   onClose: () => void;
 }
 
+type LogLevelFilter = 'ALL' | 'INFO' | 'WARN' | 'ERROR';
+
 const DEFAULT_LINE_LIMIT = 200;
 const MIN_LINE_LIMIT = 20;
 const MAX_LINE_LIMIT = 5000;
 const POLL_INTERVAL_MS = 1000;
 const FEEDBACK_DURATION_MS = 1200;
+const LOG_ENTRY_LEVEL_PATTERN = /^\S+\s+(INFO|WARN|ERROR)\s/;
 
 function clampLineLimit(value: number): number {
   if (!Number.isFinite(value)) {
@@ -26,16 +25,63 @@ function clampLineLimit(value: number): number {
   return Math.min(MAX_LINE_LIMIT, Math.max(MIN_LINE_LIMIT, Math.round(value)));
 }
 
+function filterLogContent(content: string, level: LogLevelFilter): string {
+  if (level === 'ALL' || !content) {
+    return content;
+  }
+
+  const lines = content.split('\n');
+  const matchedEntries: string[] = [];
+  let currentEntry: string[] = [];
+  let currentLevel: LogLevelFilter | null = null;
+
+  const flushEntry = () => {
+    if (currentEntry.length > 0 && currentLevel === level) {
+      matchedEntries.push(currentEntry.join('\n'));
+    }
+    currentEntry = [];
+    currentLevel = null;
+  };
+
+  for (const line of lines) {
+    const matchedLevel = line.match(LOG_ENTRY_LEVEL_PATTERN)?.[1] as LogLevelFilter | undefined;
+    if (matchedLevel) {
+      flushEntry();
+      currentEntry = [line];
+      currentLevel = matchedLevel;
+      continue;
+    }
+
+    if (currentEntry.length > 0) {
+      currentEntry.push(line);
+    }
+  }
+
+  flushEntry();
+  return matchedEntries.join('\n');
+}
+
 export function LogViewerModal({ open, onClose }: LogViewerModalProps) {
   const { t } = useTranslation();
   const logsLabel = t('manual.dataPrivacy.keywords.5', '日志');
   const logDirLabel = t('manual.dataPrivacy.keywords.6', '日志目录');
+  const levelOptions: Array<{ value: LogLevelFilter; label: string }> = useMemo(
+    () => [
+      { value: 'ALL', label: t('logViewer.levels.all', '全部') },
+      { value: 'INFO', label: t('logViewer.levels.info', 'INFO') },
+      { value: 'WARN', label: t('logViewer.levels.warn', 'WARN') },
+      { value: 'ERROR', label: t('logViewer.levels.error', 'ERROR') },
+    ],
+    [t],
+  );
 
   const [lineLimit, setLineLimit] = useState<number>(DEFAULT_LINE_LIMIT);
   const [lineLimitDraft, setLineLimitDraft] = useState<string>(String(DEFAULT_LINE_LIMIT));
-  const [snapshot, setSnapshot] = useState<LatestLogSnapshot | null>(null);
+  const [selectedFileName, setSelectedFileName] = useState<string>('');
+  const [levelFilter, setLevelFilter] = useState<LogLevelFilter>('ALL');
+  const [snapshot, setSnapshot] = useState<LogSnapshot | null>(null);
   const [rawContent, setRawContent] = useState<string>('');
-  const [displayedContent, setDisplayedContent] = useState<string>('');
+  const [visibleRawContent, setVisibleRawContent] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [copied, setCopied] = useState<boolean>(false);
@@ -56,6 +102,11 @@ export function LogViewerModal({ open, onClose }: LogViewerModalProps) {
     return date.toLocaleString();
   }, [snapshot?.modified_at_ms]);
 
+  const displayedContent = useMemo(
+    () => filterLogContent(visibleRawContent, levelFilter),
+    [levelFilter, visibleRawContent],
+  );
+
   const applyLineLimit = useCallback(() => {
     const parsed = Number.parseInt(lineLimitDraft.trim(), 10);
     if (!Number.isFinite(parsed)) {
@@ -73,28 +124,27 @@ export function LogViewerModal({ open, onClose }: LogViewerModalProps) {
         if (showLoading) {
           setLoading(true);
         }
-        const next = await getLatestLogSnapshot(lineLimit);
+
+        const next = await getLogSnapshot(selectedFileName || undefined, lineLimit);
         setSnapshot(next);
         setError('');
         setRawContent(next.content);
 
         const marker = clearMarkerRef.current;
-        let nextDisplay = next.content;
+        let nextVisible = next.content;
         if (marker !== null) {
           if (next.content === marker) {
-            nextDisplay = '';
+            nextVisible = '';
           } else if (next.content.startsWith(marker)) {
-            nextDisplay = next.content.slice(marker.length).replace(/^\n+/, '');
-          } else {
-            nextDisplay = next.content;
+            nextVisible = next.content.slice(marker.length).replace(/^\n+/, '');
           }
 
-          if (nextDisplay.length > 0) {
+          if (nextVisible.length > 0) {
             clearMarkerRef.current = null;
           }
         }
 
-        setDisplayedContent(nextDisplay);
+        setVisibleRawContent(nextVisible);
       } catch (err) {
         setError(String(err));
       } finally {
@@ -103,7 +153,7 @@ export function LogViewerModal({ open, onClose }: LogViewerModalProps) {
         }
       }
     },
-    [lineLimit],
+    [lineLimit, selectedFileName],
   );
 
   useEffect(() => {
@@ -122,6 +172,10 @@ export function LogViewerModal({ open, onClose }: LogViewerModalProps) {
   }, [loadSnapshot, open]);
 
   useEffect(() => {
+    clearMarkerRef.current = null;
+  }, [selectedFileName]);
+
+  useEffect(() => {
     if (!open) {
       clearMarkerRef.current = null;
       return;
@@ -138,9 +192,15 @@ export function LogViewerModal({ open, onClose }: LogViewerModalProps) {
     return null;
   }
 
+  const activeFileName = selectedFileName || snapshot?.log_file_name || '';
+  const hasFilteredOutContent =
+    levelFilter !== 'ALL' &&
+    visibleRawContent.trim().length > 0 &&
+    displayedContent.trim().length === 0;
+
   const handleClearOutput = () => {
     clearMarkerRef.current = rawContent;
-    setDisplayedContent('');
+    setVisibleRawContent('');
     setError('');
   };
 
@@ -187,40 +247,79 @@ export function LogViewerModal({ open, onClose }: LogViewerModalProps) {
 
         <div className="modal-body log-viewer-body">
           <div className="log-viewer-meta">
-            <div className="log-viewer-meta-item">
+            <div className="log-viewer-meta-item log-viewer-file-item">
               <FileText size={14} />
-              <span className="log-viewer-path-text">
-                {snapshot?.log_file_name || '-'}
-              </span>
+              {snapshot?.available_files?.length ? (
+                <div className="log-viewer-select-wrap">
+                  <select
+                    className="log-viewer-select"
+                    value={activeFileName}
+                    onChange={(event) => {
+                      setSelectedFileName(event.target.value);
+                      setError('');
+                    }}
+                    aria-label={t('logViewer.fileLabel', '日志文件')}
+                  >
+                    {snapshot.available_files.map((file) => (
+                      <option key={file.log_file_name} value={file.log_file_name}>
+                        {file.log_file_name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} />
+                </div>
+              ) : (
+                <span className="log-viewer-path-text">-</span>
+              )}
             </div>
             <div className="log-viewer-meta-item">
               <FolderOpen size={14} />
-              <span className="log-viewer-path-text">
-                {snapshot?.log_dir_path || '-'}
-              </span>
+              <span className="log-viewer-path-text">{snapshot?.log_dir_path || '-'}</span>
             </div>
             <div className="log-viewer-meta-item">
               <RefreshCw size={14} />
               <span>{updatedAtText}</span>
             </div>
-            <div className="log-viewer-line-limit-wrap">
-              <span className="log-viewer-line-limit-label">
-                {t('pagination.perPage', { count: lineLimit, defaultValue: '{{count}} / page' })}
-              </span>
-              <input
-                className="log-viewer-line-limit-input"
-                type="number"
-                min={MIN_LINE_LIMIT}
-                max={MAX_LINE_LIMIT}
-                value={lineLimitDraft}
-                onChange={(event) => setLineLimitDraft(event.target.value)}
-                onBlur={applyLineLimit}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    applyLineLimit();
-                  }
-                }}
-              />
+            <div className="log-viewer-toolbar">
+              <div className="log-viewer-filter-wrap">
+                <span className="log-viewer-line-limit-label">
+                  {t('logViewer.levelLabel', '级别')}
+                </span>
+                <div className="log-viewer-select-wrap log-viewer-level-select-wrap">
+                  <select
+                    className="log-viewer-select"
+                    value={levelFilter}
+                    onChange={(event) => setLevelFilter(event.target.value as LogLevelFilter)}
+                    aria-label={t('logViewer.levelLabel', '级别')}
+                  >
+                    {levelOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} />
+                </div>
+              </div>
+              <div className="log-viewer-line-limit-wrap">
+                <span className="log-viewer-line-limit-label">
+                  {t('pagination.perPage', { count: lineLimit, defaultValue: '{{count}} / page' })}
+                </span>
+                <input
+                  className="log-viewer-line-limit-input"
+                  type="number"
+                  min={MIN_LINE_LIMIT}
+                  max={MAX_LINE_LIMIT}
+                  value={lineLimitDraft}
+                  onChange={(event) => setLineLimitDraft(event.target.value)}
+                  onBlur={applyLineLimit}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      applyLineLimit();
+                    }
+                  }}
+                />
+              </div>
             </div>
           </div>
 
@@ -238,7 +337,11 @@ export function LogViewerModal({ open, onClose }: LogViewerModalProps) {
             ) : displayedContent ? (
               <pre>{displayedContent}</pre>
             ) : (
-              <div className="log-viewer-placeholder">{t('common.none', '暂无')}</div>
+              <div className="log-viewer-placeholder">
+                {hasFilteredOutContent
+                  ? t('logViewer.noMatches', '当前筛选下无匹配日志')
+                  : t('common.none', '暂无')}
+              </div>
             )}
           </div>
 

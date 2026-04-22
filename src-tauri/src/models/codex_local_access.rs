@@ -28,8 +28,6 @@ pub struct CodexLocalAccessCollection {
     pub api_key: String,
     #[serde(default)]
     pub routing_strategy: CodexLocalAccessRoutingStrategy,
-    #[serde(default)]
-    pub default_service_tier: Option<String>,
     #[serde(default = "default_restrict_free_accounts")]
     pub restrict_free_accounts: bool,
     pub account_ids: Vec<String>,

@@ -7,9 +7,14 @@ use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 use tracing::{error, info, warn};
-use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
+use tracing_subscriber::{
+    filter::filter_fn, fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer,
+};
 
-const LOG_FILE_PREFIX: &str = "app.log";
+const APP_LOG_FILE_PREFIX: &str = "app.log";
+const CODEX_API_LOG_FILE_PREFIX: &str = "codex-api.log";
+const CODEX_API_LOG_TARGET: &str = "codex_api";
+const MANAGED_LOG_FILE_PREFIXES: &[&str] = &[APP_LOG_FILE_PREFIX, CODEX_API_LOG_FILE_PREFIX];
 const LOG_RETENTION_DAYS: i64 = 3;
 const DEFAULT_LOG_TAIL_LINES: usize = 200;
 const MIN_LOG_TAIL_LINES: usize = 20;
@@ -40,10 +45,24 @@ pub fn get_log_dir() -> Result<PathBuf, String> {
     Ok(log_dir)
 }
 
-fn is_app_log_file(path: &Path) -> bool {
+fn is_log_file_with_prefix(name: &str, prefix: &str) -> bool {
+    name == prefix
+        || name
+            .strip_prefix(prefix)
+            .map(|suffix| suffix.starts_with('.'))
+            .unwrap_or(false)
+}
+
+fn is_managed_log_file_name(name: &str) -> bool {
+    MANAGED_LOG_FILE_PREFIXES
+        .iter()
+        .any(|prefix| is_log_file_with_prefix(name, prefix))
+}
+
+fn is_managed_log_file(path: &Path) -> bool {
     path.file_name()
         .and_then(|name| name.to_str())
-        .map(|name| name.starts_with(LOG_FILE_PREFIX))
+        .map(is_managed_log_file_name)
         .unwrap_or(false)
 }
 
@@ -53,40 +72,70 @@ pub fn clamp_log_tail_lines(line_limit: Option<usize>) -> usize {
         .clamp(MIN_LOG_TAIL_LINES, MAX_LOG_TAIL_LINES)
 }
 
-pub fn get_latest_app_log_file() -> Result<PathBuf, String> {
+fn list_log_files_by_name<F>(matcher: F) -> Result<Vec<PathBuf>, String>
+where
+    F: Fn(&str) -> bool,
+{
     let log_dir = get_log_dir()?;
     let entries = fs::read_dir(&log_dir).map_err(|e| format!("读取日志目录失败: {}", e))?;
 
-    let mut latest: Option<(PathBuf, std::time::SystemTime)> = None;
+    let mut paths = Vec::new();
     for entry in entries {
         let entry = entry.map_err(|e| format!("读取日志目录项失败: {}", e))?;
         let path = entry.path();
-        if !path.is_file() || !is_app_log_file(&path) {
+        let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
+            continue;
+        };
+        if !path.is_file() || !matcher(name) {
             continue;
         }
-
-        let modified = entry
-            .metadata()
-            .and_then(|metadata| metadata.modified())
-            .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
-        match &latest {
-            Some((current_path, current_modified)) => {
-                let should_replace = modified > *current_modified
-                    || (modified == *current_modified
-                        && path.file_name().and_then(|name| name.to_str())
-                            > current_path.file_name().and_then(|name| name.to_str()));
-                if should_replace {
-                    latest = Some((path, modified));
-                }
-            }
-            None => {
-                latest = Some((path, modified));
-            }
-        }
+        paths.push(path);
     }
 
-    latest
-        .map(|(path, _)| path)
+    paths.sort_by(|left, right| compare_log_paths_by_recency(left, right));
+    Ok(paths)
+}
+
+fn compare_log_paths_by_recency(left: &PathBuf, right: &PathBuf) -> std::cmp::Ordering {
+    let left_modified = fs::metadata(left)
+        .and_then(|metadata| metadata.modified())
+        .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+    let right_modified = fs::metadata(right)
+        .and_then(|metadata| metadata.modified())
+        .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+
+    right_modified
+        .cmp(&left_modified)
+        .then_with(|| right.file_name().cmp(&left.file_name()))
+}
+
+pub fn list_managed_log_files() -> Result<Vec<PathBuf>, String> {
+    list_log_files_by_name(is_managed_log_file_name)
+}
+
+pub fn resolve_managed_log_file(file_name: Option<&str>) -> Result<PathBuf, String> {
+    let log_files = list_managed_log_files()?;
+    if log_files.is_empty() {
+        return Err("未找到可用日志文件".to_string());
+    }
+
+    if let Some(file_name) = file_name.map(str::trim).filter(|name| !name.is_empty()) {
+        return log_files
+            .into_iter()
+            .find(|path| path.file_name().and_then(|name| name.to_str()) == Some(file_name))
+            .ok_or_else(|| format!("未找到指定日志文件: {}", file_name));
+    }
+
+    log_files
+        .into_iter()
+        .next()
+        .ok_or_else(|| "未找到可用日志文件".to_string())
+}
+
+pub fn get_latest_app_log_file() -> Result<PathBuf, String> {
+    list_log_files_by_name(|name| is_log_file_with_prefix(name, APP_LOG_FILE_PREFIX))?
+        .into_iter()
+        .next()
         .ok_or_else(|| "未找到可用日志文件".to_string())
 }
 
@@ -158,7 +207,7 @@ fn cleanup_expired_logs(log_dir: &Path) {
         };
 
         let path = entry.path();
-        if !path.is_file() || !is_app_log_file(&path) {
+        if !path.is_file() || !is_managed_log_file(&path) {
             continue;
         }
 
@@ -211,8 +260,12 @@ pub fn init_logger() {
         }
     };
 
-    let file_appender = tracing_appender::rolling::daily(log_dir.clone(), "app.log");
-    let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
+    let app_file_appender = tracing_appender::rolling::daily(log_dir.clone(), APP_LOG_FILE_PREFIX);
+    let (app_non_blocking, app_guard) = tracing_appender::non_blocking(app_file_appender);
+    let codex_api_file_appender =
+        tracing_appender::rolling::daily(log_dir.clone(), CODEX_API_LOG_FILE_PREFIX);
+    let (codex_api_non_blocking, codex_api_guard) =
+        tracing_appender::non_blocking(codex_api_file_appender);
 
     let console_layer = fmt::Layer::new()
         .with_target(false)
@@ -220,8 +273,15 @@ pub fn init_logger() {
         .with_level(true)
         .with_timer(LocalTimer);
 
-    let file_layer = fmt::Layer::new()
-        .with_writer(non_blocking)
+    let app_file_layer = fmt::Layer::new()
+        .with_writer(app_non_blocking)
+        .with_ansi(false)
+        .with_target(false)
+        .with_level(true)
+        .with_timer(LocalTimer);
+
+    let codex_api_file_layer = fmt::Layer::new()
+        .with_writer(codex_api_non_blocking)
         .with_ansi(false)
         .with_target(false)
         .with_level(true)
@@ -232,10 +292,16 @@ pub fn init_logger() {
     let _ = tracing_subscriber::registry()
         .with(filter_layer)
         .with(console_layer)
-        .with(file_layer)
+        .with(app_file_layer.with_filter(filter_fn(|metadata| {
+            metadata.target() != CODEX_API_LOG_TARGET
+        })))
+        .with(codex_api_file_layer.with_filter(filter_fn(|metadata| {
+            metadata.target() == CODEX_API_LOG_TARGET
+        })))
         .try_init();
 
-    std::mem::forget(_guard);
+    std::mem::forget(app_guard);
+    std::mem::forget(codex_api_guard);
 
     info!("日志系统已完成初始化");
 
@@ -255,6 +321,18 @@ pub fn log_warn(message: &str) {
 
 pub fn log_error(message: &str) {
     error!("{}", sanitize_message(message));
+}
+
+pub fn log_codex_api_info(message: &str) {
+    info!(target: CODEX_API_LOG_TARGET, "{}", sanitize_message(message));
+}
+
+pub fn log_codex_api_warn(message: &str) {
+    warn!(target: CODEX_API_LOG_TARGET, "{}", sanitize_message(message));
+}
+
+pub fn log_codex_api_error(message: &str) {
+    error!(target: CODEX_API_LOG_TARGET, "{}", sanitize_message(message));
 }
 
 fn sanitize_message(message: &str) -> String {

@@ -1752,16 +1752,7 @@
       "enableAndActivateAction": "Abilita e cambia",
       "apiPortUrl": "URL porta API",
       "modelId": "ID modello",
-      "modelIdPlaceholder": "Seleziona ID modello",
-      "serviceTierSaveSuccess": "La velocità del servizio API è stata aggiornata",
-      "serviceTier": {
-        "label": "Velocità",
-        "placeholder": "Seleziona velocità",
-        "standard": "Normale",
-        "fast": "Veloce",
-        "standardHint": "Velocità predefinita",
-        "fastHint": "Velocità 1,5x, consumo piano 2x"
-      }
+      "modelIdPlaceholder": "Seleziona ID modello"
     },
     "local": {
       "desc": "Importa l'account attuale da ~/.codex/auth.json",
@@ -3669,5 +3660,16 @@
     "cancelEditAccountName": "Annulla modifica",
     "accountNameRequired": "Il nome account è obbligatorio.",
     "copySecret": "Copia segreto"
+  },
+  "logViewer": {
+    "fileLabel": "File di log",
+    "levelLabel": "Livello",
+    "noMatches": "Nessun log corrisponde al filtro corrente",
+    "levels": {
+      "all": "Tutti",
+      "info": "Info",
+      "warn": "Avviso",
+      "error": "Errore"
+    }
   }
 }

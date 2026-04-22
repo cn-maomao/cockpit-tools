@@ -1752,16 +1752,7 @@
       "enableAndActivateAction": "Zapnout a přepnout",
       "apiPortUrl": "URL portu API",
       "modelId": "ID modelu",
-      "modelIdPlaceholder": "Vyberte ID modelu",
-      "serviceTierSaveSuccess": "Rychlost API služby byla aktualizována",
-      "serviceTier": {
-        "label": "Rychlost",
-        "placeholder": "Vybrat rychlost",
-        "standard": "Standardní",
-        "fast": "Rychlá",
-        "standardHint": "Výchozí rychlost",
-        "fastHint": "Rychlost 1,5x, spotřeba tarifu 2x"
-      }
+      "modelIdPlaceholder": "Vyberte ID modelu"
     },
     "local": {
       "desc": "Importovat aktuální účet z ~/.codex/auth.json",
@@ -3669,5 +3660,16 @@
     "cancelEditAccountName": "Zrušit úpravy",
     "accountNameRequired": "Název účtu je povinný.",
     "copySecret": "Kopírovat tajný klíč"
+  },
+  "logViewer": {
+    "fileLabel": "Soubor logu",
+    "levelLabel": "Úroveň",
+    "noMatches": "Žádné záznamy neodpovídají aktuálnímu filtru",
+    "levels": {
+      "all": "Vše",
+      "info": "Info",
+      "warn": "Varování",
+      "error": "Chyba"
+    }
   }
 }
