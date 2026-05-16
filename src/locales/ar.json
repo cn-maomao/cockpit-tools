@@ -1930,6 +1930,10 @@
         "viewFull": "عرض الإحصاء الكامل",
         "modalTitle": "مجمع حصة خدمة API",
         "empty": "لا توجد إحصاءات حصة بعد"
+      },
+      "oauthBinding": {
+        "desc": "عند التبديل إلى خدمة API أو اختبارها، تستخدم حالة تسجيل الدخول حساب OAuth المرتبط، بينما يستخدم Provider إعداد خدمة API الحالي.",
+        "currentService": "خدمة API: {{name}}"
       }
     },
     "local": {
@@ -2334,6 +2338,21 @@
         "cockpit_api": {
           "name": "Cockpit Api"
         }
+      },
+      "oauthBinding": {
+        "label": "ربط OAuth",
+        "unbound": "غير مربوط",
+        "action": "ربط OAuth",
+        "actionShort": "ربط",
+        "title": "ربط حساب OAuth",
+        "desc": "عند التبديل إلى حساب API Key هذا، تُستخدم حالة تسجيل الدخول من حساب OAuth المرتبط، ويستخدم Provider إعدادات حساب API Key الحالي.",
+        "currentAccount": "حساب API Key: {{name}}",
+        "selectLabel": "اختر حساب OAuth",
+        "empty": "لا توجد حسابات OAuth بعد. أضف حسابا مصرحا عبر OAuth أولا.",
+        "validationRequired": "اختر حساب OAuth",
+        "saveSuccess": "تم تحديث ربط OAuth",
+        "saveFailed": "فشل ربط OAuth: {{error}}",
+        "switchRequiresBinding": "اربط حساب OAuth أولا"
       }
     },
     "modelProviders": {

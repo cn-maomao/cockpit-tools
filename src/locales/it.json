@@ -1884,6 +1884,10 @@
         "viewFull": "Vedi statistiche complete",
         "modalTitle": "Pool quota del servizio API",
         "empty": "Nessuna statistica quota"
+      },
+      "oauthBinding": {
+        "desc": "Quando passi al servizio API o lo testi, lo stato di accesso usa l’account OAuth associato e il Provider usa la configurazione attuale del servizio API.",
+        "currentService": "Servizio API: {{name}}"
       }
     },
     "local": {
@@ -2288,6 +2292,21 @@
         "cockpit_api": {
           "name": "Cockpit Api"
         }
+      },
+      "oauthBinding": {
+        "label": "Collegamento OAuth",
+        "unbound": "Non collegato",
+        "action": "Collega OAuth",
+        "actionShort": "Collega",
+        "title": "Collega account OAuth",
+        "desc": "Quando passi a questo account API Key, lo stato di accesso usa l'account OAuth collegato e il Provider usa la configurazione di questo account API Key.",
+        "currentAccount": "Account API Key: {{name}}",
+        "selectLabel": "Seleziona account OAuth",
+        "empty": "Nessun account OAuth. Aggiungi prima un account autorizzato OAuth.",
+        "validationRequired": "Seleziona un account OAuth",
+        "saveSuccess": "Collegamento OAuth aggiornato",
+        "saveFailed": "Collegamento OAuth non riuscito: {{error}}",
+        "switchRequiresBinding": "Collega prima un account OAuth"
       }
     },
     "modelProviders": {

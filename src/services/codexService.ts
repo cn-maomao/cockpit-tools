@@ -204,6 +204,16 @@ export async function updateCodexApiKeyCredentials(
   });
 }
 
+export async function updateCodexApiKeyBoundOAuthAccount(
+  accountId: string,
+  boundOauthAccountId: string,
+): Promise<CodexAccount> {
+  return await invoke('update_codex_api_key_bound_oauth_account', {
+    accountId,
+    boundOauthAccountId,
+  });
+}
+
 /** 检查 Codex OAuth 端口是否被占用 */
 export async function isCodexOAuthPortInUse(): Promise<boolean> {
   return await invoke('is_codex_oauth_port_in_use');

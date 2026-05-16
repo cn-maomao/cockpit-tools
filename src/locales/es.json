@@ -1884,6 +1884,10 @@
         "viewFull": "Ver estadísticas completas",
         "modalTitle": "Bolsa de cuota del servicio API",
         "empty": "Aún no hay estadísticas de cuota"
+      },
+      "oauthBinding": {
+        "desc": "Al cambiar al servicio API o probarlo, la sesión usa la cuenta OAuth vinculada y el Provider usa la configuración actual del servicio API.",
+        "currentService": "Servicio API: {{name}}"
       }
     },
     "local": {
@@ -2288,6 +2292,21 @@
         "cockpit_api": {
           "name": "Cockpit Api"
         }
+      },
+      "oauthBinding": {
+        "label": "Vínculo OAuth",
+        "unbound": "Sin vínculo",
+        "action": "Vincular OAuth",
+        "actionShort": "Vincular",
+        "title": "Vincular cuenta OAuth",
+        "desc": "Al cambiar a esta cuenta API Key, la sesión usa la cuenta OAuth vinculada y el Provider usa la configuración de esta cuenta API Key.",
+        "currentAccount": "Cuenta API Key: {{name}}",
+        "selectLabel": "Selecciona cuenta OAuth",
+        "empty": "No hay cuentas OAuth. Añade primero una cuenta autorizada con OAuth.",
+        "validationRequired": "Selecciona una cuenta OAuth",
+        "saveSuccess": "Vínculo OAuth actualizado",
+        "saveFailed": "Error al vincular OAuth: {{error}}",
+        "switchRequiresBinding": "Vincula primero una cuenta OAuth"
       }
     },
     "modelProviders": {

@@ -1884,6 +1884,10 @@
         "viewFull": "Xem thống kê đầy đủ",
         "modalTitle": "Nhóm hạn mức dịch vụ API",
         "empty": "Chưa có thống kê hạn mức"
+      },
+      "oauthBinding": {
+        "desc": "Khi chuyển sang hoặc kiểm tra dịch vụ API, trạng thái đăng nhập dùng tài khoản OAuth đã liên kết, còn Provider dùng cấu hình dịch vụ API hiện tại.",
+        "currentService": "Dịch vụ API: {{name}}"
       }
     },
     "local": {
@@ -2288,6 +2292,21 @@
         "cockpit_api": {
           "name": "Cockpit Api"
         }
+      },
+      "oauthBinding": {
+        "label": "Liên kết OAuth",
+        "unbound": "Chưa liên kết",
+        "action": "Liên kết OAuth",
+        "actionShort": "Liên kết",
+        "title": "Liên kết tài khoản OAuth",
+        "desc": "Khi chuyển sang tài khoản API Key này, trạng thái đăng nhập dùng tài khoản OAuth đã liên kết, còn Provider dùng cấu hình của tài khoản API Key này.",
+        "currentAccount": "Tài khoản API Key: {{name}}",
+        "selectLabel": "Chọn tài khoản OAuth",
+        "empty": "Chưa có tài khoản OAuth. Hãy thêm tài khoản ủy quyền OAuth trước.",
+        "validationRequired": "Vui lòng chọn tài khoản OAuth",
+        "saveSuccess": "Đã cập nhật liên kết OAuth",
+        "saveFailed": "Liên kết OAuth thất bại: {{error}}",
+        "switchRequiresBinding": "Hãy liên kết tài khoản OAuth trước"
       }
     },
     "modelProviders": {

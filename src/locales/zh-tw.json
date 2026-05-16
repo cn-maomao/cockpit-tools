@@ -1884,6 +1884,10 @@
         "viewFull": "查看完整統計",
         "modalTitle": "API 服務額度池",
         "empty": "尚無額度統計"
+      },
+      "oauthBinding": {
+        "desc": "切換或測試 API 服務時，登入狀態使用綁定的 OAuth 帳號，Provider 使用目前 API 服務設定。",
+        "currentService": "API 服務：{{name}}"
       }
     },
     "api": {
@@ -1975,6 +1979,21 @@
         "cockpit_api": {
           "name": "Cockpit Api"
         }
+      },
+      "oauthBinding": {
+        "label": "OAuth 綁定",
+        "unbound": "未綁定",
+        "action": "綁定 OAuth",
+        "actionShort": "綁定",
+        "title": "綁定 OAuth 帳號",
+        "desc": "切換此 API Key 帳號時，登入狀態使用綁定的 OAuth 帳號，Provider 使用目前 API Key 帳號設定。",
+        "currentAccount": "API Key 帳號：{{name}}",
+        "selectLabel": "選擇 OAuth 帳號",
+        "empty": "尚無 OAuth 帳號，請先新增 OAuth 授權帳號。",
+        "validationRequired": "請選擇 OAuth 帳號",
+        "saveSuccess": "OAuth 綁定已更新",
+        "saveFailed": "OAuth 綁定失敗：{{error}}",
+        "switchRequiresBinding": "請先綁定 OAuth 帳號"
       }
     },
     "local": {

@@ -31,6 +31,14 @@ export async function rotateCodexLocalAccessApiKey(): Promise<CodexLocalAccessSt
   return await invoke('codex_local_access_rotate_api_key');
 }
 
+export async function updateCodexLocalAccessBoundOAuthAccount(
+  boundOauthAccountId: string,
+): Promise<CodexLocalAccessState> {
+  return await invoke('codex_local_access_update_bound_oauth_account', {
+    boundOauthAccountId,
+  });
+}
+
 export async function clearCodexLocalAccessStats(): Promise<CodexLocalAccessState> {
   return await invoke('codex_local_access_clear_stats');
 }

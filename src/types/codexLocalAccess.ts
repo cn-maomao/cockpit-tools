@@ -16,6 +16,7 @@ export interface CodexLocalAccessCollection {
   accessScope: CodexLocalAccessScope;
   routingStrategy: CodexLocalAccessRoutingStrategy;
   restrictFreeAccounts: boolean;
+  boundOauthAccountId?: string | null;
   accountIds: string[];
   createdAt: number;
   updatedAt: number;

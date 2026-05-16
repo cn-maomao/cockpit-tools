@@ -1933,6 +1933,10 @@
         "viewFull": "Lihat statistik lengkap",
         "modalTitle": "Kumpulan kuota layanan API",
         "empty": "Belum ada statistik kuota"
+      },
+      "oauthBinding": {
+        "desc": "Saat beralih ke layanan API atau mengujinya, status login memakai akun OAuth yang terikat, sementara Provider memakai konfigurasi layanan API saat ini.",
+        "currentService": "Layanan API: {{name}}"
       }
     },
     "api": {
@@ -2024,6 +2028,21 @@
         "cockpit_api": {
           "name": "Cockpit Api"
         }
+      },
+      "oauthBinding": {
+        "label": "Tautan OAuth",
+        "unbound": "Belum tertaut",
+        "action": "Tautkan OAuth",
+        "actionShort": "Tautkan",
+        "title": "Tautkan Akun OAuth",
+        "desc": "Saat beralih ke akun API Key ini, status login memakai akun OAuth tertaut, sementara Provider memakai konfigurasi akun API Key ini.",
+        "currentAccount": "Akun API Key: {{name}}",
+        "selectLabel": "Pilih akun OAuth",
+        "empty": "Belum ada akun OAuth. Tambahkan akun berotorisasi OAuth terlebih dahulu.",
+        "validationRequired": "Pilih akun OAuth",
+        "saveSuccess": "Tautan OAuth diperbarui",
+        "saveFailed": "Gagal menautkan OAuth: {{error}}",
+        "switchRequiresBinding": "Tautkan akun OAuth terlebih dahulu"
       }
     },
     "local": {

@@ -7,6 +7,18 @@ All notable changes to Cockpit Tools will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
+## [0.23.6] - 2026-05-16
+
+### Added
+- **Codex API Key accounts and the Local API Service can now bind an OAuth account**: API-key based Codex usage keeps the selected OAuth account as the login identity while the API Key account or Local API Service provides the runtime provider.
+- **Codex OAuth binding now has a searchable account picker**: the binding dialog supports search, plan/status filters, tag filters, sorting, pagination, and compact single-select rows for faster account lookup.
+
+### Changed
+- **Codex Local API Service now requires an OAuth binding before launch/test calls**: service activation and health checks use the bound OAuth login state together with the Local API Service provider settings.
+- **Codex account overview now shows OAuth binding inline for API Key and Local API Service entries**: binding status is visible from the account card, and the Local API Service preview keeps two member accounts visible.
+- **Codex OAuth binding dialog has been redesigned**: the dialog uses a more compact layout, an internal account-list scroll area, and a layered blue/teal visual treatment so the save action remains visible.
+
+---
 ## [0.23.5] - 2026-05-16
 
 ### Added

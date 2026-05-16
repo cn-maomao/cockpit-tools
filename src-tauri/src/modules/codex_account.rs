@@ -32,6 +32,7 @@ const CODEX_CONFIG_FILE_NAME: &str = "config.toml";
 const CODEX_CONFIG_OPENAI_BASE_URL_KEY: &str = "openai_base_url";
 const CODEX_CONFIG_MODEL_PROVIDER_KEY: &str = "model_provider";
 const CODEX_CONFIG_MODEL_PROVIDERS_KEY: &str = "model_providers";
+const CODEX_CONFIG_EXPERIMENTAL_BEARER_TOKEN_KEY: &str = "experimental_bearer_token";
 const CODEX_CONFIG_MODEL_CONTEXT_WINDOW_KEY: &str = "model_context_window";
 const CODEX_CONFIG_MODEL_AUTO_COMPACT_TOKEN_LIMIT_KEY: &str = "model_auto_compact_token_limit";
 const CODEX_DEFAULT_OPENAI_BASE_URL: &str = "https://api.openai.com/v1";
@@ -918,8 +919,11 @@ fn remove_managed_api_key_model_providers_from_doc(doc: &mut Document) {
 fn write_api_key_provider_to_config_toml(
     base_dir: &Path,
     provider_config: &ApiProviderConfig,
+    bearer_token: &str,
 ) -> Result<(), String> {
     let config_path = get_config_toml_path(base_dir);
+    let bearer_token = normalize_api_key(bearer_token)
+        .ok_or_else(|| "API Key 账号缺少可写入 provider 的密钥".to_string())?;
     let base_url = provider_config
         .base_url
         .as_deref()
@@ -952,7 +956,8 @@ fn write_api_key_provider_to_config_toml(
     provider_table["name"] = value(provider_name);
     provider_table["base_url"] = value(base_url);
     provider_table["wire_api"] = value(CODEX_PROVIDER_WIRE_API);
-    provider_table["requires_openai_auth"] = value(false);
+    provider_table["requires_openai_auth"] = value(true);
+    provider_table[CODEX_CONFIG_EXPERIMENTAL_BEARER_TOKEN_KEY] = value(bearer_token);
     provider_table["supports_websockets"] = value(false);
 
     if let Some(parent) = config_path.parent() {
@@ -2094,6 +2099,7 @@ fn upsert_account_with_hints(
         acc.api_provider_mode = CodexApiProviderMode::OpenaiBuiltin;
         acc.api_provider_id = None;
         acc.api_provider_name = None;
+        acc.bound_oauth_account_id = None;
         acc.user_id = user_id;
         acc.plan_type = plan_type.clone();
         acc.subscription_active_until = subscription_active_until.clone();
@@ -2111,6 +2117,7 @@ fn upsert_account_with_hints(
         acc.api_provider_mode = CodexApiProviderMode::OpenaiBuiltin;
         acc.api_provider_id = None;
         acc.api_provider_name = None;
+        acc.bound_oauth_account_id = None;
         acc.user_id = user_id;
         acc.plan_type = plan_type.clone();
         acc.subscription_active_until = subscription_active_until.clone();
@@ -2188,6 +2195,18 @@ pub fn remove_account(account_id: &str) -> Result<(), String> {
 
     save_account_index(&index)?;
     delete_account_file(account_id)?;
+
+    for mut account in list_accounts() {
+        if account.bound_oauth_account_id.as_deref() == Some(account_id) {
+            account.bound_oauth_account_id = None;
+            if let Err(err) = save_account(&account) {
+                logger::log_warn(&format!(
+                    "清理 Codex API Key 账号 OAuth 绑定失败: api_account_id={}, removed_oauth_account_id={}, error={}",
+                    account.id, account_id, err
+                ));
+            }
+        }
+    }
 
     Ok(())
 }
@@ -2997,13 +3016,15 @@ pub fn write_auth_file_to_dir(base_dir: &Path, account: &CodexAccount) -> Result
     })?;
 
     let provider_config = if account.is_api_key_auth() {
+        let api_key = normalize_api_key(account.openai_api_key.as_deref().unwrap_or_default())
+            .ok_or_else(|| "API Key 账号缺少 OPENAI_API_KEY".to_string())?;
         let provider_config = infer_api_provider_config(
             account.api_base_url.as_deref(),
             Some(account.api_provider_mode.clone()),
             account.api_provider_id.as_deref(),
             account.api_provider_name.as_deref(),
         );
-        write_api_key_provider_to_config_toml(base_dir, &provider_config)?;
+        write_api_key_provider_to_config_toml(base_dir, &provider_config, &api_key)?;
         provider_config
     } else {
         let provider_config = ApiProviderConfig {
@@ -3049,27 +3070,153 @@ pub(crate) fn write_prepared_account_bundle_to_dir(
     Ok(())
 }
 
+fn validate_api_key_bound_oauth_account(
+    api_key_account: &CodexAccount,
+    bound_oauth_account_id: &str,
+) -> Result<CodexAccount, String> {
+    if !api_key_account.is_api_key_auth() {
+        return Err("仅 API Key 账号支持绑定 OAuth 账号".to_string());
+    }
+
+    let bound_id = normalize_optional_ref(Some(bound_oauth_account_id))
+        .ok_or_else(|| "请选择要绑定的 OAuth 账号".to_string())?;
+    if bound_id == api_key_account.id {
+        return Err("API Key 账号不能绑定自身".to_string());
+    }
+
+    let oauth_account =
+        load_account(&bound_id).ok_or_else(|| format!("绑定的 OAuth 账号不存在: {}", bound_id))?;
+    if oauth_account.is_api_key_auth() {
+        return Err("只能绑定 OAuth 账号，不能绑定 API Key 账号".to_string());
+    }
+
+    Ok(oauth_account)
+}
+
+fn load_bound_oauth_account_for_api_key(
+    api_key_account: &CodexAccount,
+) -> Result<CodexAccount, String> {
+    let bound_id = api_key_account
+        .bound_oauth_account_id
+        .as_deref()
+        .ok_or_else(|| "API Key 账号需先绑定 OAuth 账号".to_string())?;
+    validate_api_key_bound_oauth_account(api_key_account, bound_id)
+}
+
+fn write_api_key_provider_override_to_config_toml(
+    base_dir: &Path,
+    api_key_account: &CodexAccount,
+) -> Result<ApiProviderConfig, String> {
+    let api_key = normalize_api_key(
+        api_key_account
+            .openai_api_key
+            .as_deref()
+            .unwrap_or_default(),
+    )
+    .ok_or_else(|| "API Key 账号缺少 OPENAI_API_KEY".to_string())?;
+    let provider_config = infer_api_provider_config(
+        api_key_account.api_base_url.as_deref(),
+        Some(api_key_account.api_provider_mode.clone()),
+        api_key_account.api_provider_id.as_deref(),
+        api_key_account.api_provider_name.as_deref(),
+    );
+    write_api_key_provider_to_config_toml(base_dir, &provider_config, &api_key)?;
+    Ok(provider_config)
+}
+
+fn write_api_key_account_bundle_with_oauth_to_dir(
+    base_dir: &Path,
+    api_key_account: &CodexAccount,
+    oauth_account: &CodexAccount,
+) -> Result<(), String> {
+    if !api_key_account.is_api_key_auth() {
+        return Err("仅 API Key 账号支持 OAuth 绑定写入".to_string());
+    }
+    if oauth_account.is_api_key_auth() {
+        return Err("API Key 账号绑定目标必须是 OAuth 账号".to_string());
+    }
+    if api_key_account.bound_oauth_account_id.as_deref() != Some(oauth_account.id.as_str()) {
+        return Err("API Key 账号绑定的 OAuth 账号不匹配".to_string());
+    }
+
+    write_prepared_account_bundle_to_dir(base_dir, oauth_account)?;
+    let provider_config =
+        write_api_key_provider_override_to_config_toml(base_dir, api_key_account)?;
+    logger::log_info(&format!(
+        "[Codex切号] 已写入 API Key 账号绑定 OAuth 的组合配置: api_account_id={}, oauth_account_id={}, target_dir={}, has_base_url={}",
+        api_key_account.id,
+        oauth_account.id,
+        base_dir.display(),
+        provider_config.base_url.is_some()
+    ));
+    Ok(())
+}
+
 pub fn write_account_bundle_to_dir(base_dir: &Path, account: &CodexAccount) -> Result<(), String> {
+    if account.is_api_key_auth() {
+        let oauth_account = load_bound_oauth_account_for_api_key(account)?;
+        return write_api_key_account_bundle_with_oauth_to_dir(base_dir, account, &oauth_account);
+    }
+
     let account = resolve_account_for_bundle_write(base_dir, account)?;
     write_prepared_account_bundle_to_dir(base_dir, &account)
+}
+
+fn is_bound_api_key_account_id(
+    bound_account_id: Option<&str>,
+    oauth_account_id: &str,
+    api_key_accounts: &[CodexAccount],
+) -> bool {
+    let Some(bound_account_id) = bound_account_id else {
+        return false;
+    };
+    api_key_accounts.iter().any(|account| {
+        account.id == bound_account_id
+            && account.bound_oauth_account_id.as_deref() == Some(oauth_account_id)
+    })
 }
 
 fn managed_projection_dirs_for_account(account_id: &str) -> Vec<PathBuf> {
     let mut dirs = Vec::new();
     let index = load_account_index();
-    if index.current_account_id.as_deref() == Some(account_id) {
+    let bound_api_key_accounts: Vec<CodexAccount> = list_accounts()
+        .into_iter()
+        .filter(|account| {
+            account.is_api_key_auth()
+                && account.bound_oauth_account_id.as_deref() == Some(account_id)
+        })
+        .collect();
+    if index.current_account_id.as_deref() == Some(account_id)
+        || is_bound_api_key_account_id(
+            index.current_account_id.as_deref(),
+            account_id,
+            &bound_api_key_accounts,
+        )
+    {
         dirs.push(get_codex_home());
     }
 
     match crate::modules::codex_instance::load_instance_store() {
         Ok(store) => {
-            if store.default_settings.bind_account_id.as_deref() == Some(account_id) {
+            if store.default_settings.bind_account_id.as_deref() == Some(account_id)
+                || is_bound_api_key_account_id(
+                    store.default_settings.bind_account_id.as_deref(),
+                    account_id,
+                    &bound_api_key_accounts,
+                )
+            {
                 if let Ok(default_home) = crate::modules::codex_instance::get_default_codex_home() {
                     dirs.push(default_home);
                 }
             }
             for instance in store.instances {
-                if instance.bind_account_id.as_deref() == Some(account_id) {
+                if instance.bind_account_id.as_deref() == Some(account_id)
+                    || is_bound_api_key_account_id(
+                        instance.bind_account_id.as_deref(),
+                        account_id,
+                        &bound_api_key_accounts,
+                    )
+                {
                     dirs.push(PathBuf::from(instance.user_data_dir));
                 }
             }
@@ -3087,9 +3234,78 @@ fn managed_projection_dirs_for_account(account_id: &str) -> Vec<PathBuf> {
     dirs
 }
 
+fn projection_dirs_equal(left: &Path, right: &Path) -> bool {
+    left.to_string_lossy() == right.to_string_lossy()
+}
+
+fn load_bound_api_key_account_for_projection_dir(
+    oauth_account_id: &str,
+    dir: &Path,
+) -> Option<CodexAccount> {
+    let matches_bound_api_key = |account_id: &str| {
+        let account = load_account(account_id)?;
+        if account.is_api_key_auth()
+            && account.bound_oauth_account_id.as_deref() == Some(oauth_account_id)
+        {
+            Some(account)
+        } else {
+            None
+        }
+    };
+
+    let index = load_account_index();
+    if projection_dirs_equal(dir, &get_codex_home()) {
+        if let Some(account) = index
+            .current_account_id
+            .as_deref()
+            .and_then(matches_bound_api_key)
+        {
+            return Some(account);
+        }
+    }
+
+    let Ok(store) = crate::modules::codex_instance::load_instance_store() else {
+        return None;
+    };
+
+    if let Ok(default_home) = crate::modules::codex_instance::get_default_codex_home() {
+        if projection_dirs_equal(dir, &default_home) {
+            if let Some(account) = store
+                .default_settings
+                .bind_account_id
+                .as_deref()
+                .and_then(matches_bound_api_key)
+            {
+                return Some(account);
+            }
+        }
+    }
+
+    for instance in store.instances {
+        if projection_dirs_equal(dir, &PathBuf::from(&instance.user_data_dir)) {
+            if let Some(account) = instance
+                .bind_account_id
+                .as_deref()
+                .and_then(matches_bound_api_key)
+            {
+                return Some(account);
+            }
+        }
+    }
+
+    None
+}
+
 fn write_managed_account_projections(account: &CodexAccount) {
     for dir in managed_projection_dirs_for_account(&account.id) {
-        if let Err(err) = write_prepared_account_bundle_to_dir(&dir, account) {
+        let result = if let Some(api_key_account) =
+            load_bound_api_key_account_for_projection_dir(&account.id, &dir)
+        {
+            write_api_key_account_bundle_with_oauth_to_dir(&dir, &api_key_account, account)
+        } else {
+            write_prepared_account_bundle_to_dir(&dir, account)
+        };
+        if let Err(err) = result {
             logger::log_warn(&format!(
                 "Codex Token 写穿受管投影失败: account_id={}, target_dir={}, error={}",
                 account.id,
@@ -3197,6 +3413,21 @@ async fn refresh_managed_account_locked(
     perform_managed_token_refresh(account, reason).await
 }
 
+async fn refresh_bound_oauth_account_for_api_key(
+    api_key_account: &CodexAccount,
+    reason: &str,
+) -> Result<CodexAccount, String> {
+    let bound_id = api_key_account
+        .bound_oauth_account_id
+        .as_deref()
+        .ok_or_else(|| "API Key 账号需先绑定 OAuth 账号".to_string())?
+        .to_string();
+    let _ = validate_api_key_bound_oauth_account(api_key_account, &bound_id)?;
+    let lock = codex_token_lock_for(&bound_id);
+    let _guard = lock.lock().await;
+    refresh_managed_account_locked(&bound_id, false, reason).await
+}
+
 pub async fn ensure_managed_account_fresh(account_id: &str) -> Result<CodexAccount, String> {
     let lock = codex_token_lock_for(account_id);
     let _guard = lock.lock().await;
@@ -3251,6 +3482,34 @@ pub async fn execute_with_managed_account_projection<R, F>(
 where
     F: FnOnce(&CodexAccount) -> R,
 {
+    let api_key_account =
+        load_account(account_id).ok_or_else(|| format!("账号不存在: {}", account_id))?;
+    if api_key_account.is_api_key_auth() {
+        let oauth_account =
+            refresh_bound_oauth_account_for_api_key(&api_key_account, reason).await?;
+        write_api_key_account_bundle_with_oauth_to_dir(auth_dir, &api_key_account, &oauth_account)?;
+
+        let result = operation(&api_key_account);
+        let sync_error = match sync_managed_projection_from_auth_dir(&oauth_account.id, auth_dir) {
+            Ok(_) => {
+                let latest_oauth_account =
+                    load_account(&oauth_account.id).unwrap_or_else(|| oauth_account.clone());
+                match write_api_key_account_bundle_with_oauth_to_dir(
+                    auth_dir,
+                    &api_key_account,
+                    &latest_oauth_account,
+                ) {
+                    Ok(_) => None,
+                    Err(err) => Some(err),
+                }
+            }
+            Err(err) => Some(err),
+        };
+        let latest_account = load_account(account_id).unwrap_or(api_key_account);
+
+        return Ok((latest_account, result, sync_error));
+    }
+
     let lock = codex_token_lock_for(account_id);
     let _guard = lock.lock().await;
     let account = refresh_managed_account_locked(account_id, false, reason).await?;
@@ -3271,6 +3530,16 @@ pub async fn prepare_account_for_injection_from_auth_dir(
     account_id: &str,
     auth_dir: Option<&Path>,
 ) -> Result<CodexAccount, String> {
+    let account = load_account(account_id).ok_or_else(|| format!("账号不存在: {}", account_id))?;
+    if account.is_api_key_auth() {
+        if let Some(dir) = auth_dir {
+            let oauth_account =
+                refresh_bound_oauth_account_for_api_key(&account, "prepare").await?;
+            write_api_key_account_bundle_with_oauth_to_dir(dir, &account, &oauth_account)?;
+        }
+        return Ok(account);
+    }
+
     let lock = codex_token_lock_for(account_id);
     let _guard = lock.lock().await;
     let account = refresh_managed_account_locked(account_id, false, "prepare").await?;
@@ -3327,6 +3596,40 @@ fn switch_account_with_prepared(
 }
 
 pub async fn switch_account_managed(account_id: &str) -> Result<CodexAccount, String> {
+    let account = load_account(account_id).ok_or_else(|| format!("账号不存在: {}", account_id))?;
+    if account.is_api_key_auth() {
+        let oauth_account = refresh_bound_oauth_account_for_api_key(&account, "switch").await?;
+        let codex_home = get_codex_home();
+        let auth_path = codex_home.join("auth.json");
+        logger::log_info(&format!(
+            "[Codex切号] 开始切换 API Key 账号绑定 OAuth: api_account_id={}, oauth_account_id={}, target_dir={}",
+            account.id,
+            oauth_account.id,
+            codex_home.display()
+        ));
+        write_api_key_account_bundle_with_oauth_to_dir(&codex_home, &account, &oauth_account)?;
+        logger::log_info(&format!(
+            "[Codex切号] 已替换目录登录信息: target_dir={}, target_file={}",
+            codex_home.display(),
+            auth_path.display()
+        ));
+
+        let mut index = load_account_index();
+        index.current_account_id = Some(account_id.to_string());
+        save_account_index(&index)?;
+
+        let mut updated_account = account.clone();
+        updated_account.update_last_used();
+        save_account(&updated_account)?;
+
+        logger::log_info(&format!(
+            "已切换到 Codex API Key 账号: {}，登录态绑定 OAuth: {}",
+            updated_account.email, oauth_account.email
+        ));
+
+        return Ok(updated_account);
+    }
+
     let lock = codex_token_lock_for(account_id);
     let _guard = lock.lock().await;
     let account = refresh_managed_account_locked(account_id, false, "switch").await?;
@@ -4570,7 +4873,8 @@ requires_openai_auth = false
         )
         .expect("resolve provider config");
 
-        write_api_key_provider_to_config_toml(&base_dir, &provider_config).expect("write config");
+        write_api_key_provider_to_config_toml(&base_dir, &provider_config, "sk-test")
+            .expect("write config");
 
         let config_path = base_dir.join("config.toml");
         let content = fs::read_to_string(&config_path).expect("read config");
@@ -4579,7 +4883,8 @@ requires_openai_auth = false
         assert!(content.contains("name = \"OpenAI Official\""));
         assert!(content.contains("base_url = \"https://api.openai.com/v1\""));
         assert!(content.contains("wire_api = \"responses\""));
-        assert!(content.contains("requires_openai_auth = false"));
+        assert!(content.contains("requires_openai_auth = true"));
+        assert!(content.contains("experimental_bearer_token = \"sk-test\""));
         assert!(content.contains("supports_websockets = false"));
         assert!(!content.contains("openai_base_url"));
         assert_eq!(
@@ -4606,7 +4911,8 @@ requires_openai_auth = false
         )
         .expect("resolve provider config");
 
-        write_api_key_provider_to_config_toml(&base_dir, &provider_config).expect("write config");
+        write_api_key_provider_to_config_toml(&base_dir, &provider_config, "sk-test")
+            .expect("write config");
 
         let config_path = base_dir.join("config.toml");
         let content = fs::read_to_string(&config_path).expect("read config");
@@ -4616,7 +4922,8 @@ requires_openai_auth = false
         assert!(content.contains("name = \"Relay\""));
         assert!(content.contains("base_url = \"https://relay.example.com/v1\""));
         assert!(content.contains("wire_api = \"responses\""));
-        assert!(content.contains("requires_openai_auth = false"));
+        assert!(content.contains("requires_openai_auth = true"));
+        assert!(content.contains("experimental_bearer_token = \"sk-test\""));
         assert!(content.contains("supports_websockets = false"));
         assert!(!content.contains("openai_base_url"));
         assert_eq!(
@@ -4664,7 +4971,8 @@ requires_openai_auth = true
         )
         .expect("resolve provider config");
 
-        write_api_key_provider_to_config_toml(&base_dir, &provider_config).expect("write config");
+        write_api_key_provider_to_config_toml(&base_dir, &provider_config, "sk-test")
+            .expect("write config");
 
         let content = fs::read_to_string(&config_path).expect("read config");
         assert!(content.contains("model_provider = \"codex_local_access\""));
@@ -5070,6 +5378,38 @@ pub fn update_account_app_speed(
 
     account.app_speed = speed;
     save_account(&account)?;
+
+    Ok(account)
+}
+
+pub async fn update_api_key_bound_oauth_account(
+    account_id: &str,
+    bound_oauth_account_id: String,
+) -> Result<CodexAccount, String> {
+    let mut account =
+        load_account(account_id).ok_or_else(|| format!("账号不存在: {}", account_id))?;
+
+    if !account.is_api_key_auth() {
+        return Err("仅 API Key 账号支持绑定 OAuth 账号".to_string());
+    }
+
+    let bound_id = normalize_optional_ref(Some(bound_oauth_account_id.as_str()))
+        .ok_or_else(|| "请选择要绑定的 OAuth 账号".to_string())?;
+    let _ = validate_api_key_bound_oauth_account(&account, &bound_id)?;
+
+    account.bound_oauth_account_id = Some(bound_id.clone());
+    save_account(&account)?;
+
+    let is_current = load_account_index()
+        .current_account_id
+        .as_deref()
+        .map(|current_id| current_id == account.id)
+        .unwrap_or(false);
+    if is_current {
+        let oauth_account = refresh_bound_oauth_account_for_api_key(&account, "bind-oauth").await?;
+        let codex_home = get_codex_home();
+        write_api_key_account_bundle_with_oauth_to_dir(&codex_home, &account, &oauth_account)?;
+    }
 
     Ok(account)
 }

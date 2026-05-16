@@ -375,6 +375,26 @@ fn sync_runtime_collection(runtime: &mut GatewayRuntime, collection: CodexLocalA
     prune_prepared_account_cache(runtime, now_ms());
 }
 
+fn normalize_optional_account_ref(value: Option<&str>) -> Option<String> {
+    value
+        .map(str::trim)
+        .filter(|item| !item.is_empty())
+        .map(str::to_string)
+}
+
+fn validate_local_access_bound_oauth_account(
+    bound_oauth_account_id: &str,
+) -> Result<CodexAccount, String> {
+    let bound_id = normalize_optional_account_ref(Some(bound_oauth_account_id))
+        .ok_or_else(|| "请选择要绑定的 OAuth 账号".to_string())?;
+    let oauth_account = codex_account::load_account(&bound_id)
+        .ok_or_else(|| format!("绑定的 OAuth 账号不存在: {}", bound_id))?;
+    if oauth_account.is_api_key_auth() {
+        return Err("API 服务只能绑定 OAuth 账号，不能绑定 API Key 账号".to_string());
+    }
+    Ok(oauth_account)
+}
+
 async fn cache_prepared_account(account: &CodexAccount) {
     let mut runtime = gateway_runtime().lock().await;
     let now = now_ms();
@@ -3061,7 +3081,11 @@ fn parse_windows_ipconfig_candidates(output: &str) -> Vec<LanIpv4Candidate> {
     candidates
 }
 
-fn build_runtime_account(base_url: String, api_key: String) -> CodexAccount {
+fn build_runtime_account(
+    base_url: String,
+    api_key: String,
+    bound_oauth_account_id: Option<String>,
+) -> CodexAccount {
     let mut runtime_account = CodexAccount::new_api_key(
         "codex_local_access_runtime".to_string(),
         "api-service-local".to_string(),
@@ -3072,6 +3096,7 @@ fn build_runtime_account(base_url: String, api_key: String) -> CodexAccount {
         Some("Codex API Service".to_string()),
     );
     runtime_account.account_name = Some("API Service".to_string());
+    runtime_account.bound_oauth_account_id = bound_oauth_account_id;
     runtime_account
 }
 
@@ -3364,13 +3389,32 @@ fn sanitize_collection(
         changed = true;
     }
 
-    let valid_account_ids: HashSet<String> = codex_account::list_accounts_checked()?
+    let accounts = codex_account::list_accounts_checked()?;
+    let valid_bound_oauth_account_ids: HashSet<String> = accounts
+        .iter()
+        .filter(|account| !account.is_api_key_auth())
+        .map(|account| account.id.clone())
+        .collect();
+    let valid_account_ids: HashSet<String> = accounts
         .into_iter()
         .filter(|account| {
             is_local_access_eligible_account(account, collection.restrict_free_accounts)
         })
         .map(|account| account.id)
         .collect();
+
+    let normalized_bound_oauth_account_id =
+        normalize_optional_account_ref(collection.bound_oauth_account_id.as_deref());
+    if normalized_bound_oauth_account_id != collection.bound_oauth_account_id {
+        collection.bound_oauth_account_id = normalized_bound_oauth_account_id;
+        changed = true;
+    }
+    if let Some(bound_id) = collection.bound_oauth_account_id.as_deref() {
+        if !valid_bound_oauth_account_ids.contains(bound_id) {
+            collection.bound_oauth_account_id = None;
+            changed = true;
+        }
+    }
 
     let mut deduped = Vec::new();
     let mut seen = HashSet::new();
@@ -3414,6 +3458,7 @@ async fn ensure_runtime_loaded_without_start() -> Result<(), String> {
             access_scope: CodexLocalAccessScope::Localhost,
             routing_strategy: CodexLocalAccessRoutingStrategy::default(),
             restrict_free_accounts: true,
+            bound_oauth_account_id: None,
             account_ids: Vec::new(),
             created_at: now_ms(),
             updated_at: now_ms(),
@@ -3796,7 +3841,16 @@ pub async fn activate_local_access_for_dir(
         .base_url
         .clone()
         .unwrap_or_else(|| build_base_url(collection.port));
-    let runtime_account = build_runtime_account(base_url, collection.api_key.clone());
+    let bound_oauth_account_id =
+        normalize_optional_account_ref(collection.bound_oauth_account_id.as_deref())
+            .ok_or_else(|| "API 服务需先绑定 OAuth 账号".to_string())?;
+    let _ = validate_local_access_bound_oauth_account(&bound_oauth_account_id)?;
+    let _ = codex_account::ensure_managed_account_fresh(&bound_oauth_account_id).await?;
+    let runtime_account = build_runtime_account(
+        base_url,
+        collection.api_key.clone(),
+        Some(bound_oauth_account_id),
+    );
     codex_account::write_account_bundle_to_dir(profile_dir, &runtime_account)?;
     Ok(state)
 }
@@ -4175,7 +4229,16 @@ pub async fn test_local_access_with_cli() -> Result<CodexLocalAccessTestResult, 
             Some(model_id),
         )));
     }
-    let runtime_account = build_runtime_account(base_url.clone(), collection.api_key.clone());
+    let bound_oauth_account_id =
+        normalize_optional_account_ref(collection.bound_oauth_account_id.as_deref())
+            .ok_or_else(|| "API 服务需先绑定 OAuth 账号".to_string())?;
+    let _ = validate_local_access_bound_oauth_account(&bound_oauth_account_id)?;
+    let _ = codex_account::ensure_managed_account_fresh(&bound_oauth_account_id).await?;
+    let runtime_account = build_runtime_account(
+        base_url.clone(),
+        collection.api_key.clone(),
+        Some(bound_oauth_account_id),
+    );
     if let Err(err) = codex_account::write_account_bundle_to_dir(&temp_home, &runtime_account) {
         let _ = std::fs::remove_dir_all(&temp_home);
         return Ok(build_failure_result(local_access_test_failure(
@@ -4265,6 +4328,7 @@ pub async fn save_local_access_accounts(
                 access_scope: CodexLocalAccessScope::Localhost,
                 routing_strategy: CodexLocalAccessRoutingStrategy::default(),
                 restrict_free_accounts: true,
+                bound_oauth_account_id: None,
                 account_ids: Vec::new(),
                 created_at: now_ms(),
                 updated_at: now_ms(),
@@ -4412,6 +4476,37 @@ pub async fn rotate_local_access_api_key() -> Result<CodexLocalAccessState, Stri
     };
 
     collection.api_key = generate_local_api_key();
+    collection.updated_at = now_ms();
+    save_collection_to_disk(&collection)?;
+
+    {
+        let mut runtime = gateway_runtime().lock().await;
+        sync_runtime_collection(&mut runtime, collection);
+    }
+
+    snapshot_state().await
+}
+
+pub async fn update_local_access_bound_oauth_account(
+    bound_oauth_account_id: &str,
+) -> Result<CodexLocalAccessState, String> {
+    ensure_runtime_loaded().await?;
+
+    let maybe_collection = {
+        let runtime = gateway_runtime().lock().await;
+        runtime.collection.clone()
+    };
+
+    let Some(mut collection) = maybe_collection else {
+        return Err("本地接入集合尚未创建".to_string());
+    };
+
+    let bound_account = validate_local_access_bound_oauth_account(bound_oauth_account_id)?;
+    if collection.bound_oauth_account_id.as_deref() == Some(bound_account.id.as_str()) {
+        return snapshot_state().await;
+    }
+
+    collection.bound_oauth_account_id = Some(bound_account.id);
     collection.updated_at = now_ms();
     save_collection_to_disk(&collection)?;
 
