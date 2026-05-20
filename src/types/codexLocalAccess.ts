@@ -1,5 +1,8 @@
 export type CodexLocalAccessAddressKind = 'local' | 'lan';
 export type CodexLocalAccessScope = 'localhost' | 'lan';
+export type CodexLocalAccessUpstreamProxyMode =
+  | 'follow_global_proxy'
+  | 'direct';
 
 export type CodexLocalAccessRoutingStrategy =
   | 'auto'
@@ -21,6 +24,7 @@ export interface CodexLocalAccessCollection {
   port: number;
   apiKey: string;
   accessScope: CodexLocalAccessScope;
+  upstreamProxyMode: CodexLocalAccessUpstreamProxyMode;
   routingStrategy: CodexLocalAccessRoutingStrategy;
   customRoutingRules: CodexLocalAccessCustomRoutingRule[];
   restrictFreeAccounts: boolean;
