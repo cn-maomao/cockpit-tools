@@ -537,11 +537,17 @@ fn antigravity_metadata_root_matches_target(root: &Path, target: Option<&str>) -
             value.contains("antigravity.app")
                 || value.ends_with("antigravity")
                 || value.ends_with("antigravity.exe")
+                || (root.is_dir()
+                    && (root.join("Antigravity.exe").exists()
+                        || root.join("antigravity.exe").exists()))
         }
         "antigravity_ide" => {
             value.contains("antigravity ide.app")
                 || value.contains("antigravity ide")
                 || value.contains("antigravity-ide")
+                || (root.is_dir()
+                    && (root.join("Antigravity IDE.exe").exists()
+                        || root.join("antigravity-ide.exe").exists()))
         }
         _ => true,
     }
@@ -552,7 +558,8 @@ fn antigravity_metadata_candidates(target: Option<&str>) -> Vec<PathBuf> {
     let config_path = config::get_user_config().antigravity_app_path;
     let config_path = config_path.trim();
     if !config_path.is_empty() {
-        if let Some(root) = normalize_antigravity_metadata_root(Path::new(config_path)) {
+        let config_path = Path::new(config_path);
+        if let Some(root) = normalize_antigravity_metadata_root(config_path) {
             if antigravity_metadata_root_matches_target(&root, target) {
                 push_unique_antigravity_candidate(&mut candidates, root);
             }
@@ -616,6 +623,35 @@ fn antigravity_metadata_candidates(target: Option<&str>) -> Vec<PathBuf> {
         for path in roots {
             if path.exists() {
                 push_unique_antigravity_candidate(&mut candidates, path);
+            }
+        }
+
+        let push_detected_candidate = |candidates: &mut Vec<PathBuf>, path: PathBuf| {
+            if let Some(root) = normalize_antigravity_metadata_root(&path) {
+                if antigravity_metadata_root_matches_target(&root, target) {
+                    push_unique_antigravity_candidate(candidates, root);
+                }
+            }
+        };
+
+        match normalize_antigravity_metadata_target(target) {
+            Some("antigravity") => {
+                if let Some(path) = crate::modules::process::detect_antigravity_legacy_exec_path() {
+                    push_detected_candidate(&mut candidates, path);
+                }
+            }
+            Some("antigravity_ide") => {
+                if let Some(path) = crate::modules::process::detect_antigravity_exec_path() {
+                    push_detected_candidate(&mut candidates, path);
+                }
+            }
+            _ => {
+                if let Some(path) = crate::modules::process::detect_antigravity_legacy_exec_path() {
+                    push_detected_candidate(&mut candidates, path);
+                }
+                if let Some(path) = crate::modules::process::detect_antigravity_exec_path() {
+                    push_detected_candidate(&mut candidates, path);
+                }
             }
         }
     }

@@ -1518,7 +1518,7 @@ fn find_codex_process_exe() -> Option<std::path::PathBuf> {
     None
 }
 
-fn detect_antigravity_exec_path() -> Option<std::path::PathBuf> {
+pub fn detect_antigravity_exec_path() -> Option<std::path::PathBuf> {
     if let Some(path) = find_antigravity_process_exe() {
         return Some(path);
     }
@@ -1596,7 +1596,7 @@ fn detect_antigravity_exec_path() -> Option<std::path::PathBuf> {
     None
 }
 
-fn detect_antigravity_legacy_exec_path() -> Option<std::path::PathBuf> {
+pub fn detect_antigravity_legacy_exec_path() -> Option<std::path::PathBuf> {
     #[cfg(target_os = "macos")]
     {
         for candidate in [
