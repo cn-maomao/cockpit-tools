@@ -62,9 +62,16 @@ struct WebEventMessage {
 struct WebEventState {
     next_listener_id: u32,
     next_sequence: u64,
-    browser_listeners: HashMap<u32, String>,
+    browser_listeners: HashMap<u32, WebBrowserEventListener>,
     tauri_listeners: HashMap<String, tauri::EventId>,
     queue: VecDeque<WebEventMessage>,
+}
+
+#[derive(Debug, Clone)]
+struct WebBrowserEventListener {
+    event: String,
+    client_id: String,
+    registered_after_sequence: u64,
 }
 
 fn web_console_port_state() -> &'static RwLock<Option<u16>> {
@@ -251,7 +258,8 @@ async fn handle_event_poll_request(
     let after = query_param(request.query.as_deref(), "after")
         .and_then(|value| value.parse::<u64>().ok())
         .unwrap_or(0);
-    let events = wait_for_web_events(after).await;
+    let client_id = query_param(request.query.as_deref(), "clientId");
+    let events = wait_for_web_events(client_id.as_deref(), after).await;
     let body = json!({
         "events": events,
         "latestSequence": latest_web_event_sequence(),
@@ -266,9 +274,15 @@ async fn dispatch_invoke(cmd: &str, args: &Value) -> Result<Value, String> {
         "plugin:app|name" => Ok(Value::String("Cockpit Tools".to_string())),
         "plugin:app|identifier" => Ok(Value::String("com.jlcodes.cockpit-tools".to_string())),
         "plugin:app|tauri_version" => Ok(Value::String("2".to_string())),
-        "plugin:event|listen" => serialize_value(register_web_event_listener(arg(args, "event")?)?),
+        "plugin:event|listen" => serialize_value(register_web_event_listener(
+            arg(args, "event")?,
+            optional_string(args, "clientId").unwrap_or_else(|| "default".to_string()),
+        )?),
         "plugin:event|unlisten" => {
-            unregister_web_event_listener(arg(args, "eventId")?)?;
+            unregister_web_event_listener(
+                arg(args, "eventId")?,
+                optional_string(args, "clientId").as_deref(),
+            )?;
             Ok(Value::Null)
         }
         "plugin:event|emit" | "plugin:event|emit_to" => {
@@ -2678,16 +2692,22 @@ fn web_event_state() -> &'static RwLock<WebEventState> {
     WEB_EVENT_STATE.get_or_init(|| RwLock::new(WebEventState::default()))
 }
 
-fn register_web_event_listener(event_name: String) -> Result<u32, String> {
+fn register_web_event_listener(event_name: String, client_id: String) -> Result<u32, String> {
     let mut state = web_event_state()
         .write()
         .map_err(|_| "web event state is poisoned".to_string())?;
 
     state.next_listener_id = state.next_listener_id.saturating_add(1).max(1);
     let listener_id = state.next_listener_id;
-    state
-        .browser_listeners
-        .insert(listener_id, event_name.clone());
+    let registered_after_sequence = state.next_sequence;
+    state.browser_listeners.insert(
+        listener_id,
+        WebBrowserEventListener {
+            event: event_name.clone(),
+            client_id,
+            registered_after_sequence,
+        },
+    );
 
     if !state.tauri_listeners.contains_key(&event_name) {
         let app = app_handle()?;
@@ -2701,19 +2721,26 @@ fn register_web_event_listener(event_name: String) -> Result<u32, String> {
     Ok(listener_id)
 }
 
-fn unregister_web_event_listener(listener_id: u32) -> Result<(), String> {
+fn unregister_web_event_listener(listener_id: u32, client_id: Option<&str>) -> Result<(), String> {
     let tauri_listener_to_remove = {
         let mut state = web_event_state()
             .write()
             .map_err(|_| "web event state is poisoned".to_string())?;
-        let Some(event_name) = state.browser_listeners.remove(&listener_id) else {
+        let Some(listener) = state.browser_listeners.get(&listener_id) else {
             return Ok(());
         };
+        if client_id.is_some_and(|expected| expected != listener.client_id) {
+            return Ok(());
+        }
+        let Some(listener) = state.browser_listeners.remove(&listener_id) else {
+            return Ok(());
+        };
+        let event_name = listener.event;
 
         let still_used = state
             .browser_listeners
             .values()
-            .any(|registered_event| registered_event == &event_name);
+            .any(|registered_event| registered_event.event == event_name);
         if still_used {
             None
         } else {
@@ -2759,10 +2786,10 @@ fn push_web_event_value(event_name: &str, payload: Value) {
     }
 }
 
-async fn wait_for_web_events(after: u64) -> Vec<WebEventMessage> {
+async fn wait_for_web_events(client_id: Option<&str>, after: u64) -> Vec<WebEventMessage> {
     let started = std::time::Instant::now();
     loop {
-        let events = collect_web_events(after);
+        let events = collect_web_events(client_id, after);
         if !events.is_empty() || started.elapsed() >= EVENT_POLL_TIMEOUT {
             return events;
         }
@@ -2770,14 +2797,27 @@ async fn wait_for_web_events(after: u64) -> Vec<WebEventMessage> {
     }
 }
 
-fn collect_web_events(after: u64) -> Vec<WebEventMessage> {
+fn collect_web_events(client_id: Option<&str>, after: u64) -> Vec<WebEventMessage> {
     web_event_state()
         .read()
         .map(|state| {
+            let active_listeners = state
+                .browser_listeners
+                .values()
+                .filter(|listener| client_id.map_or(true, |id| listener.client_id == id))
+                .cloned()
+                .collect::<Vec<_>>();
+
             state
                 .queue
                 .iter()
-                .filter(|event| event.sequence > after)
+                .filter(|event| {
+                    event.sequence > after
+                        && active_listeners.iter().any(|listener| {
+                            listener.event == event.event
+                                && event.sequence > listener.registered_after_sequence
+                        })
+                })
                 .cloned()
                 .collect()
         })
@@ -2912,6 +2952,14 @@ fn arg<T: DeserializeOwned>(args: &Value, key: &str) -> Result<T, String> {
         .cloned()
         .ok_or_else(|| format!("missing argument '{}'", key))?;
     serde_json::from_value(value).map_err(|err| format!("invalid argument '{}': {}", key, err))
+}
+
+fn optional_string(args: &Value, key: &str) -> Option<String> {
+    args.get(key)
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
 }
 
 fn arg_or<T: DeserializeOwned>(args: &Value, key: &str, default: T) -> Result<T, String> {

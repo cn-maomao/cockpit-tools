@@ -45,6 +45,10 @@ if (!bridgeAnyWindow.__TAURI_INTERNALS__) {
   let nextCallbackId = 1;
   let eventPumpStarted = false;
   let lastEventSequence = 0;
+  const eventClientId =
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `web-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 
   const callBridge = async (cmd: string, args: Record<string, unknown> = {}) => {
     const response = await fetch('/__cockpit_web__/invoke', {
@@ -119,10 +123,13 @@ if (!bridgeAnyWindow.__TAURI_INTERNALS__) {
   const pollEvents = async () => {
     while (true) {
       try {
-        const response = await fetch(`/__cockpit_web__/events?after=${lastEventSequence}`, {
+        const response = await fetch(
+          `/__cockpit_web__/events?clientId=${encodeURIComponent(eventClientId)}&after=${lastEventSequence}`,
+          {
           method: 'GET',
           headers: { accept: 'application/json' },
-        });
+          },
+        );
         if (response.ok) {
           const payload = (await response.json()) as WebEventPollResponse;
           for (const event of payload.events ?? []) {
@@ -154,15 +161,19 @@ if (!bridgeAnyWindow.__TAURI_INTERNALS__) {
       case 'plugin:event|listen': {
         const event = String(args.event ?? '');
         const handlerId = Number(args.handler ?? 0);
-        const eventId = Number(await callBridge(cmd, args));
+        const eventId = Number(await callBridge(cmd, { ...args, clientId: eventClientId }));
         eventListeners.set(eventId, { event, handlerId });
         ensureEventPump();
         return eventId;
       }
       case 'plugin:event|unlisten': {
         const eventId = Number(args.eventId ?? 0);
+        const listener = eventListeners.get(eventId);
+        if (listener) {
+          callbacks.delete(listener.handlerId);
+        }
         eventListeners.delete(eventId);
-        return callBridge(cmd, args);
+        return callBridge(cmd, { ...args, clientId: eventClientId });
       }
       case 'plugin:event|emit':
       case 'plugin:event|emit_to':
@@ -242,6 +253,10 @@ if (!bridgeAnyWindow.__TAURI_INTERNALS__) {
 
   bridgeAnyWindow.__TAURI_EVENT_PLUGIN_INTERNALS__ = {
     unregisterListener(_event, eventId) {
+      const listener = eventListeners.get(eventId);
+      if (listener) {
+        callbacks.delete(listener.handlerId);
+      }
       eventListeners.delete(eventId);
     },
   };
