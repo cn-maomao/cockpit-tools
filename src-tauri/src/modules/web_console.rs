@@ -4,11 +4,13 @@
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::collections::{HashMap, VecDeque};
 use std::path::{Component, Path, PathBuf};
 use std::sync::{OnceLock, RwLock};
+use tauri::{Emitter, Listener};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
-use tokio::time::{timeout, Duration};
+use tokio::time::{sleep, timeout, Duration};
 use url::Url;
 
 use super::config::PORT_RANGE;
@@ -16,14 +18,19 @@ use super::config::PORT_RANGE;
 const DEFAULT_WEB_CONSOLE_PORT: u16 = 18081;
 const MAX_HTTP_REQUEST_BYTES: usize = 2 * 1024 * 1024;
 const REQUEST_READ_TIMEOUT: Duration = Duration::from_secs(8);
+const EVENT_POLL_TIMEOUT: Duration = Duration::from_secs(25);
+const EVENT_POLL_INTERVAL: Duration = Duration::from_millis(150);
+const MAX_EVENT_QUEUE_LEN: usize = 1024;
 const INDEX_HTML: &str = "index.html";
 
 static ACTUAL_WEB_CONSOLE_PORT: OnceLock<RwLock<Option<u16>>> = OnceLock::new();
+static WEB_EVENT_STATE: OnceLock<RwLock<WebEventState>> = OnceLock::new();
 
 #[derive(Debug)]
 struct HttpRequest {
     method: String,
     path: String,
+    query: Option<String>,
     body: Vec<u8>,
 }
 
@@ -41,6 +48,23 @@ struct InvokeResponse {
     value: Option<Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     error: Option<Value>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct WebEventMessage {
+    sequence: u64,
+    event: String,
+    payload: Value,
+}
+
+#[derive(Debug, Default)]
+struct WebEventState {
+    next_listener_id: u32,
+    next_sequence: u64,
+    browser_listeners: HashMap<u32, String>,
+    tauri_listeners: HashMap<String, tauri::EventId>,
+    queue: VecDeque<WebEventMessage>,
 }
 
 fn web_console_port_state() -> &'static RwLock<Option<u16>> {
@@ -141,6 +165,10 @@ async fn handle_connection(mut stream: TcpStream, dist_root: PathBuf) -> Result<
         return handle_invoke_request(&mut stream, &request).await;
     }
 
+    if request.method == "GET" && request.path == "/__cockpit_web__/events" {
+        return handle_event_poll_request(&mut stream, &request).await;
+    }
+
     if request.method == "GET" && request.path == "/__cockpit_web__/health" {
         let body = json!({
             "ok": true,
@@ -216,14 +244,37 @@ async fn handle_invoke_request(
     .await
 }
 
+async fn handle_event_poll_request(
+    stream: &mut TcpStream,
+    request: &HttpRequest,
+) -> Result<(), String> {
+    let after = query_param(request.query.as_deref(), "after")
+        .and_then(|value| value.parse::<u64>().ok())
+        .unwrap_or(0);
+    let events = wait_for_web_events(after).await;
+    let body = json!({
+        "events": events,
+        "latestSequence": latest_web_event_sequence(),
+    });
+    let body = serde_json::to_vec(&body).map_err(|err| err.to_string())?;
+    write_response(stream, 200, "OK", "application/json; charset=utf-8", &body).await
+}
+
 async fn dispatch_invoke(cmd: &str, args: &Value) -> Result<Value, String> {
     match cmd {
         "plugin:app|version" => Ok(Value::String(env!("CARGO_PKG_VERSION").to_string())),
         "plugin:app|name" => Ok(Value::String("Cockpit Tools".to_string())),
         "plugin:app|identifier" => Ok(Value::String("com.jlcodes.cockpit-tools".to_string())),
         "plugin:app|tauri_version" => Ok(Value::String("2".to_string())),
-        "plugin:event|listen" => Ok(json!(1)),
-        "plugin:event|unlisten" | "plugin:event|emit" | "plugin:event|emit_to" => Ok(Value::Null),
+        "plugin:event|listen" => serialize_value(register_web_event_listener(arg(args, "event")?)?),
+        "plugin:event|unlisten" => {
+            unregister_web_event_listener(arg(args, "eventId")?)?;
+            Ok(Value::Null)
+        }
+        "plugin:event|emit" | "plugin:event|emit_to" => {
+            emit_web_event_from_browser(arg(args, "event")?, args.get("payload").cloned())?;
+            Ok(Value::Null)
+        }
         "plugin:window|get_all_windows" => Ok(json!([{ "label": "main" }])),
         "plugin:webview|get_all_webviews" => {
             Ok(json!([{ "label": "main", "windowLabel": "main" }]))
@@ -2622,6 +2673,124 @@ async fn dispatch_registered_app_command(cmd: &str, args: &Value) -> Result<Valu
         )),
     }
 }
+
+fn web_event_state() -> &'static RwLock<WebEventState> {
+    WEB_EVENT_STATE.get_or_init(|| RwLock::new(WebEventState::default()))
+}
+
+fn register_web_event_listener(event_name: String) -> Result<u32, String> {
+    let mut state = web_event_state()
+        .write()
+        .map_err(|_| "web event state is poisoned".to_string())?;
+
+    state.next_listener_id = state.next_listener_id.saturating_add(1).max(1);
+    let listener_id = state.next_listener_id;
+    state
+        .browser_listeners
+        .insert(listener_id, event_name.clone());
+
+    if !state.tauri_listeners.contains_key(&event_name) {
+        let app = app_handle()?;
+        let captured_event = event_name.clone();
+        let tauri_listener_id = app.listen_any(event_name.clone(), move |event| {
+            push_web_event(&captured_event, event.payload());
+        });
+        state.tauri_listeners.insert(event_name, tauri_listener_id);
+    }
+
+    Ok(listener_id)
+}
+
+fn unregister_web_event_listener(listener_id: u32) -> Result<(), String> {
+    let tauri_listener_to_remove = {
+        let mut state = web_event_state()
+            .write()
+            .map_err(|_| "web event state is poisoned".to_string())?;
+        let Some(event_name) = state.browser_listeners.remove(&listener_id) else {
+            return Ok(());
+        };
+
+        let still_used = state
+            .browser_listeners
+            .values()
+            .any(|registered_event| registered_event == &event_name);
+        if still_used {
+            None
+        } else {
+            state.tauri_listeners.remove(&event_name)
+        }
+    };
+
+    if let Some(tauri_listener_id) = tauri_listener_to_remove {
+        if let Ok(app) = app_handle() {
+            app.unlisten(tauri_listener_id);
+        }
+    }
+
+    Ok(())
+}
+
+fn emit_web_event_from_browser(event_name: String, payload: Option<Value>) -> Result<(), String> {
+    let payload = payload.unwrap_or(Value::Null);
+    app_handle()?
+        .emit(event_name.as_str(), payload)
+        .map_err(|err| err.to_string())
+}
+
+fn push_web_event(event_name: &str, raw_payload: &str) {
+    let payload = serde_json::from_str(raw_payload)
+        .unwrap_or_else(|_| Value::String(raw_payload.to_string()));
+    push_web_event_value(event_name, payload);
+}
+
+fn push_web_event_value(event_name: &str, payload: Value) {
+    let Ok(mut state) = web_event_state().write() else {
+        return;
+    };
+    state.next_sequence = state.next_sequence.saturating_add(1);
+    let sequence = state.next_sequence;
+    state.queue.push_back(WebEventMessage {
+        sequence,
+        event: event_name.to_string(),
+        payload,
+    });
+    while state.queue.len() > MAX_EVENT_QUEUE_LEN {
+        state.queue.pop_front();
+    }
+}
+
+async fn wait_for_web_events(after: u64) -> Vec<WebEventMessage> {
+    let started = std::time::Instant::now();
+    loop {
+        let events = collect_web_events(after);
+        if !events.is_empty() || started.elapsed() >= EVENT_POLL_TIMEOUT {
+            return events;
+        }
+        sleep(EVENT_POLL_INTERVAL).await;
+    }
+}
+
+fn collect_web_events(after: u64) -> Vec<WebEventMessage> {
+    web_event_state()
+        .read()
+        .map(|state| {
+            state
+                .queue
+                .iter()
+                .filter(|event| event.sequence > after)
+                .cloned()
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn latest_web_event_sequence() -> u64 {
+    web_event_state()
+        .read()
+        .map(|state| state.next_sequence)
+        .unwrap_or_default()
+}
+
 fn to_value<T: Serialize>(result: Result<T, String>) -> Result<Value, String> {
     serde_json::to_value(result?).map_err(|err| format!("serialize response failed: {}", err))
 }
@@ -2807,7 +2976,7 @@ async fn read_http_request(stream: &mut TcpStream) -> Result<Option<HttpRequest>
     let mut request_parts = request_line.split_whitespace();
     let method = request_parts.next().unwrap_or("").to_string();
     let raw_path = request_parts.next().unwrap_or("/");
-    let path = normalize_request_path(raw_path)?;
+    let (path, query) = normalize_request_path(raw_path)?;
     let mut content_length = 0usize;
     for line in lines {
         if let Some((name, value)) = line.split_once(':') {
@@ -2842,13 +3011,25 @@ async fn read_http_request(stream: &mut TcpStream) -> Result<Option<HttpRequest>
     }
     body.truncate(content_length);
 
-    Ok(Some(HttpRequest { method, path, body }))
+    Ok(Some(HttpRequest {
+        method,
+        path,
+        query,
+        body,
+    }))
 }
 
-fn normalize_request_path(raw_path: &str) -> Result<String, String> {
+fn normalize_request_path(raw_path: &str) -> Result<(String, Option<String>), String> {
     let url = Url::parse(&format!("http://127.0.0.1{}", raw_path))
         .map_err(|err| format!("invalid request path: {}", err))?;
-    Ok(url.path().to_string())
+    Ok((url.path().to_string(), url.query().map(str::to_string)))
+}
+
+fn query_param(query: Option<&str>, name: &str) -> Option<String> {
+    let query = query?;
+    url::form_urlencoded::parse(query.as_bytes())
+        .find(|(key, _)| key == name)
+        .map(|(_, value)| value.into_owned())
 }
 
 fn find_header_end(buffer: &[u8]) -> Option<usize> {
