@@ -580,7 +580,6 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
   const addTabRef = useRef(addTab)
   const oauthUrlRef = useRef(oauthUrl)
   const addStatusRef = useRef(addStatus)
-  const oauthCompletingRef = useRef(false)
   const activeGroupIdRef = useRef(activeGroupId)
   const verificationHistoryRequestIdRef = useRef(0)
   const colorPickerRef = useRef<HTMLDivElement>(null)
@@ -1188,24 +1187,19 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
   useEffect(() => {
     let unlistenUrl: UnlistenFn | undefined
     let unlistenCallback: UnlistenFn | undefined
-    let disposed = false
 
     listen<string>('oauth-url-generated', (event) => {
       setOauthUrl(String(event.payload || ''))
     }).then((fn) => {
-      if (disposed) fn()
-      else unlistenUrl = fn
+      unlistenUrl = fn
     })
 
     listen('oauth-callback-received', async () => {
       if (!showAddModalRef.current) return
       if (addTabRef.current !== 'oauth') return
       if (addStatusRef.current === 'loading') return
-      if (oauthCompletingRef.current) return
       if (!oauthUrlRef.current) return
 
-      oauthCompletingRef.current = true
-      addStatusRef.current = 'loading'
       setOauthCallbackSubmitting(false)
       setOauthCallbackError(null)
       setAddStatus('loading')
@@ -1219,43 +1213,33 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
           await assignAccountsToGroup(activeGroupIdRef.current, [newAccount.id])
           await reloadAccountGroups()
         }
-        oauthUrlRef.current = ''
-        setOauthUrl('')
         setAddStatus('success')
-        addStatusRef.current = 'success'
         setAddMessage(t('accounts.oauth.success'))
         setTimeout(() => {
           setShowAddModal(false)
           setAddStatus('idle')
-          addStatusRef.current = 'idle'
           setAddMessage('')
+          setOauthUrl('')
         }, 1200)
       } catch (e) {
         setAddStatus('error')
-        addStatusRef.current = 'error'
         setAddMessage(t('accounts.oauth.failed', { error: String(e) }))
-      } finally {
-        oauthCompletingRef.current = false
       }
     }).then((fn) => {
-      if (disposed) fn()
-      else unlistenCallback = fn
+      unlistenCallback = fn
     })
 
     return () => {
-      disposed = true
       if (unlistenUrl) unlistenUrl()
       if (unlistenCallback) unlistenCallback()
     }
-  }, [assignAccountsToGroup, fetchAccounts, fetchCurrentAccount, reloadAccountGroups, t])
+  }, [fetchAccounts, fetchCurrentAccount])
 
   useEffect(() => {
     if (!showAddModal || addTab !== 'oauth' || oauthUrl) return
-    let cancelled = false
     accountService
       .prepareOAuthUrl()
       .then((url) => {
-        if (cancelled) return
         if (typeof url === 'string' && url.length > 0) {
           setOauthUrl(url)
           setOauthCallbackError(null)
@@ -1264,15 +1248,11 @@ export function AccountsPage({ onNavigate }: AccountsPageProps) {
       .catch((e) => {
         console.error('准备 OAuth 链接失败:', e)
       })
-    return () => {
-      cancelled = true
-    }
   }, [showAddModal, addTab, oauthUrl])
 
   useEffect(() => {
     if (showAddModal && addTab === 'oauth') return
     if (!oauthUrl) return
-    oauthCompletingRef.current = false
     accountService.cancelOAuthLogin().catch(() => { })
     setOauthUrl('')
     setOauthUrlCopied(false)

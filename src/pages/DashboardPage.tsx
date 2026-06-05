@@ -106,35 +106,10 @@ interface DashboardPageProps {
 const DASHBOARD_DEFERRED_PREFETCH_DELAY_MS = 6000;
 const DASHBOARD_DEFERRED_PREFETCH_BATCH_SIZE = 1;
 const DASHBOARD_DEFERRED_PREFETCH_BATCH_DELAY_MS = 1200;
-const DASHBOARD_REFRESH_FEEDBACK_MIN_MS = 650;
 let dashboardStartupPrefetched = false;
 
 function normalizeDashboardCardPlatformId(platformId: PlatformId): PlatformId {
   return platformId === 'antigravity_ide' ? 'antigravity' : platformId;
-}
-
-type DashboardCardRefreshKey =
-  | 'ag'
-  | 'codex'
-  | 'zed'
-  | 'githubCopilot'
-  | 'windsurf'
-  | 'kiro'
-  | 'cursor'
-  | 'gemini'
-  | 'codebuddy'
-  | 'codebuddyCn'
-  | 'qoder'
-  | 'trae'
-  | 'workbuddy';
-
-function waitForDashboardRefreshFeedback(startedAt: number): Promise<void> {
-  const elapsed = Date.now() - startedAt;
-  const remaining = DASHBOARD_REFRESH_FEEDBACK_MIN_MS - elapsed;
-  if (remaining <= 0) {
-    return Promise.resolve();
-  }
-  return new Promise((resolve) => window.setTimeout(resolve, remaining));
 }
 
 function toFiniteNumber(value: number | null | undefined): number | null {
@@ -592,44 +567,47 @@ export function DashboardPage({
     workbuddy: false,
   });
 
-  const runDashboardCardRefresh = async (
-    key: DashboardCardRefreshKey,
-    accountIds: Array<string | null | undefined>,
-    refreshAccount: (accountId: string) => Promise<unknown>,
-  ) => {
-    if (cardRefreshing[key]) return;
-
-    const idsToRefresh = Array.from(new Set(accountIds.filter(Boolean))) as string[];
-    const startedAt = Date.now();
-    setCardRefreshing((prev) => ({ ...prev, [key]: true }));
-
-    try {
-      for (const id of idsToRefresh) {
-        await refreshAccount(id);
-      }
-    } catch (error) {
-      console.error('Card refresh failed:', error);
-    } finally {
-      await waitForDashboardRefreshFeedback(startedAt);
-      setCardRefreshing((prev) => ({ ...prev, [key]: false }));
-    }
-  };
-
-  const runDashboardAccountRefresh = async (
-    accountId: string,
-    refreshAccount: (accountId: string) => Promise<unknown>,
-  ) => {
+  // Refresh Handlers
+  const handleRefreshAg = async (accountId: string) => {
     if (refreshing.has(accountId)) return;
-
-    const startedAt = Date.now();
-    setRefreshing((prev) => new Set(prev).add(accountId));
-
+    setRefreshing(prev => new Set(prev).add(accountId));
     try {
-      await refreshAccount(accountId);
+      await useAccountStore.getState().refreshQuota(accountId);
     } catch (error) {
       console.error('Refresh failed:', error);
     } finally {
-      await waitForDashboardRefreshFeedback(startedAt);
+      setRefreshing(prev => {
+        const next = new Set(prev);
+        next.delete(accountId);
+        return next;
+      });
+    }
+  };
+
+  const handleRefreshCodex = async (accountId: string) => {
+    if (refreshing.has(accountId)) return;
+    setRefreshing(prev => new Set(prev).add(accountId));
+    try {
+      await useCodexAccountStore.getState().refreshQuota(accountId);
+    } catch (error) {
+      console.error('Refresh failed:', error);
+    } finally {
+      setRefreshing(prev => {
+        const next = new Set(prev);
+        next.delete(accountId);
+        return next;
+      });
+    }
+  };
+
+  const handleRefreshZed = async (accountId: string) => {
+    if (refreshing.has(accountId)) return;
+    setRefreshing((prev) => new Set(prev).add(accountId));
+    try {
+      await useZedAccountStore.getState().refreshToken(accountId);
+    } catch (error) {
+      console.error('Refresh failed:', error);
+    } finally {
       setRefreshing((prev) => {
         const next = new Set(prev);
         next.delete(accountId);
@@ -638,91 +616,204 @@ export function DashboardPage({
     }
   };
 
-  // Refresh Handlers
-  const handleRefreshAg = async (accountId: string) => {
-    await runDashboardAccountRefresh(accountId, (id) => useAccountStore.getState().refreshQuota(id));
-  };
-
-  const handleRefreshCodex = async (accountId: string) => {
-    await runDashboardAccountRefresh(accountId, (id) => useCodexAccountStore.getState().refreshQuota(id));
-  };
-
-  const handleRefreshZed = async (accountId: string) => {
-    await runDashboardAccountRefresh(accountId, (id) => useZedAccountStore.getState().refreshToken(id));
-  };
-
   const handleRefreshGitHubCopilot = async (accountId: string) => {
-    await runDashboardAccountRefresh(accountId, (id) =>
-      useGitHubCopilotAccountStore.getState().refreshToken(id),
-    );
+    if (refreshing.has(accountId)) return;
+    setRefreshing(prev => new Set(prev).add(accountId));
+    try {
+      await useGitHubCopilotAccountStore.getState().refreshToken(accountId);
+    } catch (error) {
+      console.error('Refresh failed:', error);
+    } finally {
+      setRefreshing(prev => {
+        const next = new Set(prev);
+        next.delete(accountId);
+        return next;
+      });
+    }
   };
 
   const handleRefreshWindsurf = async (accountId: string) => {
-    await runDashboardAccountRefresh(accountId, (id) =>
-      useWindsurfAccountStore.getState().refreshToken(id),
-    );
+    if (refreshing.has(accountId)) return;
+    setRefreshing((prev) => new Set(prev).add(accountId));
+    try {
+      await useWindsurfAccountStore.getState().refreshToken(accountId);
+    } catch (error) {
+      console.error('Refresh failed:', error);
+    } finally {
+      setRefreshing((prev) => {
+        const next = new Set(prev);
+        next.delete(accountId);
+        return next;
+      });
+    }
   };
 
   const handleRefreshKiro = async (accountId: string) => {
-    await runDashboardAccountRefresh(accountId, (id) => useKiroAccountStore.getState().refreshToken(id));
+    if (refreshing.has(accountId)) return;
+    setRefreshing((prev) => new Set(prev).add(accountId));
+    try {
+      await useKiroAccountStore.getState().refreshToken(accountId);
+    } catch (error) {
+      console.error('Refresh failed:', error);
+    } finally {
+      setRefreshing((prev) => {
+        const next = new Set(prev);
+        next.delete(accountId);
+        return next;
+      });
+    }
   };
 
   const handleRefreshCursor = async (accountId: string) => {
-    await runDashboardAccountRefresh(accountId, (id) => useCursorAccountStore.getState().refreshToken(id));
+    if (refreshing.has(accountId)) return;
+    setRefreshing((prev) => new Set(prev).add(accountId));
+    try {
+      await useCursorAccountStore.getState().refreshToken(accountId);
+    } catch (error) {
+      console.error('Refresh failed:', error);
+    } finally {
+      setRefreshing((prev) => {
+        const next = new Set(prev);
+        next.delete(accountId);
+        return next;
+      });
+    }
   };
 
   const handleRefreshGemini = async (accountId: string) => {
-    await runDashboardAccountRefresh(accountId, (id) => useGeminiAccountStore.getState().refreshToken(id));
+    if (refreshing.has(accountId)) return;
+    setRefreshing((prev) => new Set(prev).add(accountId));
+    try {
+      await useGeminiAccountStore.getState().refreshToken(accountId);
+    } catch (error) {
+      console.error('Refresh failed:', error);
+    } finally {
+      setRefreshing((prev) => {
+        const next = new Set(prev);
+        next.delete(accountId);
+        return next;
+      });
+    }
   };
 
   const handleRefreshAgCard = async () => {
-    await runDashboardCardRefresh('ag', [agCurrentAccount?.id, agRecommended?.id], (id) =>
-      useAccountStore.getState().refreshQuota(id),
-    );
+    if (cardRefreshing.ag) return;
+    setCardRefreshing(prev => ({ ...prev, ag: true }));
+    const idsToRefresh = Array.from(new Set([agCurrentAccount?.id, agRecommended?.id].filter(Boolean))) as string[];
+    try {
+      for (const id of idsToRefresh) {
+        await useAccountStore.getState().refreshQuota(id);
+      }
+    } catch (error) {
+      console.error('Card refresh failed:', error);
+    } finally {
+      setCardRefreshing(prev => ({ ...prev, ag: false }));
+    }
   };
 
   const handleRefreshCodexCard = async () => {
-    await runDashboardCardRefresh('codex', [codexCurrentAccount?.id, codexRecommended?.id], (id) =>
-      useCodexAccountStore.getState().refreshQuota(id),
-    );
+    if (cardRefreshing.codex) return;
+    setCardRefreshing(prev => ({ ...prev, codex: true }));
+    const idsToRefresh = Array.from(new Set([codexCurrentAccount?.id, codexRecommended?.id].filter(Boolean))) as string[];
+    try {
+      for (const id of idsToRefresh) {
+        await useCodexAccountStore.getState().refreshQuota(id);
+      }
+    } catch (error) {
+      console.error('Card refresh failed:', error);
+    } finally {
+      setCardRefreshing(prev => ({ ...prev, codex: false }));
+    }
   };
 
   const handleRefreshZedCard = async () => {
-    await runDashboardCardRefresh('zed', [zedCurrent?.id, zedRecommended?.id], (id) =>
-      useZedAccountStore.getState().refreshToken(id),
-    );
+    if (cardRefreshing.zed) return;
+    setCardRefreshing((prev) => ({ ...prev, zed: true }));
+    const idsToRefresh = [zedCurrent?.id, zedRecommended?.id].filter(Boolean) as string[];
+    try {
+      for (const id of idsToRefresh) {
+        await useZedAccountStore.getState().refreshToken(id);
+      }
+    } catch (error) {
+      console.error('Card refresh failed:', error);
+    } finally {
+      setCardRefreshing((prev) => ({ ...prev, zed: false }));
+    }
   };
 
   const handleRefreshGitHubCopilotCard = async () => {
-    await runDashboardCardRefresh(
-      'githubCopilot',
-      [githubCopilotCurrent?.id, githubCopilotRecommended?.id],
-      (id) => useGitHubCopilotAccountStore.getState().refreshToken(id),
-    );
+    if (cardRefreshing.githubCopilot) return;
+    setCardRefreshing(prev => ({ ...prev, githubCopilot: true }));
+    const idsToRefresh = [githubCopilotCurrent?.id, githubCopilotRecommended?.id].filter(Boolean) as string[];
+    try {
+      for (const id of idsToRefresh) {
+        await useGitHubCopilotAccountStore.getState().refreshToken(id);
+      }
+    } catch (error) {
+      console.error('Card refresh failed:', error);
+    } finally {
+      setCardRefreshing(prev => ({ ...prev, githubCopilot: false }));
+    }
   };
 
   const handleRefreshWindsurfCard = async () => {
-    await runDashboardCardRefresh('windsurf', [windsurfCurrent?.id, windsurfRecommended?.id], (id) =>
-      useWindsurfAccountStore.getState().refreshToken(id),
-    );
+    if (cardRefreshing.windsurf) return;
+    setCardRefreshing((prev) => ({ ...prev, windsurf: true }));
+    const idsToRefresh = [windsurfCurrent?.id, windsurfRecommended?.id].filter(Boolean) as string[];
+    try {
+      for (const id of idsToRefresh) {
+        await useWindsurfAccountStore.getState().refreshToken(id);
+      }
+    } catch (error) {
+      console.error('Card refresh failed:', error);
+    } finally {
+      setCardRefreshing((prev) => ({ ...prev, windsurf: false }));
+    }
   };
 
   const handleRefreshKiroCard = async () => {
-    await runDashboardCardRefresh('kiro', [kiroCurrent?.id, kiroRecommended?.id], (id) =>
-      useKiroAccountStore.getState().refreshToken(id),
-    );
+    if (cardRefreshing.kiro) return;
+    setCardRefreshing((prev) => ({ ...prev, kiro: true }));
+    const idsToRefresh = [kiroCurrent?.id, kiroRecommended?.id].filter(Boolean) as string[];
+    try {
+      for (const id of idsToRefresh) {
+        await useKiroAccountStore.getState().refreshToken(id);
+      }
+    } catch (error) {
+      console.error('Card refresh failed:', error);
+    } finally {
+      setCardRefreshing((prev) => ({ ...prev, kiro: false }));
+    }
   };
 
   const handleRefreshCursorCard = async () => {
-    await runDashboardCardRefresh('cursor', [cursorCurrent?.id, cursorRecommended?.id], (id) =>
-      useCursorAccountStore.getState().refreshToken(id),
-    );
+    if (cardRefreshing.cursor) return;
+    setCardRefreshing((prev) => ({ ...prev, cursor: true }));
+    const idsToRefresh = [cursorCurrent?.id, cursorRecommended?.id].filter(Boolean) as string[];
+    try {
+      for (const id of idsToRefresh) {
+        await useCursorAccountStore.getState().refreshToken(id);
+      }
+    } catch (error) {
+      console.error('Card refresh failed:', error);
+    } finally {
+      setCardRefreshing((prev) => ({ ...prev, cursor: false }));
+    }
   };
 
   const handleRefreshGeminiCard = async () => {
-    await runDashboardCardRefresh('gemini', [geminiCurrent?.id, geminiRecommended?.id], (id) =>
-      useGeminiAccountStore.getState().refreshToken(id),
-    );
+    if (cardRefreshing.gemini) return;
+    setCardRefreshing((prev) => ({ ...prev, gemini: true }));
+    const idsToRefresh = [geminiCurrent?.id, geminiRecommended?.id].filter(Boolean) as string[];
+    try {
+      for (const id of idsToRefresh) {
+        await useGeminiAccountStore.getState().refreshToken(id);
+      }
+    } catch (error) {
+      console.error('Card refresh failed:', error);
+    } finally {
+      setCardRefreshing((prev) => ({ ...prev, gemini: false }));
+    }
   };
 
   const handleSwitchGitHubCopilot = async (accountId: string) => {
@@ -822,61 +913,158 @@ export function DashboardPage({
   };
 
   const handleRefreshCodebuddy = async (accountId: string) => {
-    await runDashboardAccountRefresh(accountId, (id) =>
-      useCodebuddyAccountStore.getState().refreshToken(id),
-    );
+    if (refreshing.has(accountId)) return;
+    setRefreshing((prev) => new Set(prev).add(accountId));
+    try {
+      await useCodebuddyAccountStore.getState().refreshToken(accountId);
+    } catch (error) {
+      console.error('Refresh failed:', error);
+    } finally {
+      setRefreshing((prev) => {
+        const next = new Set(prev);
+        next.delete(accountId);
+        return next;
+      });
+    }
   };
 
   const handleRefreshCodebuddyCn = async (accountId: string) => {
-    await runDashboardAccountRefresh(accountId, (id) =>
-      useCodebuddyCnAccountStore.getState().refreshToken(id),
-    );
+    if (refreshing.has(accountId)) return;
+    setRefreshing((prev) => new Set(prev).add(accountId));
+    try {
+      await useCodebuddyCnAccountStore.getState().refreshToken(accountId);
+    } catch (error) {
+      console.error('Refresh failed:', error);
+    } finally {
+      setRefreshing((prev) => {
+        const next = new Set(prev);
+        next.delete(accountId);
+        return next;
+      });
+    }
   };
 
   const handleRefreshQoder = async (accountId: string) => {
-    await runDashboardAccountRefresh(accountId, (id) => useQoderAccountStore.getState().refreshToken(id));
+    if (refreshing.has(accountId)) return;
+    setRefreshing((prev) => new Set(prev).add(accountId));
+    try {
+      await useQoderAccountStore.getState().refreshToken(accountId);
+    } catch (error) {
+      console.error('Refresh failed:', error);
+    } finally {
+      setRefreshing((prev) => {
+        const next = new Set(prev);
+        next.delete(accountId);
+        return next;
+      });
+    }
   };
 
   const handleRefreshTrae = async (accountId: string) => {
-    await runDashboardAccountRefresh(accountId, (id) => useTraeAccountStore.getState().refreshToken(id));
+    if (refreshing.has(accountId)) return;
+    setRefreshing((prev) => new Set(prev).add(accountId));
+    try {
+      await useTraeAccountStore.getState().refreshToken(accountId);
+    } catch (error) {
+      console.error('Refresh failed:', error);
+    } finally {
+      setRefreshing((prev) => {
+        const next = new Set(prev);
+        next.delete(accountId);
+        return next;
+      });
+    }
   };
 
   const handleRefreshWorkbuddy = async (accountId: string) => {
-    await runDashboardAccountRefresh(accountId, (id) =>
-      useWorkbuddyAccountStore.getState().refreshToken(id),
-    );
+    if (refreshing.has(accountId)) return;
+    setRefreshing((prev) => new Set(prev).add(accountId));
+    try {
+      await useWorkbuddyAccountStore.getState().refreshToken(accountId);
+    } catch (error) {
+      console.error('Refresh failed:', error);
+    } finally {
+      setRefreshing((prev) => {
+        const next = new Set(prev);
+        next.delete(accountId);
+        return next;
+      });
+    }
   };
 
   const handleRefreshCodebuddyCard = async () => {
-    await runDashboardCardRefresh('codebuddy', [codebuddyCurrent?.id, codebuddyRecommended?.id], (id) =>
-      useCodebuddyAccountStore.getState().refreshToken(id),
-    );
+    if (cardRefreshing.codebuddy) return;
+    setCardRefreshing((prev) => ({ ...prev, codebuddy: true }));
+    const idsToRefresh = [codebuddyCurrent?.id, codebuddyRecommended?.id].filter(Boolean) as string[];
+    try {
+      for (const id of idsToRefresh) {
+        await useCodebuddyAccountStore.getState().refreshToken(id);
+      }
+    } catch (error) {
+      console.error('Card refresh failed:', error);
+    } finally {
+      setCardRefreshing((prev) => ({ ...prev, codebuddy: false }));
+    }
   };
 
   const handleRefreshCodebuddyCnCard = async () => {
-    await runDashboardCardRefresh(
-      'codebuddyCn',
-      [codebuddyCnCurrent?.id, codebuddyCnRecommended?.id],
-      (id) => useCodebuddyCnAccountStore.getState().refreshToken(id),
-    );
+    if (cardRefreshing.codebuddyCn) return;
+    setCardRefreshing((prev) => ({ ...prev, codebuddyCn: true }));
+    const idsToRefresh = Array.from(new Set([codebuddyCnCurrent?.id, codebuddyCnRecommended?.id].filter(Boolean))) as string[];
+    try {
+      for (const id of idsToRefresh) {
+        await useCodebuddyCnAccountStore.getState().refreshToken(id);
+      }
+    } catch (error) {
+      console.error('Card refresh failed:', error);
+    } finally {
+      setCardRefreshing((prev) => ({ ...prev, codebuddyCn: false }));
+    }
   };
 
   const handleRefreshQoderCard = async () => {
-    await runDashboardCardRefresh('qoder', [qoderCurrent?.id, qoderRecommended?.id], (id) =>
-      useQoderAccountStore.getState().refreshToken(id),
-    );
+    if (cardRefreshing.qoder) return;
+    setCardRefreshing((prev) => ({ ...prev, qoder: true }));
+    const idsToRefresh = [qoderCurrent?.id, qoderRecommended?.id].filter(Boolean) as string[];
+    try {
+      for (const id of idsToRefresh) {
+        await useQoderAccountStore.getState().refreshToken(id);
+      }
+    } catch (error) {
+      console.error('Card refresh failed:', error);
+    } finally {
+      setCardRefreshing((prev) => ({ ...prev, qoder: false }));
+    }
   };
 
   const handleRefreshTraeCard = async () => {
-    await runDashboardCardRefresh('trae', [traeCurrent?.id, traeRecommended?.id], (id) =>
-      useTraeAccountStore.getState().refreshToken(id),
-    );
+    if (cardRefreshing.trae) return;
+    setCardRefreshing((prev) => ({ ...prev, trae: true }));
+    const idsToRefresh = [traeCurrent?.id, traeRecommended?.id].filter(Boolean) as string[];
+    try {
+      for (const id of idsToRefresh) {
+        await useTraeAccountStore.getState().refreshToken(id);
+      }
+    } catch (error) {
+      console.error('Card refresh failed:', error);
+    } finally {
+      setCardRefreshing((prev) => ({ ...prev, trae: false }));
+    }
   };
 
   const handleRefreshWorkbuddyCard = async () => {
-    await runDashboardCardRefresh('workbuddy', [workbuddyCurrent?.id, workbuddyRecommended?.id], (id) =>
-      useWorkbuddyAccountStore.getState().refreshToken(id),
-    );
+    if (cardRefreshing.workbuddy) return;
+    setCardRefreshing((prev) => ({ ...prev, workbuddy: true }));
+    const idsToRefresh = Array.from(new Set([workbuddyCurrent?.id, workbuddyRecommended?.id].filter(Boolean))) as string[];
+    try {
+      for (const id of idsToRefresh) {
+        await useWorkbuddyAccountStore.getState().refreshToken(id);
+      }
+    } catch (error) {
+      console.error('Card refresh failed:', error);
+    } finally {
+      setCardRefreshing((prev) => ({ ...prev, workbuddy: false }));
+    }
   };
 
   const handleSwitchCodebuddy = async (accountId: string) => {

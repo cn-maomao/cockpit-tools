@@ -9,7 +9,6 @@ use std::io::{ErrorKind, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 use url::Url;
 
@@ -23,8 +22,6 @@ const OAUTH_PORT_IN_USE_CODE: &str = "CODEX_OAUTH_PORT_IN_USE";
 const OAUTH_STATE_FILE: &str = "codex_oauth_pending.json";
 const OAUTH_TIMEOUT_SECONDS: i64 = 300;
 const TOKEN_REFRESH_SKEW_SECONDS: i64 = 300;
-const TOKEN_REFRESH_TIMEOUT: Duration = Duration::from_secs(25);
-const OAUTH_TOKEN_THREAD_STACK_SIZE: usize = 8 * 1024 * 1024;
 
 pub fn get_callback_port() -> u16 {
     OAUTH_CALLBACK_PORT
@@ -580,50 +577,15 @@ async fn exchange_code_for_token_internal(
     code_verifier: &str,
     port: u16,
 ) -> Result<CodexTokens, String> {
-    let code = code.to_string();
-    let code_verifier = code_verifier.to_string();
-    let (sender, receiver) = tokio::sync::oneshot::channel();
-
-    std::thread::Builder::new()
-        .name("codex-oauth-token-exchange".to_string())
-        .stack_size(OAUTH_TOKEN_THREAD_STACK_SIZE)
-        .spawn(move || {
-            let result = match tokio::runtime::Builder::new_current_thread()
-                .enable_all()
-                .build()
-            {
-                Ok(runtime) => {
-                    runtime.block_on(exchange_code_for_token_request(code, code_verifier, port))
-                }
-                Err(err) => Err(format!("创建 Token 交换运行时失败: {}", err)),
-            };
-            let _ = sender.send(result);
-        })
-        .map_err(|err| format!("启动 Token 交换线程失败: {}", err))?;
-
-    receiver
-        .await
-        .map_err(|_| "Token 交换线程意外退出".to_string())?
-}
-
-async fn exchange_code_for_token_request(
-    code: String,
-    code_verifier: String,
-    port: u16,
-) -> Result<CodexTokens, String> {
     let redirect_uri = format!("http://localhost:{}/auth/callback", port);
-    let client = reqwest::Client::builder()
-        .connect_timeout(TOKEN_REFRESH_TIMEOUT)
-        .timeout(TOKEN_REFRESH_TIMEOUT)
-        .build()
-        .map_err(|e| format!("创建 Token 交换客户端失败: {}", e))?;
+    let client = reqwest::Client::new();
 
     let params = [
         ("grant_type", "authorization_code"),
-        ("code", code.as_str()),
-        ("redirect_uri", redirect_uri.as_str()),
+        ("code", code),
+        ("redirect_uri", &redirect_uri),
         ("client_id", CLIENT_ID),
-        ("code_verifier", code_verifier.as_str()),
+        ("code_verifier", code_verifier),
     ];
 
     logger::log_info("Codex OAuth 开始交换 Token");
@@ -642,19 +604,16 @@ async fn exchange_code_for_token_request(
         .map_err(|e| format!("读取响应失败: {}", e))?;
 
     if !status.is_success() {
-        let error_code = extract_token_error_code(&body);
         logger::log_error(&format!(
-            "Token 交换失败: status={}, error_code={:?}, body_len={}",
+            "Token 交换失败: status={}, body_len={}",
             status,
-            error_code,
             body.len()
         ));
-        let mut message = format!("Token 交换失败: status={}", status);
-        if let Some(code) = error_code {
-            message.push_str(&format!(", error_code={}", code));
-        }
-        message.push_str(&format!(", body_len={}", body.len()));
-        return Err(message);
+        return Err(format!(
+            "Token 交换失败: status={}, body_len={}",
+            status,
+            body.len()
+        ));
     }
 
     logger::log_info("Codex OAuth Token 交换成功");
@@ -885,11 +844,7 @@ pub async fn refresh_access_token_with_fallback(
     refresh_token: &str,
     current_id_token: Option<&str>,
 ) -> Result<CodexTokens, String> {
-    let client = reqwest::Client::builder()
-        .connect_timeout(TOKEN_REFRESH_TIMEOUT)
-        .timeout(TOKEN_REFRESH_TIMEOUT)
-        .build()
-        .map_err(|e| format!("创建 Token 刷新客户端失败: {}", e))?;
+    let client = reqwest::Client::new();
 
     let params = [
         ("grant_type", "refresh_token"),

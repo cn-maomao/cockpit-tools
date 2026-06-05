@@ -79,7 +79,6 @@ pub mod wakeup_gateway;
 pub mod wakeup_history;
 pub mod wakeup_scheduler;
 pub mod wakeup_verification;
-pub mod web_console;
 pub mod web_report;
 pub mod webdav_sync;
 pub mod webkit_cache_maintenance;

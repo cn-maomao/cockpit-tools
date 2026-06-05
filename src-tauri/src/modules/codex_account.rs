@@ -3783,10 +3783,6 @@ pub async fn prepare_account_for_injection_from_store(
     ensure_managed_account_fresh(account_id).await
 }
 
-pub fn activate_saved_account(account: &CodexAccount) -> Result<CodexAccount, String> {
-    switch_account_with_prepared(&account.id, account.clone())
-}
-
 fn switch_account_with_prepared(
     account_id: &str,
     account_for_write: CodexAccount,

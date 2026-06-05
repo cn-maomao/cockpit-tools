@@ -21,48 +21,6 @@ use tauri::Emitter;
 use tauri_plugin_opener::OpenerExt;
 
 static CODEX_POST_REFRESH_CHECK_IN_PROGRESS: AtomicBool = AtomicBool::new(false);
-const CODEX_OAUTH_QUOTA_THREAD_STACK_SIZE: usize = 8 * 1024 * 1024;
-
-fn spawn_codex_oauth_quota_refresh(account_id: String, email: String) {
-    let thread_name = format!("codex-oauth-quota-refresh-{}", account_id);
-    let spawn_result = std::thread::Builder::new()
-        .name(thread_name)
-        .stack_size(CODEX_OAUTH_QUOTA_THREAD_STACK_SIZE)
-        .spawn(move || {
-            logger::log_info(&format!(
-                "Codex OAuth 已启动后台配额刷新: account_id={}, email={}",
-                account_id, email
-            ));
-            let runtime = match tokio::runtime::Builder::new_current_thread()
-                .enable_all()
-                .build()
-            {
-                Ok(runtime) => runtime,
-                Err(error) => {
-                    logger::log_error(&format!(
-                        "Codex OAuth 后台配额刷新运行时创建失败: account_id={}, error={}",
-                        account_id, error
-                    ));
-                    return;
-                }
-            };
-
-            match runtime.block_on(codex_quota::refresh_account_quota(&account_id)) {
-                Ok(_) => logger::log_info(&format!(
-                    "Codex OAuth 后台配额刷新成功: account_id={}",
-                    account_id
-                )),
-                Err(error) => logger::log_warn(&format!(
-                    "Codex OAuth 后台配额刷新失败: account_id={}, error={}",
-                    account_id, error
-                )),
-            }
-        });
-
-    if let Err(error) = spawn_result {
-        logger::log_warn(&format!("Codex OAuth 后台配额刷新线程启动失败: {}", error));
-    }
-}
 
 fn restart_codex_specified_app_if_enabled(user_config: &config::UserConfig) {
     if !user_config.codex_restart_specified_app_on_switch {
@@ -494,35 +452,18 @@ pub async fn refresh_all_codex_quotas(app: AppHandle) -> Result<i32, String> {
 
 async fn save_codex_oauth_tokens(tokens: CodexTokens) -> Result<CodexAccount, String> {
     let account = codex_account::upsert_account(tokens)?;
+
+    if let Err(e) = codex_quota::refresh_account_quota(&account.id).await {
+        logger::log_error(&format!("刷新配额失败: {}", e));
+    }
+
     let loaded =
         codex_account::load_account(&account.id).ok_or_else(|| "账号保存后无法读取".to_string())?;
     logger::log_info(&format!(
         "Codex OAuth 账号已保存: account_id={}, email={}",
         loaded.id, loaded.email
     ));
-    let result = if codex_account::get_current_account().is_none() {
-        match codex_account::activate_saved_account(&loaded) {
-            Ok(activated) => {
-                logger::log_info(&format!(
-                    "Codex OAuth 账号已设为当前账号: account_id={}, email={}",
-                    activated.id, activated.email
-                ));
-                activated
-            }
-            Err(error) => {
-                logger::log_warn(&format!(
-                    "Codex OAuth 账号保存成功，但设为当前账号失败: account_id={}, error={}",
-                    loaded.id, error
-                ));
-                loaded
-            }
-        }
-    } else {
-        loaded
-    };
-
-    spawn_codex_oauth_quota_refresh(result.id.clone(), result.email.clone());
-    Ok(result)
+    Ok(loaded)
 }
 
 /// OAuth：开始登录（返回 loginId + authUrl）
