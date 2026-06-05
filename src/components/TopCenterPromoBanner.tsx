@@ -46,10 +46,6 @@ export function TopCenterPromoBanner({ reserveWhenEmpty = true }: TopCenterPromo
     }
   }, [ad?.ctaUrl]);
 
-  const handleIndicatorClick = useCallback((index: number) => {
-    setActiveIndex(index);
-  }, []);
-
   if (!ad) {
     return reserveWhenEmpty ? <div className="global-promo-center global-promo-center-placeholder" aria-hidden="true" /> : null;
   }
@@ -73,19 +69,6 @@ export function TopCenterPromoBanner({ reserveWhenEmpty = true }: TopCenterPromo
           <button className="global-ad-slot-action" onClick={handleClick}>
             {ad.ctaLabel || t('common.topRightAd.action', '查看详情')}
           </button>
-        ) : null}
-        {hasCarousel ? (
-          <div className="global-promo-indicators" aria-hidden="true">
-            {ads.map((item, index) => (
-              <button
-                key={item.id}
-                type="button"
-                className={`global-promo-indicator${index === activeIndex ? ' active' : ''}`}
-                tabIndex={-1}
-                onClick={() => handleIndicatorClick(index)}
-              />
-            ))}
-          </div>
         ) : null}
       </div>
     </div>

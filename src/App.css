@@ -154,29 +154,6 @@
   border-color: rgba(37, 99, 235, 0.4);
 }
 
-.global-promo-indicators {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.global-promo-indicator {
-  width: 6px;
-  height: 6px;
-  padding: 0;
-  border: 0;
-  border-radius: 999px;
-  background: rgba(37, 99, 235, 0.24);
-  cursor: pointer;
-  transition: width 0.2s ease, background 0.2s ease;
-}
-
-.global-promo-indicator.active {
-  width: 14px;
-  background: rgba(37, 99, 235, 0.72);
-}
-
 @media (max-width: 1180px) {
   .global-promo-center {
     width: clamp(320px, calc(100% - 340px), 760px);
@@ -283,10 +260,6 @@
   }
 
   .global-ad-slot-action {
-    display: none;
-  }
-
-  .global-promo-indicators {
     display: none;
   }
 
