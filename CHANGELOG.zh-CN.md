@@ -22,7 +22,6 @@
 - **Codex Linux OAuth 登录更稳定**：OAuth 回调处理避免重复完成，改善 Linux 登录流程。
 
 ### 修复
-- **WebDAV 备份同步**：优化服务地址输入框宽度，使其与账号等其他设置项的输入框宽度保持一致。
 - **Codex 模型供应商 OAuth 绑定现在会在启用供应商时生效**：模型供应商的 OAuth 绑定会同步到实际用于启动的 API Key 账号，与账号页行为保持一致。
 - **通过官方 Language Server 执行 Codex 唤醒不再因缺少请求来源失败**：唤醒请求现在会注入上游服务需要的官方 `StartCascadeRequest.source` 字段。感谢 @Slone123c。
 - **Codex 会话可见性修复现在会先协调 `session_index.jsonl`**：修复流程会更新 session index，让隐藏或过期会话能够更可靠地修复。感谢 @andrew05060414。
