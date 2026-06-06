@@ -578,6 +578,7 @@ pub fn add_codex_account_with_api_key(
     api_provider_id: Option<String>,
     api_provider_name: Option<String>,
     api_model_catalog: Option<Vec<String>>,
+    api_wire_api: Option<String>,
     api_supports_vision: Option<bool>,
     api_model_vision_support: Option<std::collections::HashMap<String, bool>>,
     account_name: Option<String>,
@@ -589,6 +590,7 @@ pub fn add_codex_account_with_api_key(
         api_provider_id,
         api_provider_name,
         api_model_catalog.unwrap_or_default(),
+        api_wire_api,
         api_supports_vision.unwrap_or(false),
         api_model_vision_support.unwrap_or_default(),
         account_name,
@@ -610,6 +612,7 @@ pub fn update_codex_api_key_credentials(
     api_provider_id: Option<String>,
     api_provider_name: Option<String>,
     api_model_catalog: Option<Vec<String>>,
+    api_wire_api: Option<String>,
     api_supports_vision: Option<bool>,
     api_model_vision_support: Option<std::collections::HashMap<String, bool>>,
 ) -> Result<CodexAccount, String> {
@@ -621,6 +624,7 @@ pub fn update_codex_api_key_credentials(
         api_provider_id,
         api_provider_name,
         api_model_catalog.unwrap_or_default(),
+        api_wire_api,
         api_supports_vision.unwrap_or(false),
         api_model_vision_support.unwrap_or_default(),
     )

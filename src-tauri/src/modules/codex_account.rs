@@ -321,11 +321,18 @@ fn normalize_api_model_catalog(models: Vec<String>) -> Vec<String> {
     values
 }
 
+fn normalize_api_wire_api(value: Option<String>) -> Option<String> {
+    value
+        .map(|item| item.trim().to_ascii_lowercase())
+        .filter(|item| item == "responses" || item == "chat_completions")
+}
+
 fn apply_api_key_fields(
     account: &mut CodexAccount,
     api_key: &str,
     provider_config: ApiProviderConfig,
     api_model_catalog: Vec<String>,
+    api_wire_api: Option<String>,
     api_supports_vision: bool,
     api_model_vision_support: std::collections::HashMap<String, bool>,
 ) {
@@ -348,6 +355,7 @@ fn apply_api_key_fields(
     account.api_provider_id = provider_config.provider_id;
     account.api_provider_name = provider_config.provider_name;
     account.api_model_catalog = normalize_api_model_catalog(api_model_catalog);
+    account.api_wire_api = normalize_api_wire_api(api_wire_api);
     account.api_supports_vision = api_supports_vision;
     account.api_model_vision_support = normalize_api_model_vision_support(api_model_vision_support);
     account.email = build_api_key_email(api_key);
@@ -2196,6 +2204,7 @@ pub fn upsert_api_key_account(
     api_provider_id: Option<String>,
     api_provider_name: Option<String>,
     api_model_catalog: Vec<String>,
+    api_wire_api: Option<String>,
     api_supports_vision: bool,
     api_model_vision_support: std::collections::HashMap<String, bool>,
     account_name: Option<String>,
@@ -2231,6 +2240,7 @@ pub fn upsert_api_key_account(
             &api_key,
             provider_config.clone(),
             api_model_catalog.clone(),
+            api_wire_api.clone(),
             api_supports_vision,
             api_model_vision_support.clone(),
         );
@@ -2257,6 +2267,7 @@ pub fn upsert_api_key_account(
         );
         acc.plan_type = Some(API_KEY_LOGIN_PLAN_TYPE.to_string());
         acc.account_name = account_name;
+        acc.api_wire_api = normalize_api_wire_api(api_wire_api.clone());
         acc.api_supports_vision = api_supports_vision;
         acc.api_model_vision_support = normalize_api_model_vision_support(api_model_vision_support);
         index.accounts.push(CodexAccountSummary {
@@ -3992,6 +4003,7 @@ pub fn import_from_local() -> Result<CodexAccount, String> {
             fallback_provider.provider_id.clone(),
             fallback_provider.provider_name.clone(),
             Vec::new(),
+            None,
             false,
             std::collections::HashMap::new(),
             None,
@@ -4010,6 +4022,7 @@ pub fn import_from_local() -> Result<CodexAccount, String> {
             fallback_provider.provider_id.clone(),
             fallback_provider.provider_name.clone(),
             Vec::new(),
+            None,
             false,
             std::collections::HashMap::new(),
             None,
@@ -4030,6 +4043,7 @@ fn import_account_struct(account: CodexAccount) -> Result<CodexAccount, String> 
             account.api_provider_id.clone(),
             account.api_provider_name.clone(),
             account.api_model_catalog.clone(),
+            account.api_wire_api.clone(),
             account.api_supports_vision,
             account.api_model_vision_support.clone(),
             account.account_name.clone(),
@@ -4524,6 +4538,7 @@ async fn import_account_from_json_value(
                     .and_then(|value| value.as_str())
                     .map(|value| value.to_string()),
                 Vec::new(),
+                None,
                 false,
                 std::collections::HashMap::new(),
                 None,
@@ -4623,6 +4638,7 @@ pub async fn import_from_json(json_content: &str) -> Result<Vec<CodexAccount>, S
                 fallback_provider.provider_id.clone(),
                 fallback_provider.provider_name.clone(),
                 Vec::new(),
+                None,
                 false,
                 std::collections::HashMap::new(),
                 None,
@@ -4652,6 +4668,7 @@ pub async fn import_from_json(json_content: &str) -> Result<Vec<CodexAccount>, S
                 fallback_provider.provider_id.clone(),
                 fallback_provider.provider_name.clone(),
                 Vec::new(),
+                None,
                 false,
                 std::collections::HashMap::new(),
                 None,
@@ -6745,6 +6762,7 @@ pub fn update_api_key_credentials(
     api_provider_id: Option<String>,
     api_provider_name: Option<String>,
     api_model_catalog: Vec<String>,
+    api_wire_api: Option<String>,
     api_supports_vision: bool,
     api_model_vision_support: std::collections::HashMap<String, bool>,
 ) -> Result<CodexAccount, String> {
@@ -6783,6 +6801,7 @@ pub fn update_api_key_credentials(
         &normalized_key,
         provider_config,
         api_model_catalog,
+        api_wire_api,
         api_supports_vision,
         api_model_vision_support,
     );

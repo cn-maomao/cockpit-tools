@@ -9957,6 +9957,14 @@ fn provider_gateway_wire_api_for_account(account: &CodexAccount) -> String {
     if account.auth_mode != CodexAuthMode::Apikey {
         return "responses".to_string();
     }
+    if let Some(wire_api) = account
+        .api_wire_api
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| *value == "responses" || *value == "chat_completions")
+    {
+        return wire_api.to_string();
+    }
     let base_url = account
         .api_base_url
         .as_deref()
@@ -10186,6 +10194,7 @@ fn backup_current_profile_model_before_provider_gateway(
 
 pub fn cleanup_provider_gateway_profile_model_overrides(profile_dir: &Path) -> Result<(), String> {
     let catalog_path = profile_dir.join(CODEX_PROVIDER_MODEL_CATALOG_FILE);
+    let previous_model = read_provider_model_backup(profile_dir);
     let mut managed_models = HashSet::new();
     if let Ok(content) = std::fs::read_to_string(&catalog_path) {
         if let Ok(parsed) = serde_json::from_str::<Value>(&content) {
@@ -10213,20 +10222,21 @@ pub fn cleanup_provider_gateway_profile_model_overrides(profile_dir: &Path) -> R
             doc.remove("model_catalog_json");
             changed = true;
         }
-        let current_model = doc
-            .get("model")
-            .and_then(|item| item.as_str())
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
-            .map(str::to_ascii_lowercase);
-        if let Some(model) = current_model {
-            if managed_models.contains(&model) {
-                if let Some(previous_model) = read_provider_model_backup(profile_dir) {
-                    doc["model"] = value(previous_model);
-                } else {
+        if let Some(previous_model) = previous_model.as_deref() {
+            doc["model"] = value(previous_model);
+            changed = true;
+        } else {
+            let current_model = doc
+                .get("model")
+                .and_then(|item| item.as_str())
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(str::to_ascii_lowercase);
+            if let Some(model) = current_model {
+                if managed_models.contains(&model) {
                     doc.remove("model");
+                    changed = true;
                 }
-                changed = true;
             }
         }
         if changed {
@@ -16644,6 +16654,7 @@ mod tests {
         should_treat_response_as_stream, should_try_next_account, sidecar_codex_api_key_auth_id,
         sidecar_stable_id, validate_client_model_visible, visible_codex_model_ids_for_api_key,
         websocket_accept_value, websocket_connect_error_from_http_response,
+        write_string_atomic,
         write_local_access_profile_model_override, write_provider_gateway_model_catalog,
         CodexLocalAccessCollection, CodexLocalAccessGatewayMode, CodexLocalAccessScope,
         GatewayResponseAdapter, ParsedRequest, ResolvedLocalApiKey, ResponseUsageCollector,
@@ -16672,6 +16683,7 @@ mod tests {
     use tokio::time::Duration;
     use tokio_tungstenite::tungstenite::client::IntoClientRequest;
     use tokio_tungstenite::tungstenite::Message;
+    use toml_edit::{value, Document};
 
     fn test_local_access_collection(account_ids: Vec<String>) -> CodexLocalAccessCollection {
         CodexLocalAccessCollection {
@@ -16887,6 +16899,46 @@ mod tests {
         cleanup_provider_gateway_profile_model_overrides(&profile_dir).expect("cleanup overrides");
 
         assert!(!profile_dir.join(CODEX_PROVIDER_MODEL_CATALOG_FILE).exists());
+        assert!(!profile_dir.join(CODEX_PROVIDER_MODEL_BACKUP_FILE).exists());
+        let config =
+            fs::read_to_string(profile_dir.join(CODEX_PROFILE_CONFIG_FILE)).expect("read config");
+        assert!(!config.contains("model_catalog_json"));
+        assert!(!config.contains("model = \"deepseek-v4-pro\""));
+        assert!(config.contains("model = \"gpt-5.5\""));
+
+        let _ = fs::remove_dir_all(&profile_dir);
+    }
+
+    #[test]
+    fn provider_gateway_cleanup_restores_previous_model_without_catalog_file() {
+        let profile_dir = std::env::temp_dir().join(format!(
+            "cockpit-provider-model-restore-no-catalog-test-{}",
+            chrono::Utc::now().timestamp_nanos_opt().unwrap_or_default()
+        ));
+        fs::create_dir_all(&profile_dir).expect("create temp profile");
+
+        write_local_access_profile_model_override(&profile_dir, "gpt-5.5")
+            .expect("write official model");
+        backup_current_profile_model_before_provider_gateway(
+            &profile_dir,
+            &[
+                "deepseek-v4-pro".to_string(),
+                "deepseek-v4-flash".to_string(),
+            ],
+        )
+        .expect("backup official model");
+        write_local_access_profile_model_override(&profile_dir, "deepseek-v4-pro")
+            .expect("write provider model");
+
+        let config_path = profile_dir.join(CODEX_PROFILE_CONFIG_FILE);
+        let existing = fs::read_to_string(&config_path).expect("read config");
+        let mut doc = existing.parse::<Document>().expect("parse config");
+        doc["model_catalog_json"] = value(CODEX_PROVIDER_MODEL_CATALOG_FILE);
+        let content = crate::modules::codex_config_format::codex_config_doc_to_string(&mut doc);
+        write_string_atomic(&config_path, &content).expect("write config");
+
+        cleanup_provider_gateway_profile_model_overrides(&profile_dir).expect("cleanup overrides");
+
         assert!(!profile_dir.join(CODEX_PROVIDER_MODEL_BACKUP_FILE).exists());
         let config =
             fs::read_to_string(profile_dir.join(CODEX_PROFILE_CONFIG_FILE)).expect("read config");
