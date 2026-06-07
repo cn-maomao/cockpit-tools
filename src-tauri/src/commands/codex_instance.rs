@@ -550,7 +550,7 @@ pub async fn codex_list_instances() -> Result<Vec<CodexInstanceProfileView>, Str
 
     let default_pid = modules::process::resolve_codex_pid_from_entries(
         default_settings.last_pid,
-        Some(default_dir.to_string_lossy().as_ref()),
+        None,
         &process_entries,
     );
     let default_running = default_pid.is_some();
@@ -715,10 +715,7 @@ pub async fn codex_update_instance(
             updated = modules::codex_instance::update_default_app_speed(speed.clone())?;
             modules::codex_speed::write_app_speed_for_dir(&default_dir, speed)?;
         }
-        let resolved_pid = modules::process::resolve_codex_pid(
-            updated.last_pid,
-            Some(default_dir.to_string_lossy().as_ref()),
-        );
+        let resolved_pid = modules::process::resolve_codex_pid(updated.last_pid, None);
         let running = resolved_pid.is_some();
         let default_bind_account_id = resolve_default_account_id(&updated);
         let launch_credential_change = if should_apply_bind_account {
@@ -1048,12 +1045,8 @@ pub async fn codex_open_instance_window(instance_id: String) -> Result<(), Strin
         if default_settings.launch_mode == InstanceLaunchMode::Cli {
             return Err("CLI 模式实例不支持窗口定位，请改用终端执行。".to_string());
         }
-        let default_dir = modules::codex_instance::get_default_codex_home()?;
-        modules::process::focus_codex_instance(
-            default_settings.last_pid,
-            Some(default_dir.to_string_lossy().as_ref()),
-        )
-        .map_err(|err| format!("定位 Codex 默认实例窗口失败: {}", err))?;
+        modules::process::focus_codex_instance(default_settings.last_pid, None)
+            .map_err(|err| format!("定位 Codex 默认实例窗口失败: {}", err))?;
         return Ok(());
     }
 

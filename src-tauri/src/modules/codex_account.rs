@@ -48,6 +48,7 @@ const CODEX_RUNTIME_MODEL_PROVIDER_ID: &str = "codex_local_access";
 const CODEX_LEGACY_API_KEY_OPENAI_PROVIDER_ID: &str = "openai_api_key";
 const CODEX_DEFAULT_RUNTIME_PROVIDER_NAME: &str = "OpenAI Official";
 const CODEX_PROVIDER_WIRE_API: &str = "responses";
+const APIKEY_FUN_PROVIDER_BASE_URL: &str = "https://api.apikey.fun/v1";
 const CODEX_CONTEXT_WINDOW_1M_VALUE: i64 = 1_000_000;
 const CODEX_AUTO_COMPACT_DEFAULT_LIMIT: i64 = 900_000;
 #[cfg(target_os = "macos")]
@@ -330,6 +331,27 @@ fn normalize_api_wire_api(value: Option<String>) -> Option<String> {
     value
         .map(|item| item.trim().to_ascii_lowercase())
         .filter(|item| item == "responses" || item == "chat_completions")
+}
+
+fn is_apikey_fun_base_url(raw: Option<&str>) -> bool {
+    let Some(actual) = normalize_api_base_url_for_match(raw) else {
+        return false;
+    };
+    let Some(expected) = normalize_api_base_url_for_match(Some(APIKEY_FUN_PROVIDER_BASE_URL)) else {
+        return false;
+    };
+    actual == expected
+}
+
+fn migrate_apikey_fun_wire_api(account: &mut CodexAccount) -> bool {
+    if !account.is_api_key_auth() || !is_apikey_fun_base_url(account.api_base_url.as_deref()) {
+        return false;
+    }
+    if account.api_wire_api.as_deref() != Some("chat_completions") {
+        return false;
+    }
+    account.api_wire_api = Some("responses".to_string());
+    true
 }
 
 fn apply_api_key_fields(
@@ -2066,14 +2088,23 @@ fn load_account_with_summary(
 
     let content = fs::read_to_string(&path)
         .map_err(|error| format!("读取账号详情失败 ({}): {}", path.display(), error))?;
-    if let Ok(account) = serde_json::from_str::<CodexAccount>(&content) {
+    if let Ok(mut account) = serde_json::from_str::<CodexAccount>(&content) {
+        if migrate_apikey_fun_wire_api(&mut account) {
+            if let Err(error) = save_account(&account) {
+                logger::log_warn(&format!(
+                    "[Codex Account][Migration] APIKEY.FUN 协议迁移写回失败: account_id={}, error={}",
+                    account.id, error
+                ));
+            }
+        }
         return Ok(Some(account));
     }
 
     let value = serde_json::from_str::<serde_json::Value>(&content)
         .map_err(|error| format!("账号详情不是有效 JSON ({}): {}", path.display(), error))?;
-    let account = parse_codex_account_compat(value, account_id, summary)?
+    let mut account = parse_codex_account_compat(value, account_id, summary)?
         .ok_or_else(|| format!("账号详情缺少可识别凭据 ({})", path.display()))?;
+    let _ = migrate_apikey_fun_wire_api(&mut account);
 
     if let Err(error) = save_account(&account) {
         logger::log_warn(&format!(

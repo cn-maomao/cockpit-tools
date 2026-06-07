@@ -85,7 +85,10 @@ import {
   findCodexApiProviderPresetById,
   resolveCodexApiProviderPresetId,
 } from "../../utils/codexProviderPresets";
-import { normalizeApiKeyFunOfficialUrl } from "../../utils/apikeyFunLinks";
+import {
+  normalizeApiKeyFunOfficialUrl,
+  resolveApiKeyFunWireApi,
+} from "../../utils/apikeyFunLinks";
 import {
   getCodexPlanFilterKey,
   getCodexSubscriptionPresentation,
@@ -471,7 +474,10 @@ export function CodexModelProviderManager({
         supportsVision: integration.supportsVision === true,
         website: normalizeApiKeyFunOfficialUrl(integration.website || sponsor.url),
         apiKeyUrl: normalizeApiKeyFunOfficialUrl(integration.apiKeyUrl || sponsor.url),
-        wireApi: integration.wireApi ?? null,
+        wireApi: resolveApiKeyFunWireApi(
+          integration.baseUrl,
+          integration.wireApi ?? null,
+        ),
         integrationType: integration.type ?? null,
       });
     }

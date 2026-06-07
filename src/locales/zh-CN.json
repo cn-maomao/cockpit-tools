@@ -397,7 +397,7 @@
       "envTitle": "环境变量",
       "envDesc": "适合 Claude Code、Gemini CLI、Hermes 等 OpenAI 兼容入口参考。",
       "curlTitle": "API 脚本",
-      "curlDesc": "快速验证 Chat Completions 兼容请求。"
+      "curlDesc": "快速验证 Responses 兼容请求。"
     },
     "docTool": {
       "codex": "可直接一键写入 Codex Provider。",

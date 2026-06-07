@@ -9,6 +9,9 @@ import {
   findCodexApiProviderPresetById,
   resolveCodexApiProviderPresetId,
 } from '../utils/codexProviderPresets';
+import {
+  isApiKeyFunProviderBaseUrl,
+} from '../utils/apikeyFunLinks';
 
 export interface CodexModelProviderApiKey {
   id: string;
@@ -157,6 +160,29 @@ function normalizeIntegrationType(value: unknown): 'sub2api' | 'new_api' | undef
   return value === 'sub2api' || value === 'new_api' ? value : undefined;
 }
 
+function migrateApiKeyFunProviderWireApi(
+  providers: CodexModelProvider[],
+): { providers: CodexModelProvider[]; changed: boolean } {
+  let changed = false;
+  const next = providers.map((provider) => {
+    if (
+      isApiKeyFunProviderBaseUrl(provider.baseUrl) &&
+      provider.wireApi === 'chat_completions'
+    ) {
+      changed = true;
+      return {
+        ...provider,
+        wireApi: 'responses' as CodexProviderWireApi,
+        enableModePreference:
+          provider.enableModePreference === 'gateway' ? 'direct' : provider.enableModePreference,
+        updatedAt: Date.now(),
+      };
+    }
+    return provider;
+  });
+  return { providers: next, changed };
+}
+
 function presetModelCatalogForBaseUrl(baseUrl: string): string[] | undefined {
   return normalizeModelCatalog(
     findCodexApiProviderPresetById(resolveCodexApiProviderPresetId(baseUrl))
@@ -294,14 +320,16 @@ async function saveProvidersToDisk(providers: CodexModelProvider[]): Promise<voi
 async function ensureProvidersLoaded(): Promise<CodexModelProvider[]> {
   if (cachedProviders !== null) return cloneProviders(cachedProviders);
   const loadedProviders = await loadProvidersFromDisk().catch(() => []);
-  const loaded = loadedProviders.filter((provider) => {
+  let loaded = loadedProviders.filter((provider) => {
     // 兼容清理：移除旧版本自动注入但未配置 API Key 的默认预设项
     if (provider.id.startsWith('preset_') && provider.apiKeys.length === 0) {
       return false;
     }
     return true;
   });
-  if (loaded.length !== loadedProviders.length) {
+  const migration = migrateApiKeyFunProviderWireApi(loaded);
+  loaded = migration.providers;
+  if (loaded.length !== loadedProviders.length || migration.changed) {
     await saveProvidersToDisk(loaded).catch(() => { });
   }
   cachedProviders = loaded;

@@ -397,7 +397,7 @@
       "envTitle": "Environment",
       "envDesc": "Reference for OpenAI-compatible entries such as Claude Code, Gemini CLI, and Hermes.",
       "curlTitle": "API Script",
-      "curlDesc": "Quickly verify a Chat Completions compatible request."
+      "curlDesc": "Quickly verify a Responses-compatible request."
     },
     "docTool": {
       "codex": "Can be written directly into Codex Provider.",

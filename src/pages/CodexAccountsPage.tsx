@@ -158,7 +158,10 @@ import {
   isCockpitApiProviderBaseUrl,
   resolveCodexApiProviderPresetId,
 } from "../utils/codexProviderPresets";
-import { normalizeApiKeyFunOfficialUrl } from "../utils/apikeyFunLinks";
+import {
+  normalizeApiKeyFunOfficialUrl,
+  resolveApiKeyFunWireApi,
+} from "../utils/apikeyFunLinks";
 import { resolveCodexProviderCapabilityProfile } from "../utils/codexProviderGateway";
 import {
   formatCodexQuotaPoolPercent,
@@ -698,7 +701,10 @@ function normalizeSponsorApiProviderTemplates(
       supportsVision: integration.supportsVision === true,
       website: normalizeApiKeyFunOfficialUrl(integration.website || sponsor.url),
       apiKeyUrl: normalizeApiKeyFunOfficialUrl(integration.apiKeyUrl || sponsor.url),
-      wireApi: integration.wireApi ?? null,
+      wireApi: resolveApiKeyFunWireApi(
+        integration.baseUrl,
+        integration.wireApi ?? null,
+      ),
       integrationType: integration.type ?? null,
     });
   }
