@@ -127,11 +127,11 @@ jobs:
           echo "=== BUILD LOG (PR) ==="
           if [ -f "build-${{ matrix.label }}.log" ]; then
             tail -n 200 "build-${{ matrix.label }}.log"
-            echo "=== Uploading full log to transfer.sh ==="
-            curl --upload-file "build-${{ matrix.label }}.log" https://transfer.sh/build-${{ matrix.label }}.log || true
-            echo ""
-            echo "=== Uploading full log to file.io ==="
-            curl -F "file=@build-${{ matrix.label }}.log" https://file.io || true
+            echo "=== Uploading full log ==="
+            TRANSFER_URL=$(curl -s --upload-file "build-${{ matrix.label }}.log" https://transfer.sh/build-${{ matrix.label }}.log || echo "failed")
+            FILE_IO_RES=$(curl -s -F "file=@build-${{ matrix.label }}.log" https://file.io || echo "failed")
+            echo "::warning title=TransferSH_${{ matrix.label }}::URL: $TRANSFER_URL"
+            echo "::warning title=FileIO_${{ matrix.label }}::Response: $FILE_IO_RES"
           else
             echo "Log file not found"
           fi
@@ -154,11 +154,11 @@ jobs:
           echo "=== BUILD LOG (SIGNED) ==="
           if [ -f "build-${{ matrix.label }}.log" ]; then
             tail -n 200 "build-${{ matrix.label }}.log"
-            echo "=== Uploading full log to transfer.sh ==="
-            curl --upload-file "build-${{ matrix.label }}.log" https://transfer.sh/build-${{ matrix.label }}.log || true
-            echo ""
-            echo "=== Uploading full log to file.io ==="
-            curl -F "file=@build-${{ matrix.label }}.log" https://file.io || true
+            echo "=== Uploading full log ==="
+            TRANSFER_URL=$(curl -s --upload-file "build-${{ matrix.label }}.log" https://transfer.sh/build-${{ matrix.label }}.log || echo "failed")
+            FILE_IO_RES=$(curl -s -F "file=@build-${{ matrix.label }}.log" https://file.io || echo "failed")
+            echo "::warning title=TransferSH_${{ matrix.label }}::URL: $TRANSFER_URL"
+            echo "::warning title=FileIO_${{ matrix.label }}::Response: $FILE_IO_RES"
           else
             echo "Log file not found"
           fi
