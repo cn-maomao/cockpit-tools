@@ -26,18 +26,18 @@ A **universal AI IDE account management tool**, currently supporting **Antigravi
 <table>
   <tr>
     <td width="120" align="center">
-      <a href="https://apikey.fun/register?aff=cockpit">
+      <a href="https://apikey.fun/register?aff=COCKPIT">
         <img src="src/assets/icons/apikey-fun.png" alt="APIKEY.FUN" width="72" />
       </a>
     </td>
     <td>
-      <a href="https://apikey.fun/register?aff=cockpit"><strong>APIKEY.FUN</strong></a> Relay is the official Cockpit partner relay, providing stable, open, and cost-effective large-model API access. It supports mainstream models such as Claude, OpenAI, and Gemini, and is suitable for unified configuration across Codex, Gemini CLI, Claude Code, and other developer tools. Register through the Cockpit <a href="https://apikey.fun/register?aff=cockpit"><strong>exclusive link</strong></a> to get a permanent top-up discount of up to 5%.
+      <a href="https://apikey.fun/register?aff=COCKPIT"><strong>APIKEY.FUN</strong></a> is a professional enterprise-grade AI relay focused on stable, efficient, and low-cost AI model API access for companies and individual developers. It supports popular models such as Claude, OpenAI, and Gemini, with prices as low as 7% of official pricing. Register through this project <a href="https://apikey.fun/register?aff=COCKPIT"><strong>exclusive link</strong></a> to receive an exclusive <strong>permanent 5% top-up discount</strong>.
     </td>
   </tr>
   <tr>
     <td width="120" align="center">
       <a href="https://roxybrowser.cn?code=0326VTDA">
-        <strong>RoxyBrowser</strong>
+        <img src="src/assets/icons/roxybrowser.jpg" alt="RoxyBrowser" width="96" />
       </a>
     </td>
     <td>
