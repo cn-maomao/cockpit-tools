@@ -3,11 +3,11 @@
   "refreshIntervalMs": 3600000,
   "rules": [
     {
-      "platformIds": ["claude", "claude_cli"],
-      "hidden": true,
+      "platformIds": ["claude"],
+      "hidden": false,
       "targetOs": ["windows"],
       "targetVersions": "*",
-      "reason": "Claude support on Windows is pending validation."
+      "reason": "Claude support on Windows is enabled for local development."
     }
   ]
 }

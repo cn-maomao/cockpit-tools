@@ -474,6 +474,7 @@ app.whenReady().then(async () => {
     minWidth: 920,
     minHeight: 720,
     title: 'Claude Desktop Login',
+    show: true,
     autoHideMenuBar: true,
     webPreferences: {
       nodeIntegration: false,
@@ -481,6 +482,11 @@ app.whenReady().then(async () => {
       sandbox: true,
       webSecurity: true,
     },
+  });
+
+  win.once('ready-to-show', () => {
+    win.show();
+    win.focus();
   });
 
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -516,6 +522,9 @@ app.whenReady().then(async () => {
   });
   win.webContents.on('did-fail-load', (_, errorCode, errorDescription, validatedUrl) => {
     writeStatus('load_error', { errorCode, errorDescription, url: validatedUrl }, win.webContents).catch(() => {});
+  });
+  win.webContents.on('did-finish-load', () => {
+    writeStatus('loaded', { url: win.webContents.getURL() }, win.webContents).catch(() => {});
   });
 
   await win.loadURL(startUrl);

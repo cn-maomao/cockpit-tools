@@ -65,6 +65,8 @@
       "icons/icon.ico"
     ],
     "resources": {
+      "../scripts/claude-desktop-auth-helper.cjs": "scripts/claude-desktop-auth-helper.cjs",
+      "resources/electron": "electron",
       "../src/assets/icons/antigravity-menu.png": "native-menu-icons/antigravity-menu.png",
       "../src/assets/icons/codebuddy.png": "native-menu-icons/codebuddy.png",
       "../src/assets/icons/codex.svg": "native-menu-icons/codex.svg",

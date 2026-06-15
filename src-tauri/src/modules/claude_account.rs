@@ -27,6 +27,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
+use tauri::Manager;
 use url::{form_urlencoded, Url};
 
 const ACCOUNTS_INDEX_FILE: &str = "claude_accounts.json";
@@ -80,6 +81,7 @@ const CLAUDE_DESKTOP_BUNDLE_ID_MACOS: &str = "com.anthropic.claudefordesktop";
 const CLAUDE_DESKTOP_LOGIN_TIMEOUT_SECONDS: i64 = 30 * 60;
 const CLAUDE_DESKTOP_AUTH_EXPORT_WAIT_SECONDS: u64 = 8;
 const CLAUDE_DESKTOP_REQUIRED_COOKIE_NAMES: &[&str] = &["sessionKey", "lastActiveOrg"];
+const CHROMIUM_EPOCH_OFFSET_MS: i64 = 11_644_473_600_000;
 const CLAUDE_DESKTOP_LOCAL_PROFILE_MAX_FILES: usize = 600;
 const CLAUDE_DESKTOP_LOCAL_PROFILE_MAX_FILE_BYTES: u64 = 5 * 1024 * 1024;
 const CLAUDE_DESKTOP_LOCAL_PROFILE_SCAN_DIRS: &[&str] = &[
@@ -89,15 +91,11 @@ const CLAUDE_DESKTOP_LOCAL_PROFILE_SCAN_DIRS: &[&str] = &[
     "Cache/Cache_Data",
 ];
 const CLAUDE_DESKTOP_PROFILE_ITEMS: &[&str] = &[
-    "Cookies",
-    "Cookies-journal",
     "Local State",
     "Preferences",
-    "Network Persistent State",
+    "Network",
     "DIPS",
     "DIPS-wal",
-    "Trust Tokens",
-    "Trust Tokens-journal",
     "SharedStorage",
     "SharedStorage-wal",
     "WebStorage",
@@ -171,6 +169,8 @@ struct ClaudeDesktopAuthCookie {
     http_only: bool,
     #[serde(default, rename = "expirationDate")]
     expiration_date: Option<f64>,
+    #[serde(default, rename = "sameSite")]
+    same_site: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -795,7 +795,54 @@ pub fn get_default_claude_desktop_user_data_dir() -> Result<PathBuf, String> {
     }
 
     let data_dir = dirs::data_dir().ok_or_else(|| "无法获取系统应用数据目录".to_string())?;
-    Ok(data_dir.join("Claude"))
+    let standard_dir = data_dir.join("Claude");
+    if standard_dir.exists() {
+        return Ok(standard_dir);
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        if let Some(store_dir) = find_windows_store_claude_desktop_user_data_dir() {
+            return Ok(store_dir);
+        }
+    }
+
+    Ok(standard_dir)
+}
+
+#[cfg(target_os = "windows")]
+fn find_windows_store_claude_desktop_user_data_dir() -> Option<PathBuf> {
+    let packages_dir = dirs::data_local_dir()?.join("Packages");
+    let entries = fs::read_dir(packages_dir).ok()?;
+    let mut candidates = Vec::new();
+
+    for entry in entries.flatten() {
+        let package_name = entry.file_name().to_string_lossy().to_ascii_lowercase();
+        if !package_name.starts_with("claude_") && !package_name.contains("anthropic") {
+            continue;
+        }
+        let profile_dir = entry
+            .path()
+            .join("LocalCache")
+            .join("Roaming")
+            .join("Claude");
+        if !profile_dir.exists() {
+            continue;
+        }
+        let has_cookies = desktop_cookies_path(&profile_dir).exists();
+        let modified_at = fs::metadata(&profile_dir)
+            .and_then(|metadata| metadata.modified())
+            .ok();
+        candidates.push((has_cookies, modified_at, profile_dir));
+    }
+
+    candidates.sort_by(|left, right| {
+        right
+            .0
+            .cmp(&left.0)
+            .then_with(|| right.1.cmp(&left.1))
+    });
+    candidates.into_iter().map(|(_, _, path)| path).next()
 }
 
 pub fn get_default_claude_code_config_dir() -> Result<PathBuf, String> {
@@ -1658,6 +1705,10 @@ fn build_desktop_account_id(label: &str) -> String {
     )
 }
 
+fn desktop_cookies_path(profile_dir: &Path) -> PathBuf {
+    profile_dir.join("Network").join("Cookies")
+}
+
 fn cookies_db_has_required_desktop_session(cookies_path: &Path) -> Result<bool, String> {
     if !cookies_path.exists() {
         return Ok(false);
@@ -1690,7 +1741,7 @@ fn ensure_desktop_profile_logged_in(profile_dir: &Path) -> Result<(), String> {
             profile_dir.display()
         ));
     }
-    if !cookies_db_has_required_desktop_session(&profile_dir.join("Cookies"))? {
+    if !cookies_db_has_required_desktop_session(&desktop_cookies_path(profile_dir))? {
         return Err(
             "未检测到 Claude Desktop 登录态，请在授权窗口或官方 Claude Desktop 完成登录后再导入。"
                 .to_string(),
@@ -1703,7 +1754,7 @@ fn chromium_cookie_expires_utc_to_unix_ms(expires_utc: i64) -> Option<i64> {
     if expires_utc <= 0 {
         return None;
     }
-    let unix_ms = expires_utc / 1000 - 11_644_473_600_000;
+    let unix_ms = expires_utc / 1000 - CHROMIUM_EPOCH_OFFSET_MS;
     (unix_ms > 0).then_some(unix_ms)
 }
 
@@ -1756,7 +1807,7 @@ fn desktop_profile_metadata_from_cookies_db(
     profile_dir: &Path,
     source: &str,
 ) -> Result<ClaudeDesktopProfileMetadata, String> {
-    let cookies_path = profile_dir.join("Cookies");
+    let cookies_path = desktop_cookies_path(profile_dir);
     let conn = Connection::open_with_flags(&cookies_path, OpenFlags::SQLITE_OPEN_READ_ONLY)
         .map_err(|e| {
             format!(
@@ -2217,7 +2268,7 @@ fn decrypt_chromium_v10_cookie(
 fn read_decrypted_desktop_cookie_export(
     profile_dir: &Path,
 ) -> Result<ClaudeDesktopAuthCookieExport, String> {
-    let cookies_path = profile_dir.join("Cookies");
+    let cookies_path = desktop_cookies_path(profile_dir);
     if !cookies_path.exists() {
         return Err(format!(
             "Claude Desktop Cookies 不存在: {}",
@@ -2282,6 +2333,7 @@ fn read_decrypted_desktop_cookie_export(
             http_only: is_httponly != 0,
             expiration_date: chromium_cookie_expires_utc_to_unix_ms(expires_utc)
                 .map(|ms| ms as f64 / 1000.0),
+            same_site: None,
         });
     }
     let export = ClaudeDesktopAuthCookieExport {
@@ -2314,6 +2366,37 @@ fn exported_cookie_path(cookie: &ClaudeDesktopAuthCookie) -> &str {
         "/"
     } else {
         path
+    }
+}
+
+fn chromium_cookie_time_now() -> i64 {
+    (now_ts_ms() + CHROMIUM_EPOCH_OFFSET_MS) * 1000
+}
+
+fn exported_cookie_expires_utc(cookie: &ClaudeDesktopAuthCookie) -> i64 {
+    let Some(seconds) = cookie.expiration_date else {
+        return 0;
+    };
+    if !seconds.is_finite() || seconds <= 0.0 {
+        return 0;
+    }
+    ((seconds * 1000.0).round() as i64 + CHROMIUM_EPOCH_OFFSET_MS) * 1000
+}
+
+fn exported_cookie_samesite(cookie: &ClaudeDesktopAuthCookie) -> i64 {
+    match cookie.same_site.as_deref().map(str::to_ascii_lowercase) {
+        Some(value) if value == "strict" => 2,
+        Some(value) if value == "lax" => 1,
+        Some(value) if value == "no_restriction" || value == "none" => 0,
+        _ => -1,
+    }
+}
+
+fn exported_cookie_source_type(cookie: &ClaudeDesktopAuthCookie) -> i64 {
+    if cookie.http_only {
+        1
+    } else {
+        2
     }
 }
 
@@ -2492,7 +2575,7 @@ fn rewrite_desktop_cookies_with_exported_plaintext(
     export: &ClaudeDesktopAuthCookieExport,
 ) -> Result<(), String> {
     ensure_desktop_auth_export_logged_in(&export)?;
-    let cookies_path = profile_dir.join("Cookies");
+    let cookies_path = desktop_cookies_path(profile_dir);
     if !cookies_path.exists() {
         return Err(format!(
             "Claude Desktop Cookies 不存在: {}",
@@ -2513,6 +2596,7 @@ fn rewrite_desktop_cookies_with_exported_plaintext(
     })?;
     let empty_encrypted_value: Vec<u8> = Vec::new();
     let mut updated_required_names = HashSet::new();
+    let now_chromium = chromium_cookie_time_now();
     for cookie in export
         .cookies
         .iter()
@@ -2520,21 +2604,84 @@ fn rewrite_desktop_cookies_with_exported_plaintext(
     {
         let host_key = exported_cookie_host_key(cookie);
         let cookie_path = exported_cookie_path(cookie);
+        let expires_utc = exported_cookie_expires_utc(cookie);
+        let is_persistent = i64::from(expires_utc > 0);
+        let is_secure = i64::from(cookie.secure);
+        let is_httponly = i64::from(cookie.http_only);
+        let samesite = exported_cookie_samesite(cookie);
+        let source_type = exported_cookie_source_type(cookie);
         let updated_count = conn
             .execute(
-                "update cookies set value = ?1, encrypted_value = ?2 \
-             where host_key = ?3 and name = ?4 and path = ?5",
+                "update cookies set value = ?1, encrypted_value = ?2, expires_utc = ?3, \
+                 is_secure = ?4, is_httponly = ?5, last_access_utc = ?6, \
+                 has_expires = ?7, is_persistent = ?8, samesite = ?9, \
+                 last_update_utc = ?10, source_type = ?11 \
+                 where host_key = ?12 and name = ?13 and path = ?14",
                 params![
                     cookie.value.as_str(),
                     empty_encrypted_value.as_slice(),
+                    expires_utc,
+                    is_secure,
+                    is_httponly,
+                    now_chromium,
+                    is_persistent,
+                    is_persistent,
+                    samesite,
+                    now_chromium,
+                    source_type,
                     host_key.as_str(),
                     cookie.name.as_str(),
                     cookie_path
                 ],
             )
             .map_err(|e| format!("写入 Claude Desktop plaintext cookie 失败: {}", e))?;
-        if updated_count > 0
-            && CLAUDE_DESKTOP_REQUIRED_COOKIE_NAMES
+        if updated_count == 0 {
+            conn.execute(
+                "insert into cookies (
+                    creation_utc, host_key, top_frame_site_key, name, value, encrypted_value,
+                    path, expires_utc, is_secure, is_httponly, last_access_utc, has_expires,
+                    is_persistent, priority, samesite, source_scheme, source_port,
+                    last_update_utc, source_type, has_cross_site_ancestor
+                ) values (
+                    ?1, ?2, '', ?3, ?4, ?5,
+                    ?6, ?7, ?8, ?9, ?10, ?11,
+                    ?12, 1, ?13, 2, 443,
+                    ?14, ?15, 1
+                )
+                on conflict(host_key, top_frame_site_key, has_cross_site_ancestor, name, path, source_scheme, source_port)
+                do update set
+                    value = excluded.value,
+                    encrypted_value = excluded.encrypted_value,
+                    expires_utc = excluded.expires_utc,
+                    is_secure = excluded.is_secure,
+                    is_httponly = excluded.is_httponly,
+                    last_access_utc = excluded.last_access_utc,
+                    has_expires = excluded.has_expires,
+                    is_persistent = excluded.is_persistent,
+                    samesite = excluded.samesite,
+                    last_update_utc = excluded.last_update_utc,
+                    source_type = excluded.source_type",
+                params![
+                    now_chromium,
+                    host_key.as_str(),
+                    cookie.name.as_str(),
+                    cookie.value.as_str(),
+                    empty_encrypted_value.as_slice(),
+                    cookie_path,
+                    expires_utc,
+                    is_secure,
+                    is_httponly,
+                    now_chromium,
+                    is_persistent,
+                    is_persistent,
+                    samesite,
+                    now_chromium,
+                    source_type
+                ],
+            )
+            .map_err(|e| format!("写入 Claude Desktop plaintext cookie 失败: {}", e))?;
+        }
+        if CLAUDE_DESKTOP_REQUIRED_COOKIE_NAMES
                 .iter()
                 .any(|name| *name == cookie.name)
         {
@@ -2708,8 +2855,22 @@ fn backup_current_desktop_profile(target_dir: &Path) -> Result<Option<PathBuf>, 
     Ok(Some(backup_dir))
 }
 
+fn get_desktop_auth_resource_dir() -> Option<PathBuf> {
+    crate::get_app_handle()
+        .and_then(|app| app.path().resource_dir().ok())
+        .or_else(|| {
+            std::env::current_dir()
+                .ok()
+                .map(|dir| dir.join("src-tauri").join("resources"))
+        })
+        .filter(|path| path.exists())
+}
+
 fn find_desktop_auth_helper_script() -> Result<PathBuf, String> {
     let mut candidates = Vec::new();
+    if let Some(resource_dir) = get_desktop_auth_resource_dir() {
+        candidates.push(resource_dir.join(CLAUDE_DESKTOP_AUTH_HELPER_SCRIPT));
+    }
     if let Ok(current_dir) = std::env::current_dir() {
         candidates.push(current_dir.join(CLAUDE_DESKTOP_AUTH_HELPER_SCRIPT));
     }
@@ -2742,30 +2903,127 @@ fn find_electron_executable_for_desktop_auth() -> Result<PathBuf, String> {
         }
     }
 
-    let bin_name = if cfg!(target_os = "windows") {
-        "electron.cmd"
-    } else {
-        "electron"
-    };
     let mut candidates = Vec::new();
+    if let Some(resource_dir) = get_desktop_auth_resource_dir() {
+        candidates.extend(electron_resource_executable_candidates(&resource_dir));
+    }
     if let Ok(current_dir) = std::env::current_dir() {
-        candidates.push(current_dir.join("node_modules").join(".bin").join(bin_name));
+        candidates.extend(electron_node_modules_executable_candidates(&current_dir));
+        candidates.extend(electron_resource_executable_candidates(
+            &current_dir.join("src-tauri").join("resources"),
+        ));
     }
     if let Ok(exe) = std::env::current_exe() {
         let mut current = exe.parent();
         while let Some(dir) = current {
-            candidates.push(dir.join("node_modules").join(".bin").join(bin_name));
+            candidates.extend(electron_node_modules_executable_candidates(dir));
+            candidates.extend(electron_resource_executable_candidates(
+                &dir.join("src-tauri").join("resources"),
+            ));
             current = dir.parent();
         }
     }
 
-    candidates
-        .into_iter()
-        .find(|path| path.exists())
-        .ok_or_else(|| {
-            "未找到 Electron 运行时，无法在平台内打开 Claude Desktop 授权窗口。请先执行 npm install，或设置 CLAUDE_DESKTOP_AUTH_ELECTRON。"
-                .to_string()
+    let checked = candidates
+        .iter()
+        .map(|path| {
+            format!(
+                "{} [{}]",
+                path.display(),
+                if path.exists() { "exists" } else { "missing" }
+            )
         })
+        .collect::<Vec<_>>()
+        .join("; ");
+
+    for path in candidates {
+        if path.exists() {
+            logger::log_info(&format!(
+                "[Claude Desktop Auth] 使用 Electron: {}",
+                path.display()
+            ));
+            return Ok(path);
+        }
+    }
+
+    Err(format!(
+        "未找到 Electron 运行时，无法在平台内打开 Claude Desktop 授权窗口。请确认安装包包含 electron 资源；开发环境请先执行 npm install，或设置 CLAUDE_DESKTOP_AUTH_ELECTRON。已检查: {}",
+        checked
+    ))
+}
+
+fn electron_resource_executable_candidates(resource_dir: &Path) -> Vec<PathBuf> {
+    let electron_root = resource_dir.join("electron");
+    let mut candidates = Vec::new();
+    #[cfg(target_os = "windows")]
+    {
+        candidates.push(electron_root.join("electron.exe"));
+        candidates.push(electron_root.join("dist").join("electron.exe"));
+    }
+    #[cfg(target_os = "macos")]
+    {
+        candidates.push(
+            electron_root
+                .join("Electron.app")
+                .join("Contents")
+                .join("MacOS")
+                .join("Electron"),
+        );
+        candidates.push(electron_root.join("electron"));
+    }
+    #[cfg(all(not(target_os = "windows"), not(target_os = "macos")))]
+    {
+        candidates.push(electron_root.join("electron"));
+        candidates.push(electron_root.join("dist").join("electron"));
+    }
+    candidates
+}
+
+fn electron_node_modules_executable_candidates(root: &Path) -> Vec<PathBuf> {
+    let mut candidates = Vec::new();
+    let electron_pkg = root.join("node_modules").join("electron");
+    let electron_bin = root.join("node_modules").join(".bin");
+
+    #[cfg(target_os = "windows")]
+    {
+        candidates.push(electron_pkg.join("dist").join("electron.exe"));
+        candidates.push(electron_bin.join("electron.exe"));
+        candidates.push(electron_bin.join("electron.cmd"));
+    }
+    #[cfg(target_os = "macos")]
+    {
+        candidates.push(
+            electron_pkg
+                .join("dist")
+                .join("Electron.app")
+                .join("Contents")
+                .join("MacOS")
+                .join("Electron"),
+        );
+        candidates.push(electron_bin.join("electron"));
+    }
+    #[cfg(all(not(target_os = "windows"), not(target_os = "macos")))]
+    {
+        candidates.push(electron_pkg.join("dist").join("electron"));
+        candidates.push(electron_bin.join("electron"));
+    }
+
+    candidates
+}
+
+#[cfg(target_os = "windows")]
+fn electron_cli_path_arg(path: &Path) -> String {
+    let value = path.display().to_string();
+    value
+        .strip_prefix(r"\\?\UNC\")
+        .map(|rest| format!(r"\\{}", rest))
+        .or_else(|| value.strip_prefix(r"\\?\").map(|rest| rest.to_string()))
+        .unwrap_or(value)
+}
+
+#[cfg(not(target_os = "windows"))]
+fn electron_cli_path_arg(path: &Path) -> String {
+    path.display().to_string()
 }
 
 fn launch_platform_desktop_auth_helper(
@@ -2792,9 +3050,20 @@ fn launch_platform_desktop_auth_helper_with_args(
 ) -> Result<u32, String> {
     let helper_script = find_desktop_auth_helper_script()?;
     let electron = find_electron_executable_for_desktop_auth()?;
+    let helper_script_arg = electron_cli_path_arg(&helper_script);
+    let stdout_log = user_data_dir.join("claude_desktop_auth_helper.stdout.log");
+    let stderr_log = user_data_dir.join("claude_desktop_auth_helper.stderr.log");
     let mut command = std::process::Command::new(electron);
+    logger::log_info(&format!(
+        "[Claude Desktop Auth] 启动 helper: script={}, mode={}, user_data_dir={}, status_file={}, export_file={}",
+        helper_script_arg,
+        mode,
+        user_data_dir.display(),
+        status_file.display(),
+        export_file.display()
+    ));
     command
-        .arg(helper_script)
+        .arg(&helper_script_arg)
         .arg("--user-data-dir")
         .arg(user_data_dir)
         .arg("--status-file")
@@ -2803,30 +3072,66 @@ fn launch_platform_desktop_auth_helper_with_args(
         .arg(export_file)
         .arg("--mode")
         .arg(mode)
-        .arg("--url")
-        .arg(if mode == "cookie_probe" {
-            "https://claude.ai/settings/usage"
-        } else {
-            "https://claude.ai/"
-        })
         .arg("--probe-timeout-ms")
         .arg("15000")
         .env("ELECTRON_DISABLE_SECURITY_WARNINGS", "true")
         .stdin(std::process::Stdio::null())
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null());
+        .stdout(
+            fs::File::create(&stdout_log)
+                .map(std::process::Stdio::from)
+                .unwrap_or_else(|_| std::process::Stdio::null()),
+        )
+        .stderr(
+            fs::File::create(&stderr_log)
+                .map(std::process::Stdio::from)
+                .unwrap_or_else(|_| std::process::Stdio::null()),
+        );
     for (name, path) in extra_args {
         command.arg(name).arg(path);
     }
+    command.arg("--url").arg(if mode == "cookie_probe" {
+        "https://claude.ai/settings/usage"
+    } else {
+        "https://claude.ai/"
+    });
     #[cfg(target_os = "windows")]
     {
         use std::os::windows::process::CommandExt;
         command.creation_flags(0x08000000);
     }
-    let child = command
+    let mut child = command
         .spawn()
         .map_err(|e| format!("启动 Claude Desktop 授权窗口失败: {}", e))?;
-    Ok(child.id())
+    let child_id = child.id();
+    std::thread::sleep(Duration::from_millis(300));
+    if let Some(status) = child
+        .try_wait()
+        .map_err(|e| format!("检查 Claude Desktop 授权窗口进程失败: {}", e))?
+    {
+        let stderr = fs::read_to_string(&stderr_log).unwrap_or_default();
+        let stdout = fs::read_to_string(&stdout_log).unwrap_or_default();
+        let detail = [stderr.trim(), stdout.trim()]
+            .into_iter()
+            .filter(|value| !value.is_empty())
+            .collect::<Vec<_>>()
+            .join("\n");
+        return Err(format!(
+            "Claude Desktop 授权窗口启动后立即退出: {}{}",
+            status,
+            if detail.is_empty() {
+                "".to_string()
+            } else {
+                format!("；日志: {}", detail)
+            }
+        ));
+    }
+    logger::log_info(&format!(
+        "[Claude Desktop Auth] helper 已启动: pid={}, stdout={}, stderr={}",
+        child_id,
+        stdout_log.display(),
+        stderr_log.display()
+    ));
+    Ok(child_id)
 }
 
 fn terminate_desktop_auth_helper(pid: Option<u32>) {
@@ -2859,9 +3164,25 @@ fn is_claude_desktop_running() -> bool {
         .unwrap_or(false)
 }
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(target_os = "windows")]
 fn is_claude_desktop_running() -> bool {
-    false
+    let output = std::process::Command::new("tasklist")
+        .args(["/FI", "IMAGENAME eq claude.exe", "/NH"])
+        .output();
+    output
+        .ok()
+        .and_then(|output| String::from_utf8(output.stdout).ok())
+        .map(|stdout| stdout.to_ascii_lowercase().contains("claude.exe"))
+        .unwrap_or(false)
+}
+
+#[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
+fn is_claude_desktop_running() -> bool {
+    std::process::Command::new("pgrep")
+        .args(["-x", "claude"])
+        .output()
+        .map(|output| output.status.success())
+        .unwrap_or(false)
 }
 
 #[cfg(target_os = "macos")]
@@ -2887,9 +3208,68 @@ fn quit_claude_desktop_for_profile_write() -> Result<(), String> {
     Err("Claude Desktop 仍在运行，无法安全写入登录态。请先退出 Claude 后重试。".to_string())
 }
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(target_os = "windows")]
 fn quit_claude_desktop_for_profile_write() -> Result<(), String> {
-    Ok(())
+    if !is_claude_desktop_running() {
+        return Ok(());
+    }
+
+    use std::os::windows::process::CommandExt;
+    const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+    logger::log_info("[Claude Desktop] closing claude.exe before profile write");
+    let graceful = std::process::Command::new("taskkill")
+        .args(["/IM", "claude.exe", "/T"])
+        .creation_flags(CREATE_NO_WINDOW)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .output();
+    if let Err(error) = graceful {
+        logger::log_warn(&format!(
+            "[Claude Desktop] graceful taskkill failed: {}",
+            error
+        ));
+    }
+
+    for _ in 0..20 {
+        if !is_claude_desktop_running() {
+            std::thread::sleep(std::time::Duration::from_millis(300));
+            return Ok(());
+        }
+        std::thread::sleep(std::time::Duration::from_millis(250));
+    }
+
+    logger::log_warn("[Claude Desktop] claude.exe still running; forcing close before profile write");
+    let force = std::process::Command::new("taskkill")
+        .args(["/IM", "claude.exe", "/T", "/F"])
+        .creation_flags(CREATE_NO_WINDOW)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .output()
+        .map_err(|e| format!("退出 Claude Desktop 失败: {}", e))?;
+    if !force.status.success() && is_claude_desktop_running() {
+        return Err("Claude Desktop 仍在运行，无法安全写入登录态。请先退出 Claude 后重试。".to_string());
+    }
+
+    for _ in 0..20 {
+        if !is_claude_desktop_running() {
+            std::thread::sleep(std::time::Duration::from_millis(500));
+            return Ok(());
+        }
+        std::thread::sleep(std::time::Duration::from_millis(250));
+    }
+
+    Err("Claude Desktop 仍在运行，无法安全写入登录态。请先退出 Claude 后重试。".to_string())
+}
+
+#[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
+fn quit_claude_desktop_for_profile_write() -> Result<(), String> {
+    if !is_claude_desktop_running() {
+        return Ok(());
+    }
+    Err("Claude Desktop 仍在运行，无法安全写入登录态。请先退出 Claude 后重试。".to_string())
 }
 
 #[cfg(target_os = "macos")]
@@ -2899,7 +3279,73 @@ fn launch_default_claude_desktop() {
         .spawn();
 }
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(target_os = "windows")]
+fn find_windows_claude_start_app_id() -> Option<String> {
+    use std::os::windows::process::CommandExt;
+    const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+    let output = std::process::Command::new("powershell.exe")
+        .args([
+            "-NoProfile",
+            "-NonInteractive",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "Get-StartApps | Where-Object { $_.Name -eq 'Claude' } | Select-Object -First 1 -ExpandProperty AppID",
+        ])
+        .creation_flags(CREATE_NO_WINDOW)
+        .stdin(std::process::Stdio::null())
+        .output()
+        .ok()?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        logger::log_warn(&format!(
+            "[Claude Desktop] Get-StartApps failed while resolving Windows launch id: {}",
+            stderr.trim()
+        ));
+        return None;
+    }
+
+    String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .map(str::trim)
+        .find(|line| line.contains('!'))
+        .map(ToOwned::to_owned)
+}
+
+#[cfg(target_os = "windows")]
+fn launch_default_claude_desktop() {
+    use std::os::windows::process::CommandExt;
+    const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+    let Some(app_id) = find_windows_claude_start_app_id() else {
+        logger::log_warn("[Claude Desktop] Windows Start Apps entry not found; Claude was not relaunched");
+        return;
+    };
+
+    let target = format!(r"shell:AppsFolder\{}", app_id);
+    match std::process::Command::new("explorer.exe")
+        .arg(&target)
+        .creation_flags(CREATE_NO_WINDOW)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+    {
+        Ok(child) => logger::log_info(&format!(
+            "[Claude Desktop] launched Windows app id {} via explorer.exe pid={}",
+            app_id,
+            child.id()
+        )),
+        Err(error) => logger::log_warn(&format!(
+            "[Claude Desktop] failed to launch Windows app id {}: {}",
+            app_id, error
+        )),
+    }
+}
+
+#[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
 fn launch_default_claude_desktop() {}
 
 fn import_desktop_profile_snapshot(
