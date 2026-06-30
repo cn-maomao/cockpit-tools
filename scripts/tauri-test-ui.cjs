@@ -8,6 +8,10 @@ const path = require('node:path');
 const ROOT = path.resolve(__dirname, '..');
 const UI_DEV_SERVER_INFO_PATH = path.join(ROOT, '.tmp', 'platform-ui-dev', 'server.json');
 const PACKAGE_DEV_SERVER_INFO_PATH = path.join(ROOT, '.tmp', 'platform-dev', 'server.json');
+const TEST_CONFIG_PATH = 'src-tauri/tauri.test.conf.json';
+const PLATFORM_PACKAGE_TEST_INDEX_URL =
+  'https://raw.githubusercontent.com/jlcodes99/cockpit-tools/platform-test/platform-packages/index.test.json';
+const CODEX_API_SERVICE_PORT = process.env.COCKPIT_CODEX_API_SERVICE_PORT || '12345';
 const DEFAULT_UI_HOST = '127.0.0.1';
 const DEFAULT_UI_PORT = 14522;
 const DEFAULT_PACKAGE_PORT = 14520;
@@ -28,13 +32,16 @@ Options:
   --ui-host <host>         Local platform UI dev server host. Defaults to ${DEFAULT_UI_HOST}.
   --package-port <port>    Local platform package dev server port. Defaults to ${DEFAULT_PACKAGE_PORT}.
   --index-url <url>        Override platform package index URL used by the Test app.
-  --no-build-app           Launch the existing local Test build.
+  --dev-host               Launch Test app through tauri dev. Default.
+  --release-host           Build/launch the local Test release executable instead of tauri dev.
+  --no-build-app           Launch the existing local Test release build; implies --release-host.
   --no-package-reload      Do not start the local package reload server.
   --no-watch               Build platform UI once and keep serving without source watching.
 
 Examples:
   npm run tauri:test:ui
   npm run tauri:test:ui -- --platform codex
+  npm run tauri:test:ui -- --platform zed --release-host
   npm run tauri:test:ui -- --platform codex --no-build-app
   npm run tauri:test:ui -- --platform codex,zed --ui-port 14524
 `);
@@ -47,6 +54,8 @@ function parseArgs(argv) {
     uiPort: DEFAULT_UI_PORT,
     packagePort: DEFAULT_PACKAGE_PORT,
     buildApp: true,
+    hostMode: 'dev',
+    hostModeExplicit: false,
     packageReload: true,
     watch: true,
   };
@@ -59,6 +68,19 @@ function parseArgs(argv) {
     }
     if (arg === '--no-build-app') {
       args.buildApp = false;
+      if (!args.hostModeExplicit) {
+        args.hostMode = 'release';
+      }
+      continue;
+    }
+    if (arg === '--dev-host') {
+      args.hostMode = 'dev';
+      args.hostModeExplicit = true;
+      continue;
+    }
+    if (arg === '--release-host') {
+      args.hostMode = 'release';
+      args.hostModeExplicit = true;
       continue;
     }
     if (arg === '--no-package-reload') {
@@ -182,6 +204,7 @@ function startPackageDev(args) {
     String(args.packagePort),
     '--lazy',
     '--no-build-ui',
+    '--build-adapters',
   ];
   if (args.platforms.length > 0) {
     commandArgs.push('--platform', args.platforms.join(','));
@@ -190,7 +213,7 @@ function startPackageDev(args) {
   return spawnNode('scripts/platform-dev-serve.cjs', commandArgs);
 }
 
-function startTestApp(args, uiDevBaseUrl, packageInfo) {
+function startTestReleaseHost(args, uiDevBaseUrl, packageInfo) {
   const commandArgs = ['--ui-dev', '--ui-dev-url', uiDevBaseUrl];
   if (!args.buildApp) {
     commandArgs.push('--no-build');
@@ -203,6 +226,38 @@ function startTestApp(args, uiDevBaseUrl, packageInfo) {
   return spawnNode('scripts/tauri-test-local.cjs', commandArgs, packageInfo?.reloadUrl ? {
     COCKPIT_PLATFORM_PACKAGE_DEV_RELOAD_URL: packageInfo.reloadUrl,
   } : {});
+}
+
+function buildDevHostEnv(args, uiDevBaseUrl, packageInfo) {
+  const indexUrl = args.indexUrl || packageInfo?.indexUrl || PLATFORM_PACKAGE_TEST_INDEX_URL;
+  return {
+    COCKPIT_TOOLS_PROFILE: 'test',
+    COCKPIT_CODEX_API_SERVICE_PORT: CODEX_API_SERVICE_PORT,
+    COCKPIT_TOOLS_API_PORT: CODEX_API_SERVICE_PORT,
+    VITE_COCKPIT_TOOLS_PROFILE: 'test',
+    COCKPIT_PLATFORM_PACKAGE_INDEX_URL: indexUrl,
+    COCKPIT_PLATFORM_PACKAGE_PREFER_LOCAL_SOURCE: '0',
+    COCKPIT_PLATFORM_PACKAGE_STRICT_LOCAL_SOURCE: '0',
+    COCKPIT_PLATFORM_PACKAGE_BOOTSTRAP: '0',
+    COCKPIT_PLATFORM_PACKAGE_WORKSPACE_INDEX: '0',
+    COCKPIT_PLATFORM_UI_DEV_BASE_URL: uiDevBaseUrl,
+    ...(packageInfo?.reloadUrl ? {
+      COCKPIT_PLATFORM_PACKAGE_DEV_RELOAD_URL: packageInfo.reloadUrl,
+    } : {}),
+  };
+}
+
+function startTestDevHost(args, uiDevBaseUrl, packageInfo) {
+  const commandArgs = ['dev', '--config', TEST_CONFIG_PATH];
+  console.log('[tauri-test-ui] starting Test desktop app with tauri dev host...');
+  return spawnNode('scripts/tauri.cjs', commandArgs, buildDevHostEnv(args, uiDevBaseUrl, packageInfo));
+}
+
+function startTestApp(args, uiDevBaseUrl, packageInfo) {
+  if (args.hostMode === 'release') {
+    return startTestReleaseHost(args, uiDevBaseUrl, packageInfo);
+  }
+  return startTestDevHost(args, uiDevBaseUrl, packageInfo);
 }
 
 function terminate(child, signal) {
@@ -255,6 +310,7 @@ async function main() {
   if (packageInfo?.reloadUrl) {
     console.log(`[tauri-test-ui] platform package reload: ${packageInfo.reloadUrl}`);
   }
+  console.log(`[tauri-test-ui] host mode: ${args.hostMode}`);
   testAppChild = startTestApp(args, info.baseUrl, packageInfo);
   testAppChild.on('error', (error) => fail(`failed to start Test app: ${error.message}`));
   testAppChild.on('exit', (code, signal) => {

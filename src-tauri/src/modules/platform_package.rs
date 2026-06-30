@@ -417,6 +417,21 @@ struct PlatformPackageIndexCache {
     data: PlatformPackageRemoteIndex,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PlatformPackageDevReloadResponse {
+    #[serde(default)]
+    ok: bool,
+    #[serde(default)]
+    platform_id: Option<String>,
+    #[serde(default)]
+    local_zip_path: Option<String>,
+    #[serde(default)]
+    zip_path: Option<String>,
+    #[serde(default)]
+    error: Option<String>,
+}
+
 #[derive(Debug, Clone)]
 enum PlatformPackageSource {
     Local {
@@ -4470,18 +4485,69 @@ pub fn reload_platform_package(
         emit_platform_package_failure(app, platform_id, PlatformPackageOperation::Update, &message);
         message
     })?;
-    if !response.status().is_success() {
-        let status = response.status();
-        let body = response.text().unwrap_or_default();
-        let message = format!("本地平台包重载失败: status={}, body={}", status, body);
+    let status = response.status();
+    let body = response.text().unwrap_or_default();
+    if status.is_success() {
+        let reload_response: PlatformPackageDevReloadResponse =
+            serde_json::from_str(&body).map_err(|err| {
+                let message = format!(
+                    "parse local platform package reload response failed: error={}, body={}",
+                    err, body
+                );
+                emit_platform_package_failure(
+                    app,
+                    platform_id,
+                    PlatformPackageOperation::Update,
+                    &message,
+                );
+                message
+            })?;
+        if !reload_response.ok {
+            let message = reload_response
+                .error
+                .unwrap_or_else(|| "local platform package reload failed".to_string());
+            emit_platform_package_failure(
+                app,
+                platform_id,
+                PlatformPackageOperation::Update,
+                &message,
+            );
+            return Err(message);
+        }
+        if let Some(response_platform_id) = reload_response.platform_id.as_deref() {
+            if response_platform_id != platform_id {
+                let message = format!(
+                    "local platform package reload platform mismatch: expected={}, actual={}",
+                    platform_id, response_platform_id
+                );
+                emit_platform_package_failure(
+                    app,
+                    platform_id,
+                    PlatformPackageOperation::Update,
+                    &message,
+                );
+                return Err(message);
+            }
+        }
+        if let Some(local_zip_path) = reload_response
+            .local_zip_path
+            .as_deref()
+            .or(reload_response.zip_path.as_deref())
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+        {
+            return install_platform_package_from_local_zip(app, platform_id, local_zip_path);
+        }
+        let message = format!(
+            "本地平台包重载响应缺少 localZipPath，无法执行本地替换: body={}",
+            body
+        );
         emit_platform_package_failure(app, platform_id, PlatformPackageOperation::Update, &message);
         return Err(message);
     }
-    logger::log_info(&format!(
-        "[PlatformPackage] 本地平台包重载构建完成，开始切换: platform={}",
-        platform_id
-    ));
-    install_platform_package_with_operation(app, platform_id, PlatformPackageOperation::Update)
+    let message = format!("本地平台包重载失败: status={}, body={}", status, body);
+    emit_platform_package_failure(app, platform_id, PlatformPackageOperation::Update, &message);
+    Err(message)
 }
 
 pub fn uninstall_platform_package(

@@ -1634,6 +1634,15 @@ pub fn get_user_config() -> UserConfig {
         .unwrap_or_default()
 }
 
+pub fn reload_user_config_from_disk() -> Result<UserConfig, String> {
+    let config = load_user_config()?;
+    if let Ok(mut state) = get_runtime_state().write() {
+        state.user_config = config.clone();
+    }
+    sync_global_proxy_env(&config);
+    Ok(config)
+}
+
 /// 获取用户配置的首选端口
 pub fn get_preferred_port() -> u16 {
     get_user_config().ws_port

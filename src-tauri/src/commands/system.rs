@@ -51,12 +51,13 @@ pub struct NetworkConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct ClaudeDesktopLaunchCandidate {
+    #[serde(alias = "targetType")]
     pub target_type: String,
     pub label: String,
     pub target: String,
     pub source: String,
+    #[serde(alias = "supportsMultiInstance")]
     pub supports_multi_instance: bool,
 }
 

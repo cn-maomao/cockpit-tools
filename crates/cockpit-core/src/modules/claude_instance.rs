@@ -31,6 +31,7 @@ const CLAUDE_CODE_SETTINGS_FILE: &str = "settings.json";
 const CLAUDE_USER_DATA_DIR_ENV: &str = "CLAUDE_USER_DATA_DIR";
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ClaudeDesktopLaunchCandidate {
     pub target_type: String,
     pub label: String,

@@ -2089,6 +2089,16 @@ fn detect_zed_exec_path() -> Option<std::path::PathBuf> {
 
     #[cfg(target_os = "windows")]
     {
+        if let Some(detected) = detect_windows_exec_path_by_signatures(
+            "zed",
+            &["Zed.exe"],
+            &["zed"],
+            &["zed"],
+            &["zed"],
+        ) {
+            return Some(detected);
+        }
+
         let mut candidates: Vec<std::path::PathBuf> = Vec::new();
         if let Ok(local_appdata) = std::env::var("LOCALAPPDATA") {
             candidates.push(
@@ -3210,7 +3220,14 @@ pub fn ensure_zed_launch_path_configured() -> Result<(), String> {
 }
 
 pub fn resolve_zed_launch_path() -> Result<std::path::PathBuf, String> {
-    if let Some(custom) = normalize_custom_path(Some(&config::get_user_config().zed_app_path)) {
+    let config = config::reload_user_config_from_disk().unwrap_or_else(|error| {
+        crate::modules::logger::log_warn(&format!(
+            "[Zed] 重新读取配置失败，使用内存配置: {}",
+            error
+        ));
+        config::get_user_config()
+    });
+    if let Some(custom) = normalize_custom_path(Some(&config.zed_app_path)) {
         if let Some(exec) = resolve_zed_macos_exec_path(&custom) {
             return Ok(exec);
         }

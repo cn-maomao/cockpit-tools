@@ -4,6 +4,7 @@ const { spawnSync } = require('node:child_process');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const http = require('node:http');
+const osModule = require('node:os');
 const path = require('node:path');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -15,6 +16,8 @@ const INDEX_PATH = path.join(LOCAL_ROOT, 'index.local.json');
 const SERVER_INFO_PATH = path.join(LOCAL_ROOT, 'server.json');
 const DEFAULT_PORT = 14520;
 const DEFAULT_HOST = '127.0.0.1';
+const WINDOWS_VCVARS64_PATH =
+  'C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Auxiliary\\Build\\vcvars64.bat';
 
 function fail(message) {
   console.error(`[platform-dev-serve] ${message}`);
@@ -159,7 +162,35 @@ function run(command, commandArgs, options = {}) {
     ...options,
   });
   if (result.error) throw result.error;
-  if (result.status !== 0) process.exit(result.status ?? 1);
+  if (result.status !== 0) {
+    throw new Error(`${command} ${commandArgs.join(' ')} exited with ${result.status ?? 1}`);
+  }
+}
+
+function quoteCmdArg(value) {
+  return `"${String(value).replace(/"/g, '""')}"`;
+}
+
+function runCargo(commandArgs) {
+  if (process.platform !== 'win32' || !fs.existsSync(WINDOWS_VCVARS64_PATH)) {
+    run('cargo', commandArgs);
+    return;
+  }
+
+  const commandLines = [
+    '@echo off',
+    `call ${quoteCmdArg(WINDOWS_VCVARS64_PATH)}`,
+    'if errorlevel 1 exit /b %errorlevel%',
+    `cargo ${commandArgs.map(quoteCmdArg).join(' ')}`,
+    'exit /b %errorlevel%',
+  ];
+  const scriptPath = path.join(osModule.tmpdir(), `cockpit-platform-cargo-${process.pid}-${Date.now()}.cmd`);
+  fs.writeFileSync(scriptPath, `${commandLines.join('\r\n')}\r\n`, 'utf8');
+  try {
+    run('cmd.exe', ['/d', '/c', scriptPath]);
+  } finally {
+    fs.rmSync(scriptPath, { force: true });
+  }
 }
 
 function loadBaseIndex() {
@@ -229,7 +260,7 @@ function platformNeedsAdapterBuild(pkg, os, forceBuild) {
 function buildAdapter(pkg) {
   const crate = expectedAdapterCrateName(pkg.id);
   console.log(`[platform-dev-serve] building adapter ${crate}`);
-  run('cargo', ['build', '--release', '-p', crate]);
+  runCargo(['build', '--release', '-p', crate]);
 }
 
 function buildSelectedPackages(packages, args, os, arch, origin, options = {}) {
@@ -288,6 +319,21 @@ function readMetadataRows() {
     .readdirSync(METADATA_DIR)
     .filter((name) => name.endsWith('.json'))
     .map((name) => readJson(path.join(METADATA_DIR, name), name));
+}
+
+function findMetadataRow(platformId, os, arch) {
+  return readMetadataRows().find((metadata) => (
+    metadata.id === platformId
+    && metadata.os === os
+    && metadata.arch === arch
+  ));
+}
+
+function absoluteMetadataZipPath(metadata) {
+  if (!metadata || typeof metadata.zipPath !== 'string' || !metadata.zipPath) {
+    return null;
+  }
+  return path.resolve(ROOT, metadata.zipPath);
 }
 
 function updatePackageFromManifest(pkg) {
@@ -421,7 +467,13 @@ function startServer(args, packageRows, initialLocalIndex, context) {
       console.log(`[platform-dev-serve] reloading local package: ${platformId}`);
       buildSelectedPackages(rows, args, context.os, context.arch, origin, { reset: false });
       localIndex = writeLocalIndex(context.baseIndex, origin);
-      return rows[0];
+      const pkg = rows[0];
+      const metadata = findMetadataRow(pkg.id, context.os, context.arch);
+      const localZipPath = absoluteMetadataZipPath(metadata);
+      if (!localZipPath || !fs.existsSync(localZipPath)) {
+        throw new Error(`local zip was not generated for ${platformId}`);
+      }
+      return { pkg, metadata, localZipPath };
     });
     return await reloadInFlight;
   }
@@ -461,11 +513,16 @@ function startServer(args, packageRows, initialLocalIndex, context) {
         return;
       }
       void reloadPackage(platformId)
-        .then((pkg) => {
+        .then(({ pkg, metadata, localZipPath }) => {
           sendJson(response, 200, {
             ok: true,
             platformId: pkg.id,
             indexUrl: `${origin}/index.local.json`,
+            localZipPath,
+            zipName: metadata?.zipName || null,
+            version: metadata?.version || pkg.version,
+            downloadSizeBytes: metadata?.downloadSizeBytes || null,
+            sha256: metadata?.sha256 || null,
           });
         })
         .catch((error) => {
@@ -572,4 +629,8 @@ function main() {
   startServer(args, packageRows, localIndex, { baseIndex, os, arch });
 }
 
-main();
+try {
+  main();
+} catch (error) {
+  fail(error instanceof Error ? error.message : String(error));
+}

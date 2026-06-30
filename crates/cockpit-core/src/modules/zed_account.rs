@@ -638,7 +638,6 @@ fn pick_first_i64(candidates: &[Option<i64>]) -> Option<i64> {
 fn build_client() -> Result<reqwest::Client, String> {
     reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(30))
-        .user_agent("cockpit-tools/zed")
         .build()
         .map_err(|e| format!("创建 Zed HTTP 客户端失败: {}", e))
 }
@@ -655,6 +654,7 @@ async fn fetch_json(
     let url = format!("{}{}", ZED_CLOUD_BASE_URL, path);
     let response = client
         .get(&url)
+        .header("Content-Type", "application/json")
         .header("Authorization", authorization_header)
         .send()
         .await
@@ -1063,6 +1063,78 @@ fn parse_account_from_security_output(text: &str) -> Option<String> {
     None
 }
 
+#[cfg(target_os = "windows")]
+#[repr(C)]
+struct ZedWindowsFileTime {
+    dw_low_date_time: u32,
+    dw_high_date_time: u32,
+}
+
+#[cfg(target_os = "windows")]
+#[repr(C)]
+struct ZedWindowsCredentialW {
+    flags: u32,
+    cred_type: u32,
+    target_name: *const u16,
+    comment: *const u16,
+    last_written: ZedWindowsFileTime,
+    credential_blob_size: u32,
+    credential_blob: *const u8,
+    persist: u32,
+    attribute_count: u32,
+    attributes: *const std::ffi::c_void,
+    target_alias: *const u16,
+    user_name: *const u16,
+}
+
+#[cfg(target_os = "windows")]
+#[link(name = "advapi32")]
+extern "system" {
+    fn CredDeleteW(target_name: *const u16, type_: u32, flags: u32) -> i32;
+    fn CredReadW(
+        target_name: *const u16,
+        type_: u32,
+        flags: u32,
+        credential: *mut *mut ZedWindowsCredentialW,
+    ) -> i32;
+    fn CredWriteW(credential: *const ZedWindowsCredentialW, flags: u32) -> i32;
+    fn CredFree(buffer: *mut std::ffi::c_void);
+}
+
+#[cfg(target_os = "windows")]
+const ZED_WINDOWS_CRED_TYPE_GENERIC: u32 = 1;
+#[cfg(target_os = "windows")]
+const ZED_WINDOWS_CRED_PERSIST_LOCAL_MACHINE: u32 = 2;
+#[cfg(target_os = "windows")]
+const ZED_WINDOWS_ERROR_NOT_FOUND: i32 = 1168;
+
+#[cfg(target_os = "windows")]
+fn zed_windows_credentials_target_name(url: &str) -> String {
+    format!("zed:url={}", url)
+}
+
+#[cfg(target_os = "windows")]
+fn zed_windows_wide(value: &str) -> Vec<u16> {
+    value.encode_utf16().chain(std::iter::once(0)).collect()
+}
+
+#[cfg(target_os = "windows")]
+fn zed_windows_wide_ptr_to_string(ptr: *const u16) -> Option<String> {
+    if ptr.is_null() {
+        return None;
+    }
+
+    let mut len = 0usize;
+    unsafe {
+        while *ptr.add(len) != 0 {
+            len += 1;
+        }
+        Some(String::from_utf16_lossy(std::slice::from_raw_parts(
+            ptr, len,
+        )))
+    }
+}
+
 #[cfg(target_os = "macos")]
 pub fn read_credentials_from_keychain() -> Result<Option<ZedKeychainCredentials>, String> {
     let meta_output = security_command_output(&["find-internet-password", "-s", ZED_SERVER_URL])?;
@@ -1109,7 +1181,63 @@ pub fn read_credentials_from_keychain() -> Result<Option<ZedKeychainCredentials>
     }))
 }
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(target_os = "windows")]
+pub fn read_credentials_from_keychain() -> Result<Option<ZedKeychainCredentials>, String> {
+    let target_name = zed_windows_credentials_target_name(ZED_SERVER_URL);
+    let target_wide = zed_windows_wide(&target_name);
+    let mut credential_ptr: *mut ZedWindowsCredentialW = std::ptr::null_mut();
+
+    unsafe {
+        if CredReadW(
+            target_wide.as_ptr(),
+            ZED_WINDOWS_CRED_TYPE_GENERIC,
+            0,
+            &mut credential_ptr,
+        ) == 0
+        {
+            let error = std::io::Error::last_os_error();
+            if error.raw_os_error() == Some(ZED_WINDOWS_ERROR_NOT_FOUND) {
+                return Ok(None);
+            }
+            return Err(format!(
+                "读取 Windows Credential Manager Zed 凭据失败: {}",
+                error
+            ));
+        }
+
+        if credential_ptr.is_null() {
+            return Ok(None);
+        }
+
+        let credential = &*credential_ptr;
+        let user_id_raw = zed_windows_wide_ptr_to_string(credential.user_name);
+        let token_bytes =
+            if credential.credential_blob.is_null() || credential.credential_blob_size == 0 {
+                Vec::new()
+            } else {
+                std::slice::from_raw_parts(
+                    credential.credential_blob,
+                    credential.credential_blob_size as usize,
+                )
+                .to_vec()
+            };
+        CredFree(credential_ptr.cast());
+
+        let user_id = normalize_non_empty(user_id_raw.as_deref())
+            .ok_or_else(|| "解析 Windows Credential Manager Zed user_id 失败".to_string())?;
+        let access_token = String::from_utf8(token_bytes)
+            .map_err(|e| format!("解析 Windows Credential Manager Zed access_token 失败: {}", e))?;
+        let access_token = normalize_non_empty(Some(&access_token))
+            .ok_or_else(|| "Windows Credential Manager Zed access_token 为空".to_string())?;
+
+        Ok(Some(ZedKeychainCredentials {
+            user_id,
+            access_token,
+        }))
+    }
+}
+
+#[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
 pub fn read_credentials_from_keychain() -> Result<Option<ZedKeychainCredentials>, String> {
     Ok(None)
 }
@@ -1133,9 +1261,30 @@ pub fn clear_credentials_from_keychain() -> Result<(), String> {
     }
 }
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(target_os = "windows")]
 pub fn clear_credentials_from_keychain() -> Result<(), String> {
-    Err("Zed 切号当前仅支持 macOS".to_string())
+    let target_name = zed_windows_credentials_target_name(ZED_SERVER_URL);
+    let target_wide = zed_windows_wide(&target_name);
+
+    unsafe {
+        if CredDeleteW(target_wide.as_ptr(), ZED_WINDOWS_CRED_TYPE_GENERIC, 0) == 0 {
+            let error = std::io::Error::last_os_error();
+            if error.raw_os_error() == Some(ZED_WINDOWS_ERROR_NOT_FOUND) {
+                return Ok(());
+            }
+            return Err(format!(
+                "删除 Windows Credential Manager Zed 凭据失败: {}",
+                error
+            ));
+        }
+    }
+
+    Ok(())
+}
+
+#[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
+pub fn clear_credentials_from_keychain() -> Result<(), String> {
+    Err("Zed 切号当前仅支持 macOS/Windows".to_string())
 }
 
 #[cfg(target_os = "macos")]
@@ -1172,9 +1321,56 @@ pub fn write_credentials_to_keychain(user_id: &str, access_token: &str) -> Resul
     Ok(())
 }
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(target_os = "windows")]
+pub fn write_credentials_to_keychain(user_id: &str, access_token: &str) -> Result<(), String> {
+    let normalized_user_id =
+        normalize_non_empty(Some(user_id)).ok_or_else(|| "Zed user_id 不能为空".to_string())?;
+    let normalized_token = normalize_non_empty(Some(access_token))
+        .ok_or_else(|| "Zed access_token 不能为空".to_string())?;
+
+    let target_name = zed_windows_credentials_target_name(ZED_SERVER_URL);
+    let target_wide = zed_windows_wide(&target_name);
+    let user_wide = zed_windows_wide(&normalized_user_id);
+    let secret = normalized_token.as_bytes();
+
+    let credential = ZedWindowsCredentialW {
+        flags: 0,
+        cred_type: ZED_WINDOWS_CRED_TYPE_GENERIC,
+        target_name: target_wide.as_ptr(),
+        comment: std::ptr::null(),
+        last_written: ZedWindowsFileTime {
+            dw_low_date_time: 0,
+            dw_high_date_time: 0,
+        },
+        credential_blob_size: secret.len() as u32,
+        credential_blob: secret.as_ptr(),
+        persist: ZED_WINDOWS_CRED_PERSIST_LOCAL_MACHINE,
+        attribute_count: 0,
+        attributes: std::ptr::null(),
+        target_alias: std::ptr::null(),
+        user_name: user_wide.as_ptr(),
+    };
+
+    unsafe {
+        let _ = CredDeleteW(target_wide.as_ptr(), ZED_WINDOWS_CRED_TYPE_GENERIC, 0);
+        if CredWriteW(&credential, 0) == 0 {
+            return Err(format!(
+                "写入 Windows Credential Manager Zed 凭据失败: {}",
+                std::io::Error::last_os_error()
+            ));
+        }
+    }
+
+    logger::log_info(&format!(
+        "[Zed] 已覆盖 Windows Credential Manager 登录信息: target={}, user_id={}",
+        target_name, normalized_user_id
+    ));
+    Ok(())
+}
+
+#[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
 pub fn write_credentials_to_keychain(_user_id: &str, _access_token: &str) -> Result<(), String> {
-    Err("Zed 切号当前仅支持 macOS".to_string())
+    Err("Zed 切号当前仅支持 macOS/Windows".to_string())
 }
 
 fn display_account_label(account: &ZedAccount) -> String {
