@@ -1645,7 +1645,8 @@ fn complete_oauth_login(runtime: &Runtime) -> Result<Value, String> {
         (rx, state.redirect_uri.clone())
     };
 
-    let callback_result = runtime.block_on(timeout(OAUTH_FLOW_WAIT_TIMEOUT, code_rx));
+    let callback_result =
+        runtime.block_on(async { timeout(OAUTH_FLOW_WAIT_TIMEOUT, code_rx).await });
     let code = match callback_result {
         Ok(Ok(Ok(code))) => code,
         Ok(Ok(Err(e))) => {
