@@ -9299,7 +9299,7 @@ export function CodexAccountsPage() {
                 )}
                 {quotaItems.map((item) => {
                   const QuotaIcon =
-                    item.key === "secondary"
+                    item.key === "secondary" || item.key.endsWith(":secondary")
                       ? Calendar
                       : item.key === "code_review"
                         ? BookOpen
