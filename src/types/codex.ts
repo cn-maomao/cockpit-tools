@@ -48,6 +48,7 @@ export interface CodexAccount {
   two_factor_secret?: string;
   account_password?: string;
   phone_number?: string;
+  mail_url?: string;
   app_speed?: CodexAppSpeed;
   tokens: CodexTokens;
   token_generation?: number;
@@ -68,6 +69,7 @@ export interface CodexAccountNoteUpdate {
   twoFactorSecret?: string;
   accountPassword?: string;
   phoneNumber?: string;
+  mailUrl?: string;
 }
 
 export interface CodexBatchDeleteError {
@@ -753,7 +755,8 @@ export function isCodexPendingOAuthAccount(account?: CodexAccount | null): boole
     Boolean((account.account_note || "").trim()) ||
     Boolean((account.two_factor_secret || "").trim()) ||
     Boolean((account.account_password || "").trim()) ||
-    Boolean((account.phone_number || "").trim());
+    Boolean((account.phone_number || "").trim()) ||
+    Boolean((account.mail_url || "").trim());
   return !hasToken && hasSavedNote;
 }
 

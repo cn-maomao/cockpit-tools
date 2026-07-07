@@ -136,6 +136,16 @@ pub struct CodexAccount {
         skip_serializing_if = "Option::is_none"
     )]
     pub phone_number: Option<String>,
+    #[serde(
+        default,
+        alias = "mailUrl",
+        alias = "mailAddress",
+        alias = "mail_address",
+        alias = "mailQueryUrl",
+        alias = "mail_query_url",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub mail_url: Option<String>,
     #[serde(default)]
     pub app_speed: CodexAppSpeed,
     pub tokens: CodexTokens,
@@ -383,6 +393,7 @@ impl CodexAccount {
             two_factor_secret: None,
             account_password: None,
             phone_number: None,
+            mail_url: None,
             app_speed: CodexAppSpeed::Standard,
             tokens,
             token_generation: 0,

@@ -793,7 +793,11 @@
       "antigravityLaunchOnSwitch": "切り替え時に Antigravity IDE を起動",
       "antigravityLaunchOnSwitchDesc": "オフにすると、切り替え時は Antigravity IDE の既定アカウントデータのみを書き込み、アプリの終了、起動、再起動は行いません。",
       "tokenKeeper": "認証の維持",
-      "tokenKeeperDesc": "認証の期限が近い場合だけアカウント Token を小分けに更新し、多数アカウント時のバックグラウンド要求を減らします。"
+      "tokenKeeperDesc": "認証の期限が近い場合だけアカウント Token を小分けに更新し、多数アカウント時のバックグラウンド要求を減らします。",
+      "platformAutoRefresh": "{{platform}} クォータ自動更新",
+      "traeSoloAppPath": "TRAE SOLO 起動パス",
+      "traeCnAppPath": "Trae CN 起動パス",
+      "traeSoloCnAppPath": "TRAE SOLO CN 起動パス"
     },
     "network": {
       "apiTitle": "反重力コックピット API",
@@ -2983,7 +2987,9 @@
       "filterWithin24h": "24時間 ({{count}})",
       "filterWithin7d": "7日 ({{count}})",
       "filterWithin30d": "30日 ({{count}})",
-      "filterMissing": "不明 ({{count}})"
+      "filterMissing": "不明 ({{count}})",
+      "accessTokenOnlyUsable": "Token 利用可",
+      "accessTokenOnlyUsableDetail": "サブスクリプション情報の取得は制限されていますが、クォータと Codex の利用は正常です"
     },
     "apiSwitchNotice": {
       "title": "Codex セッションが表示されません",
@@ -3002,7 +3008,7 @@
     "accountNote": {
       "title": "アカウントメモ",
       "label": "アカウントメモ",
-      "desc": "{{account}} に 2FA、パスワード、電話番号、その他メモを追加します。",
+      "desc": "{{account}} にパスワード、2FA、メールURL、電話番号、その他メモを追加します。",
       "twoFactorSecretLabel": "2FA シークレット",
       "twoFactorSecretShort": "2FA",
       "twoFactorSecretPlaceholder": "Base32 secret または otpauth:// URI",
@@ -3016,13 +3022,27 @@
       "phoneNumberLabel": "電話番号",
       "phoneShort": "電話",
       "phoneNumberPlaceholder": "紐付け済み電話番号",
+      "mailUrlLabel": "メールURL",
+      "mailUrlPlaceholder": "メール確認URL",
+      "mailPreviewRefresh": "メール更新",
+      "mailPreviewOpen": "ブラウザで開く",
+      "mailPreviewLoading": "メールを読み込み中...",
+      "mailPreviewNoCode": "連続6桁のコードが見つかりません",
+      "mailPreviewFetchFailed": "メールの読み込みに失敗しました: {{error}}",
+      "mailPreviewUrlRequired": "メールURLを入力してください",
+      "mailPreviewUrlInvalid": "メールURLが無効です。http:// または https:// で始まる完全なURLを入力してください。",
+      "mailPreviewUnsupportedProtocol": "メールURLは http または https のみ対応しています。",
+      "mailPreviewHttpFailed": "メールURLのリクエストに失敗しました: HTTP {{status}}",
+      "mailPreviewCode": "メールコード",
+      "mailPreviewTruncated": "内容を切り詰めました",
+      "mailOpenFailed": "メールURLを開けませんでした: {{error}}",
       "otherNoteLabel": "その他メモ",
       "otherNoteShort": "メモ",
       "placeholder": "受け渡しメモ、復旧メール、アカウント詳細など",
-      "exportSensitiveNotice": "エクスポートには 2FA シークレット、パスワード、電話番号が含まれます。信頼できる場所にのみ保存してください。",
+      "exportSensitiveNotice": "エクスポートには 2FA シークレット、パスワード、電話番号、メールURL が含まれます。信頼できる場所にのみ保存してください。",
       "exportSensitiveIncluded": "機密メモを含める",
       "exportSensitiveExcluded": "機密メモを除外",
-      "exportSensitiveToggleHint": "エクスポートする JSON に 2FA シークレット、パスワード、電話番号を含めるかを切り替えます。",
+      "exportSensitiveToggleHint": "エクスポートする JSON に 2FA シークレット、パスワード、電話番号、メールURL を含めるかを切り替えます。",
       "show": "表示",
       "hide": "非表示",
       "emptyTitle": "アカウントメモを追加",
@@ -3586,13 +3606,16 @@
       "appTargetPlaceholder": "Claude.exe のパスまたは shell:AppsFolder\\..."
     },
     "traeSolo": {
-      "appPath": "TRAE SOLO パス"
+      "appPath": "TRAE SOLO パス",
+      "title": "TRAE SOLO 設定"
     },
     "traeCn": {
-      "appPath": "Trae CN パス"
+      "appPath": "Trae CN パス",
+      "title": "Trae CN 設定"
     },
     "traeSoloCn": {
-      "appPath": "TRAE SOLO CN パス"
+      "appPath": "TRAE SOLO CN パス",
+      "title": "TRAE SOLO CN 設定"
     }
   },
   "quotaAlert": {

@@ -793,7 +793,11 @@
       "antigravityLaunchOnSwitch": "Iniciar Antigravity IDE ao alternar",
       "antigravityLaunchOnSwitchDesc": "Quando desativado, a troca apenas grava os dados da conta padrão do Antigravity IDE e não fecha, inicia nem reinicia o app.",
       "tokenKeeper": "Manter auth",
-      "tokenKeeperDesc": "Atualiza tokens de conta em pequenos lotes somente quando a autorização está perto de expirar, reduzindo requisições em segundo plano."
+      "tokenKeeperDesc": "Atualiza tokens de conta em pequenos lotes somente quando a autorização está perto de expirar, reduzindo requisições em segundo plano.",
+      "platformAutoRefresh": "Atualização automática de cota do {{platform}}",
+      "traeSoloAppPath": "Caminho de inicialização do TRAE SOLO",
+      "traeCnAppPath": "Caminho de inicialização do Trae CN",
+      "traeSoloCnAppPath": "Caminho de inicialização do TRAE SOLO CN"
     },
     "network": {
       "apiTitle": "API de cockpit antigravidade",
@@ -2983,7 +2987,9 @@
       "filterWithin24h": "24 h ({{count}})",
       "filterWithin7d": "7 d ({{count}})",
       "filterWithin30d": "30 d ({{count}})",
-      "filterMissing": "Desconhecidas ({{count}})"
+      "filterMissing": "Desconhecidas ({{count}})",
+      "accessTokenOnlyUsable": "Token utilizável",
+      "accessTokenOnlyUsableDetail": "O endpoint de assinatura está limitado, mas a cota e o uso do Codex funcionam normalmente"
     },
     "apiSwitchNotice": {
       "title": "Sessões do Codex ocultas",
@@ -3002,7 +3008,7 @@
     "accountNote": {
       "title": "Nota da conta",
       "label": "Nota da conta",
-      "desc": "Adicione 2FA, senha, telefone e outras notas para {{account}}.",
+      "desc": "Adicione senha, 2FA, URL de e-mail, telefone e outras notas para {{account}}.",
       "twoFactorSecretLabel": "Segredo 2FA",
       "twoFactorSecretShort": "2FA",
       "twoFactorSecretPlaceholder": "Segredo Base32 ou URI otpauth://",
@@ -3016,13 +3022,27 @@
       "phoneNumberLabel": "Telefone",
       "phoneShort": "Telefone",
       "phoneNumberPlaceholder": "Número de telefone vinculado",
+      "mailUrlLabel": "URL de e-mail",
+      "mailUrlPlaceholder": "URL de consulta de e-mail",
+      "mailPreviewRefresh": "Atualizar e-mail",
+      "mailPreviewOpen": "Abrir no navegador",
+      "mailPreviewLoading": "Lendo e-mail...",
+      "mailPreviewNoCode": "Nenhum código contínuo de 6 dígitos encontrado",
+      "mailPreviewFetchFailed": "Falha ao ler e-mail: {{error}}",
+      "mailPreviewUrlRequired": "Informe a URL de e-mail",
+      "mailPreviewUrlInvalid": "URL de e-mail inválida. Informe um endereço http:// ou https:// completo.",
+      "mailPreviewUnsupportedProtocol": "A URL de e-mail aceita apenas http ou https.",
+      "mailPreviewHttpFailed": "Falha na solicitação da URL de e-mail: HTTP {{status}}",
+      "mailPreviewCode": "Código do e-mail",
+      "mailPreviewTruncated": "Conteúdo truncado",
+      "mailOpenFailed": "Falha ao abrir URL de e-mail: {{error}}",
       "otherNoteLabel": "Outras notas",
       "otherNoteShort": "Nota",
       "placeholder": "Notas de entrega, e-mail de recuperação ou detalhes da conta",
-      "exportSensitiveNotice": "A exportação inclui segredos 2FA, senhas ou telefones. Salve apenas em um local confiável.",
+      "exportSensitiveNotice": "A exportação inclui segredos 2FA, senhas, telefones ou URLs de e-mail. Salve apenas em um local confiável.",
       "exportSensitiveIncluded": "Incluir notas sensíveis",
       "exportSensitiveExcluded": "Excluir notas sensíveis",
-      "exportSensitiveToggleHint": "Controla se o JSON exportado inclui segredos 2FA, senhas e telefones.",
+      "exportSensitiveToggleHint": "Controla se o JSON exportado inclui segredos 2FA, senhas, telefones e URLs de e-mail.",
       "show": "Mostrar",
       "hide": "Ocultar",
       "emptyTitle": "Adicionar nota da conta",
@@ -3586,13 +3606,16 @@
       "appTargetPlaceholder": "Caminho do Claude.exe ou shell:AppsFolder\\..."
     },
     "traeSolo": {
-      "appPath": "Caminho do TRAE SOLO"
+      "appPath": "Caminho do TRAE SOLO",
+      "title": "Configurações do TRAE SOLO"
     },
     "traeCn": {
-      "appPath": "Caminho do Trae CN"
+      "appPath": "Caminho do Trae CN",
+      "title": "Configurações do Trae CN"
     },
     "traeSoloCn": {
-      "appPath": "Caminho do TRAE SOLO CN"
+      "appPath": "Caminho do TRAE SOLO CN",
+      "title": "Configurações do TRAE SOLO CN"
     }
   },
   "quotaAlert": {

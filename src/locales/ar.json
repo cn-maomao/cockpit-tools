@@ -839,7 +839,11 @@
       "antigravityLaunchOnSwitch": "تشغيل Antigravity IDE عند التبديل",
       "antigravityLaunchOnSwitchDesc": "عند الإيقاف، يكتب التبديل بيانات الحساب الافتراضي في Antigravity IDE فقط، ولا يغلق التطبيق أو يشغله أو يعيد تشغيله.",
       "tokenKeeper": "إبقاء التفويض",
-      "tokenKeeperDesc": "يحدّث رموز Token للحسابات على دفعات صغيرة فقط عند اقتراب انتهاء التفويض، مما يقلل طلبات الخلفية عند كثرة الحسابات."
+      "tokenKeeperDesc": "يحدّث رموز Token للحسابات على دفعات صغيرة فقط عند اقتراب انتهاء التفويض، مما يقلل طلبات الخلفية عند كثرة الحسابات.",
+      "platformAutoRefresh": "تحديث حصة {{platform}} تلقائيًا",
+      "traeSoloAppPath": "مسار تشغيل TRAE SOLO",
+      "traeCnAppPath": "مسار تشغيل Trae CN",
+      "traeSoloCnAppPath": "مسار تشغيل TRAE SOLO CN"
     },
     "network": {
       "apiTitle": "واجهة برمجة تطبيقات قمرة القيادة المضادة للجاذبية",
@@ -3029,7 +3033,9 @@
       "filterWithin24h": "24س ({{count}})",
       "filterWithin7d": "7أيام ({{count}})",
       "filterWithin30d": "30يوم ({{count}})",
-      "filterMissing": "غير معروف ({{count}})"
+      "filterMissing": "غير معروف ({{count}})",
+      "accessTokenOnlyUsable": "الرمز قابل للاستخدام",
+      "accessTokenOnlyUsableDetail": "واجهة الاشتراك محدودة، لكن الحصة واستخدام Codex يعملان بشكل طبيعي"
     },
     "apiSwitchNotice": {
       "title": "جلسات Codex مخفية",
@@ -3048,7 +3054,7 @@
     "accountNote": {
       "title": "ملاحظة الحساب",
       "label": "ملاحظة الحساب",
-      "desc": "أضف 2FA وكلمة المرور والهاتف وملاحظات أخرى لـ {{account}}.",
+      "desc": "أضف كلمة مرور و2FA ورابط البريد والهاتف وملاحظات أخرى لـ {{account}}.",
       "twoFactorSecretLabel": "سر 2FA",
       "twoFactorSecretShort": "2FA",
       "twoFactorSecretPlaceholder": "سر Base32 أو رابط otpauth://",
@@ -3062,13 +3068,27 @@
       "phoneNumberLabel": "الهاتف",
       "phoneShort": "هاتف",
       "phoneNumberPlaceholder": "رقم الهاتف المرتبط",
+      "mailUrlLabel": "رابط البريد",
+      "mailUrlPlaceholder": "رابط فحص البريد",
+      "mailPreviewRefresh": "تحديث البريد",
+      "mailPreviewOpen": "فتح في المتصفح",
+      "mailPreviewLoading": "جارٍ قراءة البريد...",
+      "mailPreviewNoCode": "لم يتم العثور على رمز متصل من 6 أرقام",
+      "mailPreviewFetchFailed": "فشل قراءة البريد: {{error}}",
+      "mailPreviewUrlRequired": "أدخل رابط البريد",
+      "mailPreviewUrlInvalid": "رابط البريد غير صالح. أدخل عنوان http:// أو https:// كاملًا.",
+      "mailPreviewUnsupportedProtocol": "يدعم رابط البريد بروتوكول http أو https فقط.",
+      "mailPreviewHttpFailed": "فشل طلب رابط البريد: HTTP {{status}}",
+      "mailPreviewCode": "رمز البريد",
+      "mailPreviewTruncated": "تم اقتطاع المحتوى",
+      "mailOpenFailed": "فشل فتح رابط البريد: {{error}}",
       "otherNoteLabel": "ملاحظات أخرى",
       "otherNoteShort": "ملاحظة",
       "placeholder": "ملاحظات التسليم أو بريد الاسترداد أو تفاصيل الحساب",
-      "exportSensitiveNotice": "يتضمن التصدير أسرار 2FA أو كلمات مرور أو أرقام هاتف. احفظه في مكان موثوق فقط.",
+      "exportSensitiveNotice": "يتضمن التصدير أسرار 2FA أو كلمات مرور أو أرقام هاتف أو روابط بريد. احفظه في مكان موثوق فقط.",
       "exportSensitiveIncluded": "تضمين الملاحظات الحساسة",
       "exportSensitiveExcluded": "استبعاد الملاحظات الحساسة",
-      "exportSensitiveToggleHint": "حدد ما إذا كان JSON المصدر يتضمن أسرار 2FA وكلمات المرور وأرقام الهاتف.",
+      "exportSensitiveToggleHint": "حدد ما إذا كان JSON المصدر يتضمن أسرار 2FA وكلمات المرور وأرقام الهاتف وروابط البريد.",
       "show": "إظهار",
       "hide": "إخفاء",
       "emptyTitle": "إضافة ملاحظة حساب",
@@ -3632,13 +3652,16 @@
       "appTargetPlaceholder": "مسار Claude.exe أو shell:AppsFolder\\..."
     },
     "traeSolo": {
-      "appPath": "مسار TRAE SOLO"
+      "appPath": "مسار TRAE SOLO",
+      "title": "إعدادات TRAE SOLO"
     },
     "traeCn": {
-      "appPath": "مسار Trae CN"
+      "appPath": "مسار Trae CN",
+      "title": "إعدادات Trae CN"
     },
     "traeSoloCn": {
-      "appPath": "مسار TRAE SOLO CN"
+      "appPath": "مسار TRAE SOLO CN",
+      "title": "إعدادات TRAE SOLO CN"
     }
   },
   "quotaAlert": {

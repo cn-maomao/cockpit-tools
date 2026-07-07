@@ -793,7 +793,11 @@
       "antigravityLaunchOnSwitch": "Запускать Antigravity IDE при переключении",
       "antigravityLaunchOnSwitchDesc": "Если выключено, переключение только записывает данные аккаунта по умолчанию Antigravity IDE и не закрывает, не запускает и не перезапускает приложение.",
       "tokenKeeper": "Поддержка auth",
-      "tokenKeeperDesc": "Обновляет токены аккаунтов небольшими пакетами только перед истечением авторизации, снижая фоновые запросы при большом числе аккаунтов."
+      "tokenKeeperDesc": "Обновляет токены аккаунтов небольшими пакетами только перед истечением авторизации, снижая фоновые запросы при большом числе аккаунтов.",
+      "platformAutoRefresh": "Автообновление квоты {{platform}}",
+      "traeSoloAppPath": "Путь запуска TRAE SOLO",
+      "traeCnAppPath": "Путь запуска Trae CN",
+      "traeSoloCnAppPath": "Путь запуска TRAE SOLO CN"
     },
     "network": {
       "apiTitle": "API антигравитационной кабины",
@@ -2983,7 +2987,9 @@
       "filterWithin24h": "24 ч ({{count}})",
       "filterWithin7d": "7 дн. ({{count}})",
       "filterWithin30d": "30 дн. ({{count}})",
-      "filterMissing": "Неизвестно ({{count}})"
+      "filterMissing": "Неизвестно ({{count}})",
+      "accessTokenOnlyUsable": "Токен доступен",
+      "accessTokenOnlyUsableDetail": "Интерфейс подписки ограничен, но квота и использование Codex работают нормально"
     },
     "apiSwitchNotice": {
       "title": "Сеансы Codex скрыты",
@@ -3002,7 +3008,7 @@
     "accountNote": {
       "title": "Заметка аккаунта",
       "label": "Заметка аккаунта",
-      "desc": "Добавьте 2FA, пароль, телефон и другие заметки для {{account}}.",
+      "desc": "Добавьте пароль, 2FA, URL почты, телефон и другие заметки для {{account}}.",
       "twoFactorSecretLabel": "Секрет 2FA",
       "twoFactorSecretShort": "2FA",
       "twoFactorSecretPlaceholder": "Секрет Base32 или URI otpauth://",
@@ -3016,13 +3022,27 @@
       "phoneNumberLabel": "Телефон",
       "phoneShort": "Телефон",
       "phoneNumberPlaceholder": "Привязанный номер телефона",
+      "mailUrlLabel": "URL почты",
+      "mailUrlPlaceholder": "URL проверки почты",
+      "mailPreviewRefresh": "Обновить почту",
+      "mailPreviewOpen": "Открыть в браузере",
+      "mailPreviewLoading": "Чтение почты...",
+      "mailPreviewNoCode": "Непрерывный 6-значный код не найден",
+      "mailPreviewFetchFailed": "Не удалось прочитать почту: {{error}}",
+      "mailPreviewUrlRequired": "Введите URL почты",
+      "mailPreviewUrlInvalid": "Недопустимый URL почты. Укажите полный адрес http:// или https://.",
+      "mailPreviewUnsupportedProtocol": "URL почты поддерживает только http или https.",
+      "mailPreviewHttpFailed": "Запрос URL почты не выполнен: HTTP {{status}}",
+      "mailPreviewCode": "Код из почты",
+      "mailPreviewTruncated": "Содержимое обрезано",
+      "mailOpenFailed": "Не удалось открыть URL почты: {{error}}",
       "otherNoteLabel": "Другие заметки",
       "otherNoteShort": "Заметка",
       "placeholder": "Заметки к выдаче, резервная почта или данные аккаунта",
-      "exportSensitiveNotice": "Экспорт содержит секреты 2FA, пароли или номера телефонов. Сохраняйте его только в надежном месте.",
+      "exportSensitiveNotice": "Экспорт содержит секреты 2FA, пароли, номера телефонов или URL почты. Сохраняйте его только в надежном месте.",
       "exportSensitiveIncluded": "Включить чувствительные заметки",
       "exportSensitiveExcluded": "Исключить чувствительные заметки",
-      "exportSensitiveToggleHint": "Определяет, включает ли экспорт JSON секреты 2FA, пароли и номера телефонов.",
+      "exportSensitiveToggleHint": "Определяет, включает ли экспорт JSON секреты 2FA, пароли, номера телефонов и URL почты.",
       "show": "Показать",
       "hide": "Скрыть",
       "emptyTitle": "Добавить заметку аккаунта",
@@ -3586,13 +3606,16 @@
       "appTargetPlaceholder": "Путь Claude.exe или shell:AppsFolder\\..."
     },
     "traeSolo": {
-      "appPath": "Путь TRAE SOLO"
+      "appPath": "Путь TRAE SOLO",
+      "title": "Настройки TRAE SOLO"
     },
     "traeCn": {
-      "appPath": "Путь Trae CN"
+      "appPath": "Путь Trae CN",
+      "title": "Настройки Trae CN"
     },
     "traeSoloCn": {
-      "appPath": "Путь TRAE SOLO CN"
+      "appPath": "Путь TRAE SOLO CN",
+      "title": "Настройки TRAE SOLO CN"
     }
   },
   "quotaAlert": {

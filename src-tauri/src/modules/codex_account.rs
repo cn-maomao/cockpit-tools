@@ -2428,6 +2428,20 @@ fn read_account_phone_number(value: &serde_json::Value) -> Option<String> {
     )
 }
 
+fn read_account_mail_url(value: &serde_json::Value) -> Option<String> {
+    read_json_string(
+        value,
+        &[
+            "mail_url",
+            "mailUrl",
+            "mail_address",
+            "mailAddress",
+            "mail_query_url",
+            "mailQueryUrl",
+        ],
+    )
+}
+
 fn apply_account_sensitive_note_metadata(account: &mut CodexAccount, value: &serde_json::Value) {
     if let Some(secret) = read_account_two_factor_secret(value) {
         account.two_factor_secret = Some(secret);
@@ -2437,6 +2451,9 @@ fn apply_account_sensitive_note_metadata(account: &mut CodexAccount, value: &ser
     }
     if let Some(phone_number) = read_account_phone_number(value) {
         account.phone_number = Some(phone_number);
+    }
+    if let Some(mail_url) = read_account_mail_url(value) {
+        account.mail_url = Some(mail_url);
     }
 }
 
@@ -4979,6 +4996,10 @@ fn import_account_struct(account: CodexAccount) -> Result<CodexAccount, String> 
             api_acc.phone_number = Some(phone_number);
             changed = true;
         }
+        if let Some(mail_url) = account.mail_url {
+            api_acc.mail_url = Some(mail_url);
+            changed = true;
+        }
         if changed {
             save_account(&api_acc)?;
         }
@@ -5008,6 +5029,10 @@ fn import_account_struct(account: CodexAccount) -> Result<CodexAccount, String> 
     }
     if let Some(phone_number) = account.phone_number {
         imported.phone_number = Some(phone_number);
+        changed = true;
+    }
+    if let Some(mail_url) = account.mail_url {
+        imported.mail_url = Some(mail_url);
         changed = true;
     }
 
@@ -5098,6 +5123,7 @@ fn codex_account_note_update_from_value(value: &serde_json::Value) -> CodexAccou
                 "accountPhoneNumber",
             ],
         ),
+        mail_url: read_account_mail_url(value),
     }
 }
 
@@ -5106,6 +5132,7 @@ fn has_codex_account_note_update(update: &CodexAccountNoteUpdate) -> bool {
         || update.two_factor_secret.is_some()
         || update.account_password.is_some()
         || update.phone_number.is_some()
+        || update.mail_url.is_some()
 }
 
 fn is_blank_codex_token_fields(value: &serde_json::Value) -> bool {
@@ -5217,6 +5244,11 @@ fn has_codex_account_note_details(account: &CodexAccount) -> bool {
             .as_deref()
             .and_then(|value| normalize_optional_ref(Some(value)))
             .is_some()
+        || account
+            .mail_url
+            .as_deref()
+            .and_then(|value| normalize_optional_ref(Some(value)))
+            .is_some()
 }
 
 fn codex_account_note_update_from_account(account: &CodexAccount) -> CodexAccountNoteUpdate {
@@ -5225,6 +5257,7 @@ fn codex_account_note_update_from_account(account: &CodexAccount) -> CodexAccoun
         two_factor_secret: account.two_factor_secret.clone(),
         account_password: account.account_password.clone(),
         phone_number: account.phone_number.clone(),
+        mail_url: account.mail_url.clone(),
     }
 }
 
@@ -8021,7 +8054,7 @@ mod tests {
     }
 
     #[test]
-    fn extract_candidate_from_codex_session_json_as_cpa_tokens() {
+    fn extract_candidate_from_codex_session_json_as_cpa_tokens_without_session_token_refresh() {
         let access_token = make_jwt(serde_json::json!({
             "sub": "auth0|session-user",
             "https://api.openai.com/profile": {
@@ -8059,7 +8092,7 @@ mod tests {
                 account_note,
             } => {
                 assert_eq!(tokens.id_token, tokens.access_token);
-                assert_eq!(tokens.refresh_token.as_deref(), Some("encrypted-session"));
+                assert_eq!(tokens.refresh_token, None);
                 assert_eq!(account_id_hint.as_deref(), Some("acc-session"));
                 assert_eq!(account_note, None);
                 assert!(decode_jwt_payload_value(&tokens.access_token).is_some());
@@ -8345,7 +8378,8 @@ mod tests {
     "account_note": "2131",
     "two_factor_secret": "Ddddd",
     "account_password": "213123",
-    "phone_number": "2312"
+    "phone_number": "2312",
+    "mail_url": "https://mail.example.test/inbox?mail=dddd"
   }
 ]"#;
         let runtime = tokio::runtime::Runtime::new().expect("create runtime");
@@ -8369,10 +8403,18 @@ mod tests {
         assert_eq!(account.two_factor_secret.as_deref(), Some("Ddddd"));
         assert_eq!(account.account_password.as_deref(), Some("213123"));
         assert_eq!(account.phone_number.as_deref(), Some("2312"));
+        assert_eq!(
+            account.mail_url.as_deref(),
+            Some("https://mail.example.test/inbox?mail=dddd")
+        );
 
         let persisted = load_account(&account.id).expect("pending account persisted");
         assert!(is_pending_oauth_account(&persisted));
         assert_eq!(persisted.account_note.as_deref(), Some("2131"));
+        assert_eq!(
+            persisted.mail_url.as_deref(),
+            Some("https://mail.example.test/inbox?mail=dddd")
+        );
     }
 
     #[test]
@@ -10214,6 +10256,7 @@ pub struct CodexAccountNoteUpdate {
     pub two_factor_secret: Option<String>,
     pub account_password: Option<String>,
     pub phone_number: Option<String>,
+    pub mail_url: Option<String>,
 }
 
 fn apply_account_note_update(account: &mut CodexAccount, update: CodexAccountNoteUpdate) {
@@ -10228,6 +10271,9 @@ fn apply_account_note_update(account: &mut CodexAccount, update: CodexAccountNot
     }
     if let Some(phone_number) = update.phone_number {
         account.phone_number = normalize_optional_value(Some(phone_number));
+    }
+    if let Some(mail_url) = update.mail_url {
+        account.mail_url = normalize_optional_value(Some(mail_url));
     }
 }
 

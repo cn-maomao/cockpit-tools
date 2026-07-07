@@ -697,6 +697,7 @@ pub fn run() {
             commands::codex::update_codex_account_tags,
             commands::codex::update_codex_account_note,
             commands::codex::create_pending_codex_oauth_account,
+            commands::codex::fetch_codex_account_note_mail_url,
             commands::codex::codex_wakeup_get_cli_status,
             commands::codex::codex_wakeup_update_runtime_config,
             commands::codex::codex_wakeup_get_overview,

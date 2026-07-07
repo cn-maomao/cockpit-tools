@@ -793,7 +793,11 @@
       "antigravityLaunchOnSwitch": "Antigravity IDE beim Wechsel starten",
       "antigravityLaunchOnSwitchDesc": "Wenn deaktiviert, schreibt der Wechsel nur die Standard-Kontodaten von Antigravity IDE und schließt, startet oder startet die App nicht neu.",
       "tokenKeeper": "Auth-Erhaltung",
-      "tokenKeeperDesc": "Aktualisiert Konto-Token nur kurz vor Ablauf in kleinen Gruppen und reduziert so Hintergrundanfragen bei vielen Konten."
+      "tokenKeeperDesc": "Aktualisiert Konto-Token nur kurz vor Ablauf in kleinen Gruppen und reduziert so Hintergrundanfragen bei vielen Konten.",
+      "platformAutoRefresh": "{{platform}}-Kontingent automatisch aktualisieren",
+      "traeSoloAppPath": "TRAE SOLO-Startpfad",
+      "traeCnAppPath": "Trae CN-Startpfad",
+      "traeSoloCnAppPath": "TRAE SOLO CN-Startpfad"
     },
     "network": {
       "apiTitle": "Antigravity-Cockpit-API",
@@ -2983,7 +2987,9 @@
       "filterWithin24h": "24 h ({{count}})",
       "filterWithin7d": "7 T. ({{count}})",
       "filterWithin30d": "30 T. ({{count}})",
-      "filterMissing": "Unbekannt ({{count}})"
+      "filterMissing": "Unbekannt ({{count}})",
+      "accessTokenOnlyUsable": "Token nutzbar",
+      "accessTokenOnlyUsableDetail": "Die Abo-Schnittstelle ist eingeschränkt, aber Kontingent und Codex-Nutzung funktionieren normal"
     },
     "apiSwitchNotice": {
       "title": "Codex-Sitzungen ausgeblendet",
@@ -3002,7 +3008,7 @@
     "accountNote": {
       "title": "Kontonotiz",
       "label": "Kontonotiz",
-      "desc": "2FA, Passwort, Telefon und weitere Notizen für {{account}} hinzufügen.",
+      "desc": "Füge Passwort, 2FA, Mail-URL, Telefon und weitere Notizen für {{account}} hinzu.",
       "twoFactorSecretLabel": "2FA-Secret",
       "twoFactorSecretShort": "2FA",
       "twoFactorSecretPlaceholder": "Base32-Secret oder otpauth://-URI",
@@ -3016,13 +3022,27 @@
       "phoneNumberLabel": "Telefon",
       "phoneShort": "Telefon",
       "phoneNumberPlaceholder": "Verknüpfte Telefonnummer",
+      "mailUrlLabel": "Mail-URL",
+      "mailUrlPlaceholder": "Mail-Abfrage-URL",
+      "mailPreviewRefresh": "Mail aktualisieren",
+      "mailPreviewOpen": "Im Browser öffnen",
+      "mailPreviewLoading": "Mail wird gelesen...",
+      "mailPreviewNoCode": "Kein fortlaufender 6-stelliger Code gefunden",
+      "mailPreviewFetchFailed": "Mail konnte nicht gelesen werden: {{error}}",
+      "mailPreviewUrlRequired": "Gib die Mail-URL ein",
+      "mailPreviewUrlInvalid": "Ungültige Mail-URL. Gib eine vollständige http://- oder https://-Adresse ein.",
+      "mailPreviewUnsupportedProtocol": "Die Mail-URL unterstützt nur http oder https.",
+      "mailPreviewHttpFailed": "Anfrage an Mail-URL fehlgeschlagen: HTTP {{status}}",
+      "mailPreviewCode": "Mail-Code",
+      "mailPreviewTruncated": "Inhalt gekürzt",
+      "mailOpenFailed": "Mail-URL konnte nicht geöffnet werden: {{error}}",
       "otherNoteLabel": "Weitere Notizen",
       "otherNoteShort": "Notiz",
       "placeholder": "Lieferhinweise, Wiederherstellungs-E-Mail oder Kontodetails",
-      "exportSensitiveNotice": "Der Export enthält 2FA-Secrets, Passwörter oder Telefonnummern. Nur an einem vertrauenswürdigen Ort speichern.",
+      "exportSensitiveNotice": "Der Export enthält 2FA-Secrets, Passwörter, Telefonnummern oder Mail-URLs. Nur an einem vertrauenswürdigen Ort speichern.",
       "exportSensitiveIncluded": "Sensible Notizen einschließen",
       "exportSensitiveExcluded": "Sensible Notizen ausschließen",
-      "exportSensitiveToggleHint": "Legt fest, ob der exportierte JSON 2FA-Secrets, Passwörter und Telefonnummern enthält.",
+      "exportSensitiveToggleHint": "Legt fest, ob der exportierte JSON 2FA-Secrets, Passwörter, Telefonnummern und Mail-URLs enthält.",
       "show": "Anzeigen",
       "hide": "Ausblenden",
       "emptyTitle": "Kontonotiz hinzufügen",
@@ -3586,13 +3606,16 @@
       "appTargetPlaceholder": "Claude.exe-Pfad oder shell:AppsFolder\\..."
     },
     "traeSolo": {
-      "appPath": "TRAE SOLO Pfad"
+      "appPath": "TRAE SOLO Pfad",
+      "title": "TRAE SOLO-Einstellungen"
     },
     "traeCn": {
-      "appPath": "Trae CN Pfad"
+      "appPath": "Trae CN Pfad",
+      "title": "Trae CN-Einstellungen"
     },
     "traeSoloCn": {
-      "appPath": "TRAE SOLO CN Pfad"
+      "appPath": "TRAE SOLO CN Pfad",
+      "title": "TRAE SOLO CN-Einstellungen"
     }
   },
   "quotaAlert": {

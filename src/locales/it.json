@@ -793,7 +793,11 @@
       "antigravityLaunchOnSwitch": "Avvia Antigravity IDE al cambio",
       "antigravityLaunchOnSwitchDesc": "Se disattivato, il cambio scrive solo i dati dell’account predefinito di Antigravity IDE e non chiude, avvia o riavvia l’app.",
       "tokenKeeper": "Auth sempre attiva",
-      "tokenKeeperDesc": "Aggiorna i token degli account in piccoli gruppi solo quando l’autorizzazione sta per scadere, riducendo le richieste in background."
+      "tokenKeeperDesc": "Aggiorna i token degli account in piccoli gruppi solo quando l’autorizzazione sta per scadere, riducendo le richieste in background.",
+      "platformAutoRefresh": "Aggiornamento automatico quota {{platform}}",
+      "traeSoloAppPath": "Percorso di avvio TRAE SOLO",
+      "traeCnAppPath": "Percorso di avvio Trae CN",
+      "traeSoloCnAppPath": "Percorso di avvio TRAE SOLO CN"
     },
     "network": {
       "apiTitle": "API della cabina di pilotaggio antigravità",
@@ -2983,7 +2987,9 @@
       "filterWithin24h": "24 h ({{count}})",
       "filterWithin7d": "7 g ({{count}})",
       "filterWithin30d": "30 g ({{count}})",
-      "filterMissing": "Sconosciuti ({{count}})"
+      "filterMissing": "Sconosciuti ({{count}})",
+      "accessTokenOnlyUsable": "Token utilizzabile",
+      "accessTokenOnlyUsableDetail": "L'endpoint dell'abbonamento è limitato, ma quota e uso di Codex funzionano normalmente"
     },
     "apiSwitchNotice": {
       "title": "Sessioni Codex nascoste",
@@ -3002,7 +3008,7 @@
     "accountNote": {
       "title": "Nota account",
       "label": "Nota account",
-      "desc": "Aggiungi 2FA, password, telefono e altre note per {{account}}.",
+      "desc": "Aggiungi password, 2FA, URL email, telefono e altre note per {{account}}.",
       "twoFactorSecretLabel": "Segreto 2FA",
       "twoFactorSecretShort": "2FA",
       "twoFactorSecretPlaceholder": "Segreto Base32 o URI otpauth://",
@@ -3016,13 +3022,27 @@
       "phoneNumberLabel": "Telefono",
       "phoneShort": "Telefono",
       "phoneNumberPlaceholder": "Numero di telefono collegato",
+      "mailUrlLabel": "URL email",
+      "mailUrlPlaceholder": "URL consultazione email",
+      "mailPreviewRefresh": "Aggiorna email",
+      "mailPreviewOpen": "Apri nel browser",
+      "mailPreviewLoading": "Lettura email...",
+      "mailPreviewNoCode": "Nessun codice continuo a 6 cifre trovato",
+      "mailPreviewFetchFailed": "Lettura email non riuscita: {{error}}",
+      "mailPreviewUrlRequired": "Inserisci l'URL email",
+      "mailPreviewUrlInvalid": "URL email non valido. Inserisci un indirizzo http:// o https:// completo.",
+      "mailPreviewUnsupportedProtocol": "L'URL email supporta solo http o https.",
+      "mailPreviewHttpFailed": "Richiesta URL email non riuscita: HTTP {{status}}",
+      "mailPreviewCode": "Codice email",
+      "mailPreviewTruncated": "Contenuto troncato",
+      "mailOpenFailed": "Apertura URL email non riuscita: {{error}}",
       "otherNoteLabel": "Altre note",
       "otherNoteShort": "Nota",
       "placeholder": "Note di consegna, email di recupero o dettagli account",
-      "exportSensitiveNotice": "L’esportazione include segreti 2FA, password o numeri di telefono. Salvala solo in una posizione affidabile.",
+      "exportSensitiveNotice": "L’esportazione include segreti 2FA, password, numeri di telefono o URL email. Salvala solo in una posizione affidabile.",
       "exportSensitiveIncluded": "Includi note sensibili",
       "exportSensitiveExcluded": "Escludi note sensibili",
-      "exportSensitiveToggleHint": "Controlla se il JSON esportato include segreti 2FA, password e numeri di telefono.",
+      "exportSensitiveToggleHint": "Controlla se il JSON esportato include segreti 2FA, password, numeri di telefono e URL email.",
       "show": "Mostra",
       "hide": "Nascondi",
       "emptyTitle": "Aggiungi nota account",
@@ -3586,13 +3606,16 @@
       "appTargetPlaceholder": "Percorso Claude.exe o shell:AppsFolder\\..."
     },
     "traeSolo": {
-      "appPath": "Percorso TRAE SOLO"
+      "appPath": "Percorso TRAE SOLO",
+      "title": "Impostazioni TRAE SOLO"
     },
     "traeCn": {
-      "appPath": "Percorso Trae CN"
+      "appPath": "Percorso Trae CN",
+      "title": "Impostazioni Trae CN"
     },
     "traeSoloCn": {
-      "appPath": "Percorso TRAE SOLO CN"
+      "appPath": "Percorso TRAE SOLO CN",
+      "title": "Impostazioni TRAE SOLO CN"
     }
   },
   "quotaAlert": {

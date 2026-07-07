@@ -35,6 +35,7 @@ interface CodexPortableTokenStorage extends JsonRecord {
   two_factor_secret?: string;
   account_password?: string;
   phone_number?: string;
+  mail_url?: string;
 }
 
 interface CodexExportBuildOptions {
@@ -95,6 +96,11 @@ function appendSensitiveNoteFields(target: JsonRecord, account: CodexAccount): v
   if (phoneNumber) {
     target.phone_number = phoneNumber;
   }
+
+  const mailUrl = account.mail_url?.trim();
+  if (mailUrl) {
+    target.mail_url = mailUrl;
+  }
 }
 
 function hasSensitiveNoteFields(account: CodexAccount): boolean {
@@ -102,7 +108,8 @@ function hasSensitiveNoteFields(account: CodexAccount): boolean {
     account.account_note?.trim() ||
       account.two_factor_secret?.trim() ||
       account.account_password?.trim() ||
-      account.phone_number?.trim(),
+      account.phone_number?.trim() ||
+      account.mail_url?.trim(),
   );
 }
 

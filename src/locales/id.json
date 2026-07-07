@@ -839,7 +839,11 @@
       "antigravityLaunchOnSwitch": "Jalankan Antigravity IDE saat beralih",
       "antigravityLaunchOnSwitchDesc": "Jika nonaktif, perpindahan hanya menulis data akun default Antigravity IDE dan tidak menutup, menjalankan, atau memulai ulang aplikasi.",
       "tokenKeeper": "Jaga auth",
-      "tokenKeeperDesc": "Menyegarkan Token akun dalam batch kecil hanya saat otorisasi hampir kedaluwarsa, sehingga mengurangi permintaan latar belakang."
+      "tokenKeeperDesc": "Menyegarkan Token akun dalam batch kecil hanya saat otorisasi hampir kedaluwarsa, sehingga mengurangi permintaan latar belakang.",
+      "platformAutoRefresh": "Penyegaran otomatis kuota {{platform}}",
+      "traeSoloAppPath": "Jalur peluncuran TRAE SOLO",
+      "traeCnAppPath": "Jalur peluncuran Trae CN",
+      "traeSoloCnAppPath": "Jalur peluncuran TRAE SOLO CN"
     },
     "network": {
       "apiTitle": "API Antigravity Cockpit",
@@ -3029,7 +3033,9 @@
       "filterWithin24h": "24 jam ({{count}})",
       "filterWithin7d": "7 hr ({{count}})",
       "filterWithin30d": "30 hr ({{count}})",
-      "filterMissing": "Tidak diketahui ({{count}})"
+      "filterMissing": "Tidak diketahui ({{count}})",
+      "accessTokenOnlyUsable": "Token dapat digunakan",
+      "accessTokenOnlyUsableDetail": "Endpoint langganan dibatasi, tetapi kuota dan penggunaan Codex berjalan normal"
     },
     "apiSwitchNotice": {
       "title": "Sesi Codex tersembunyi",
@@ -3048,7 +3054,7 @@
     "accountNote": {
       "title": "Catatan Akun",
       "label": "Catatan Akun",
-      "desc": "Tambahkan 2FA, kata sandi, telepon, dan catatan lain untuk {{account}}.",
+      "desc": "Tambahkan kata sandi, 2FA, URL email, telepon, dan catatan lain untuk {{account}}.",
       "twoFactorSecretLabel": "Rahasia 2FA",
       "twoFactorSecretShort": "2FA",
       "twoFactorSecretPlaceholder": "Rahasia Base32 atau URI otpauth://",
@@ -3062,13 +3068,27 @@
       "phoneNumberLabel": "Telepon",
       "phoneShort": "Telepon",
       "phoneNumberPlaceholder": "Nomor telepon tertaut",
+      "mailUrlLabel": "URL email",
+      "mailUrlPlaceholder": "URL baca email",
+      "mailPreviewRefresh": "Segarkan email",
+      "mailPreviewOpen": "Buka di browser",
+      "mailPreviewLoading": "Membaca email...",
+      "mailPreviewNoCode": "Kode 6 digit berurutan tidak ditemukan",
+      "mailPreviewFetchFailed": "Gagal membaca email: {{error}}",
+      "mailPreviewUrlRequired": "Masukkan URL email",
+      "mailPreviewUrlInvalid": "URL email tidak valid. Masukkan alamat http:// atau https:// lengkap.",
+      "mailPreviewUnsupportedProtocol": "URL email hanya mendukung http atau https.",
+      "mailPreviewHttpFailed": "Permintaan URL email gagal: HTTP {{status}}",
+      "mailPreviewCode": "Kode email",
+      "mailPreviewTruncated": "Konten dipotong",
+      "mailOpenFailed": "Gagal membuka URL email: {{error}}",
       "otherNoteLabel": "Catatan lain",
       "otherNoteShort": "Catatan",
       "placeholder": "Catatan pengiriman, email pemulihan, atau detail akun",
-      "exportSensitiveNotice": "Ekspor berisi rahasia 2FA, kata sandi, atau nomor telepon. Simpan hanya di lokasi tepercaya.",
+      "exportSensitiveNotice": "Ekspor berisi rahasia 2FA, kata sandi, nomor telepon, atau URL email. Simpan hanya di lokasi tepercaya.",
       "exportSensitiveIncluded": "Sertakan catatan sensitif",
       "exportSensitiveExcluded": "Kecualikan catatan sensitif",
-      "exportSensitiveToggleHint": "Mengatur apakah JSON ekspor menyertakan rahasia 2FA, kata sandi, dan nomor telepon.",
+      "exportSensitiveToggleHint": "Mengatur apakah JSON ekspor menyertakan rahasia 2FA, kata sandi, nomor telepon, dan URL email.",
       "show": "Tampilkan",
       "hide": "Sembunyikan",
       "emptyTitle": "Tambah catatan akun",
@@ -3732,13 +3752,16 @@
       "appTargetPlaceholder": "Jalur Claude.exe atau shell:AppsFolder\\..."
     },
     "traeSolo": {
-      "appPath": "Path TRAE SOLO"
+      "appPath": "Path TRAE SOLO",
+      "title": "Pengaturan TRAE SOLO"
     },
     "traeCn": {
-      "appPath": "Path Trae CN"
+      "appPath": "Path Trae CN",
+      "title": "Pengaturan Trae CN"
     },
     "traeSoloCn": {
-      "appPath": "Path TRAE SOLO CN"
+      "appPath": "Path TRAE SOLO CN",
+      "title": "Pengaturan TRAE SOLO CN"
     }
   },
   "quotaAlert": {

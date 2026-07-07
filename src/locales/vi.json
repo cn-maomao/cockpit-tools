@@ -793,7 +793,11 @@
       "antigravityLaunchOnSwitch": "Khởi chạy Antigravity IDE khi chuyển",
       "antigravityLaunchOnSwitchDesc": "Khi tắt, việc chuyển chỉ ghi dữ liệu tài khoản mặc định của Antigravity IDE và không đóng, khởi chạy hoặc khởi động lại ứng dụng.",
       "tokenKeeper": "Giữ auth",
-      "tokenKeeperDesc": "Chỉ làm mới Token tài khoản theo từng nhóm nhỏ khi ủy quyền sắp hết hạn, giảm áp lực yêu cầu nền khi có nhiều tài khoản."
+      "tokenKeeperDesc": "Chỉ làm mới Token tài khoản theo từng nhóm nhỏ khi ủy quyền sắp hết hạn, giảm áp lực yêu cầu nền khi có nhiều tài khoản.",
+      "platformAutoRefresh": "Tự động làm mới hạn ngạch {{platform}}",
+      "traeSoloAppPath": "Đường dẫn khởi động TRAE SOLO",
+      "traeCnAppPath": "Đường dẫn khởi động Trae CN",
+      "traeSoloCnAppPath": "Đường dẫn khởi động TRAE SOLO CN"
     },
     "network": {
       "apiTitle": "API Antigravity Cockpit",
@@ -2983,7 +2987,9 @@
       "filterWithin24h": "24 giờ ({{count}})",
       "filterWithin7d": "7 ngày ({{count}})",
       "filterWithin30d": "30 ngày ({{count}})",
-      "filterMissing": "Không rõ ({{count}})"
+      "filterMissing": "Không rõ ({{count}})",
+      "accessTokenOnlyUsable": "Token dùng được",
+      "accessTokenOnlyUsableDetail": "Điểm cuối thuê bao bị giới hạn, nhưng hạn ngạch và việc dùng Codex vẫn bình thường"
     },
     "apiSwitchNotice": {
       "title": "Phiên Codex bị ẩn",
@@ -3002,7 +3008,7 @@
     "accountNote": {
       "title": "Ghi chú tài khoản",
       "label": "Ghi chú tài khoản",
-      "desc": "Thêm 2FA, mật khẩu, điện thoại và ghi chú khác cho {{account}}.",
+      "desc": "Thêm mật khẩu, 2FA, URL email, điện thoại và ghi chú khác cho {{account}}.",
       "twoFactorSecretLabel": "Mã bí mật 2FA",
       "twoFactorSecretShort": "2FA",
       "twoFactorSecretPlaceholder": "Mã Base32 hoặc URI otpauth://",
@@ -3016,13 +3022,27 @@
       "phoneNumberLabel": "Điện thoại",
       "phoneShort": "ĐT",
       "phoneNumberPlaceholder": "Số điện thoại đã liên kết",
+      "mailUrlLabel": "URL email",
+      "mailUrlPlaceholder": "URL tra cứu email",
+      "mailPreviewRefresh": "Làm mới email",
+      "mailPreviewOpen": "Mở trong trình duyệt",
+      "mailPreviewLoading": "Đang đọc email...",
+      "mailPreviewNoCode": "Không tìm thấy mã 6 chữ số liên tiếp",
+      "mailPreviewFetchFailed": "Không đọc được email: {{error}}",
+      "mailPreviewUrlRequired": "Nhập URL email",
+      "mailPreviewUrlInvalid": "URL email không hợp lệ. Nhập địa chỉ http:// hoặc https:// đầy đủ.",
+      "mailPreviewUnsupportedProtocol": "URL email chỉ hỗ trợ http hoặc https.",
+      "mailPreviewHttpFailed": "Yêu cầu URL email thất bại: HTTP {{status}}",
+      "mailPreviewCode": "Mã email",
+      "mailPreviewTruncated": "Nội dung đã bị cắt",
+      "mailOpenFailed": "Không mở được URL email: {{error}}",
       "otherNoteLabel": "Ghi chú khác",
       "otherNoteShort": "Ghi chú",
       "placeholder": "Ghi chú bàn giao, email khôi phục hoặc chi tiết tài khoản",
-      "exportSensitiveNotice": "Bản xuất chứa mã 2FA, mật khẩu hoặc số điện thoại. Chỉ lưu vào vị trí tin cậy.",
+      "exportSensitiveNotice": "Bản xuất chứa mã 2FA, mật khẩu, số điện thoại hoặc URL email. Chỉ lưu vào vị trí tin cậy.",
       "exportSensitiveIncluded": "Gồm ghi chú nhạy cảm",
       "exportSensitiveExcluded": "Loại ghi chú nhạy cảm",
-      "exportSensitiveToggleHint": "Kiểm soát JSON xuất ra có gồm mã 2FA, mật khẩu và số điện thoại hay không.",
+      "exportSensitiveToggleHint": "Kiểm soát JSON xuất ra có gồm mã 2FA, mật khẩu, số điện thoại và URL email hay không.",
       "show": "Hiện",
       "hide": "Ẩn",
       "emptyTitle": "Thêm ghi chú tài khoản",
@@ -3586,13 +3606,16 @@
       "appTargetPlaceholder": "Đường dẫn Claude.exe hoặc shell:AppsFolder\\..."
     },
     "traeSolo": {
-      "appPath": "Đường dẫn TRAE SOLO"
+      "appPath": "Đường dẫn TRAE SOLO",
+      "title": "Cài đặt TRAE SOLO"
     },
     "traeCn": {
-      "appPath": "Đường dẫn Trae CN"
+      "appPath": "Đường dẫn Trae CN",
+      "title": "Cài đặt Trae CN"
     },
     "traeSoloCn": {
-      "appPath": "Đường dẫn TRAE SOLO CN"
+      "appPath": "Đường dẫn TRAE SOLO CN",
+      "title": "Cài đặt TRAE SOLO CN"
     }
   },
   "quotaAlert": {

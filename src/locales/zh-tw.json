@@ -793,7 +793,11 @@
       "antigravityLaunchOnSwitch": "切換時啟動 Antigravity IDE",
       "antigravityLaunchOnSwitchDesc": "關閉後切號只寫入 Antigravity IDE 預設帳號資料，不會關閉、啟動或重啟應用程式。",
       "tokenKeeper": "背景授權保活",
-      "tokenKeeperDesc": "僅在授權快過期時分批刷新帳號 Token，降低大量帳號場景下的背景請求壓力。"
+      "tokenKeeperDesc": "僅在授權快過期時分批刷新帳號 Token，降低大量帳號場景下的背景請求壓力。",
+      "platformAutoRefresh": "{{platform}} 自動刷新配額",
+      "traeSoloAppPath": "TRAE SOLO 啟動路徑",
+      "traeCnAppPath": "Trae CN 啟動路徑",
+      "traeSoloCnAppPath": "TRAE SOLO CN 啟動路徑"
     },
     "network": {
       "apiTitle": "反重力駕駛艙 API",
@@ -2983,7 +2987,9 @@
       "filterWithin24h": "24 小時 ({{count}})",
       "filterWithin7d": "7 天 ({{count}})",
       "filterWithin30d": "30 天 ({{count}})",
-      "filterMissing": "未知 ({{count}})"
+      "filterMissing": "未知 ({{count}})",
+      "accessTokenOnlyUsable": "Token 可用",
+      "accessTokenOnlyUsableDetail": "訂閱資訊介面受限，但配額與 Codex 使用正常"
     },
     "apiSwitchNotice": {
       "title": "Codex 工作階段不可見",
@@ -3002,7 +3008,7 @@
     "accountNote": {
       "title": "帳號備註",
       "label": "帳號備註",
-      "desc": "為 {{account}} 填寫 2FA、密碼、手機號和其他備註。",
+      "desc": "給 {{account}} 填寫密碼、2FA、郵件地址、手機號和其他備註。",
       "twoFactorSecretLabel": "2FA 秘鑰",
       "twoFactorSecretShort": "2FA",
       "twoFactorSecretPlaceholder": "Base32 secret 或 otpauth:// 連結",
@@ -3016,13 +3022,27 @@
       "phoneNumberLabel": "手機號",
       "phoneShort": "手機",
       "phoneNumberPlaceholder": "綁定手機號",
+      "mailUrlLabel": "郵件地址",
+      "mailUrlPlaceholder": "郵件查詢地址",
+      "mailPreviewRefresh": "重新整理郵件",
+      "mailPreviewOpen": "用瀏覽器查看",
+      "mailPreviewLoading": "正在讀取郵件...",
+      "mailPreviewNoCode": "未匹配到連續 6 位驗證碼",
+      "mailPreviewFetchFailed": "讀取郵件失敗：{{error}}",
+      "mailPreviewUrlRequired": "請輸入郵件地址",
+      "mailPreviewUrlInvalid": "郵件地址格式無效，請輸入完整的 http:// 或 https:// 地址",
+      "mailPreviewUnsupportedProtocol": "郵件地址僅支援 http 或 https 協定",
+      "mailPreviewHttpFailed": "郵件地址請求失敗：HTTP {{status}}",
+      "mailPreviewCode": "郵件驗證碼",
+      "mailPreviewTruncated": "內容已截斷",
+      "mailOpenFailed": "開啟郵件地址失敗：{{error}}",
       "otherNoteLabel": "其他備註",
       "otherNoteShort": "備註",
       "placeholder": "其他交付備註、輔助信箱或帳號說明",
-      "exportSensitiveNotice": "匯出內容包含 2FA 秘鑰、密碼或手機號，請只儲存到可信位置。",
+      "exportSensitiveNotice": "匯出內容包含 2FA 秘鑰、密碼、手機號或郵件地址，請只儲存到可信位置。",
       "exportSensitiveIncluded": "包含敏感備註",
       "exportSensitiveExcluded": "已排除敏感備註",
-      "exportSensitiveToggleHint": "控制匯出 JSON 是否包含 2FA 秘鑰、密碼和手機號。",
+      "exportSensitiveToggleHint": "控制匯出 JSON 是否包含 2FA 秘鑰、密碼、手機號和郵件地址。",
       "show": "顯示",
       "hide": "隱藏",
       "emptyTitle": "填寫帳號備註",
@@ -3586,13 +3606,16 @@
       "appTargetPlaceholder": "Claude.exe 路徑或 shell:AppsFolder\\..."
     },
     "traeSolo": {
-      "appPath": "TRAE SOLO 路徑"
+      "appPath": "TRAE SOLO 路徑",
+      "title": "TRAE SOLO 設定"
     },
     "traeCn": {
-      "appPath": "Trae CN 路徑"
+      "appPath": "Trae CN 路徑",
+      "title": "Trae CN 設定"
     },
     "traeSoloCn": {
-      "appPath": "TRAE SOLO CN 路徑"
+      "appPath": "TRAE SOLO CN 路徑",
+      "title": "TRAE SOLO CN 設定"
     }
   },
   "quotaAlert": {
