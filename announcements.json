@@ -3,29 +3,6 @@
   "forceRefreshVersions": [
     "0.25.3"
   ],
-  "topRightAd_backup": {
-    "id": "top-right-ad-2026-04-shop",
-    "priority": 100,
-    "text": "Codex Plus代过试用，成品号，Gemini给自己账号订阅一年Pro 需要的了解一下",
-    "text_backup": "9.9Codex plus号和12元代过试用Plus。欢迎选购",
-    "badge": "推广",
-    "ctaLabel": "选购",
-    "ctaUrl": "https://xiangzili.xyz/user/index/shop",
-    "targetVersions": "*",
-    "targetLanguages": [
-      "zh"
-    ],
-    "createdAt": "2026-04-07T12:00:00Z",
-    "expiresAt": null,
-    "locales": {
-      "zh-CN": {
-        "text": "Codex Plus代过试用，成品号，Gemini给自己账号订阅一年Pro 需要的了解一下",
-        "text_backup": "9.9Codex plus号和12元代过试用Plus。欢迎选购",
-        "badge": "推广",
-        "ctaLabel": "选购"
-      }
-    }
-  },
   "topRightAd": null,
   "apiRelayEnabled": true,
   "topRightAdsEnabled": true,
@@ -33,11 +10,13 @@
     {
       "id": "top-right-ad-2026-04-shop",
       "enabled": true,
+      "relayRelated": false,
       "priority": 100,
       "text": "Codex Plus30天成品号，Gemini给自己账号订阅一年Pro 需要的了解一下",
       "badge": "推广",
       "ctaLabel": "选购",
       "ctaUrl": "https://xiangzili.xyz/user/index/shop",
+      "targetVersions": "*",
       "targetLanguages": [
         "zh"
       ],
@@ -48,39 +27,6 @@
           "text": "Codex Plus30天成品号，Gemini给自己账号订阅一年Pro 需要的了解一下",
           "badge": "推广",
           "ctaLabel": "选购"
-        }
-      }
-    },
-    {
-      "id": "top-right-ad-local-carousel-test",
-      "enabled": false,
-      "relayRelated": true,
-      "priority": 90,
-      "text": "Cockpit 官方合作中转站 APIKEY.FUN，统一接入主流模型，点击专属注册享充值优惠",
-      "badge": "中转",
-      "ctaLabel": "查看",
-      "ctaUrl": "https://apikey.fun/register?aff=cockpit",
-      "targetVersions": ">=0.25.2",
-      "targetLanguages": [
-        "*"
-      ],
-      "createdAt": "2026-06-06T00:00:00Z",
-      "expiresAt": null,
-      "locales": {
-        "zh-CN": {
-          "text": "Cockpit 官方合作中转站 APIKEY.FUN，统一接入主流模型，点击专属注册享充值优惠",
-          "badge": "中转",
-          "ctaLabel": "查看"
-        },
-        "en": {
-          "text": "Cockpit official relay APIKEY.FUN, unified access to mainstream models with exclusive registration discounts.",
-          "badge": "Relay",
-          "ctaLabel": "View"
-        },
-        "en-US": {
-          "text": "Cockpit official relay APIKEY.FUN, unified access to mainstream models with exclusive registration discounts.",
-          "badge": "Relay",
-          "ctaLabel": "View"
         }
       }
     }
