@@ -587,7 +587,7 @@ func TestSidecarRuntimeRegistersConfigCodexAPIKeyAuths(t *testing.T) {
 		accountByAPIKey: map[string]*accountSpec{"sk-upstream": account},
 		ModelIDs:        []string{"gpt-5.4"},
 	}
-	manager := buildCoreAuthManager(cfg, &cockpitSelector{manifest: m}, &authHook{manifest: m}, m, nil)
+	manager := buildCoreAuthManager(cfg, &cockpitSelector{manifest: m}, &authHook{manifest: m}, m, nil, newRequestUsageTracker())
 
 	runtime, err := newSidecarRuntime(context.Background(), configPath, cfg, m, manager)
 	if err != nil {
@@ -680,7 +680,7 @@ func TestManifestRegisteredModelsPreserveReasoningEffortThroughThinkingPipeline(
 		Provider: "codex",
 		Status:   coreauth.StatusActive,
 	}
-	manager := buildCoreAuthManager(&config.Config{}, &cockpitSelector{}, nil, nil, nil)
+	manager := buildCoreAuthManager(&config.Config{}, &cockpitSelector{}, nil, nil, nil, nil)
 	registered, err := manager.Register(context.Background(), auth)
 	if err != nil {
 		t.Fatalf("register auth: %v", err)
@@ -841,6 +841,10 @@ func TestWriteExecutorErrorThrottlesRetryableDownstreamError(t *testing.T) {
 
 func TestRequestUsageTrackerFinalizesWithLastSuccessfulAttempt(t *testing.T) {
 	tracker := newRequestUsageTracker()
+	tracker.recordSelectedAccount("req-1", &accountSpec{
+		ID:    "account-ok",
+		Email: "ok@example.com",
+	}, "auth-ok")
 	tracker.record(usagePayload{
 		Type:          "usage",
 		RequestID:     "req-1",
@@ -889,6 +893,113 @@ func TestRequestUsageTrackerFinalizesWithLastSuccessfulAttempt(t *testing.T) {
 	}
 	if payload.LatencyMS != 446_000 || payload.APIKeyID != "key_1" {
 		t.Fatalf("final request metadata was not applied: %#v", payload)
+	}
+}
+
+func TestRequestUsageTrackerFinalizesWithSelectedAccount(t *testing.T) {
+	tracker := newRequestUsageTracker()
+	tracker.recordSelectedAccount("req-selected", &accountSpec{
+		ID:    "account-selected",
+		Email: "selected@example.com",
+	}, "auth-selected")
+
+	payload, ok := tracker.finalize("req-selected", usageFinalizeInput{
+		spec:          &apiKeySpec{ID: "key_1", Label: "Default"},
+		requestKind:   "text",
+		model:         "gpt-5.5",
+		status:        http.StatusOK,
+		latencyMS:     100,
+		completedAtMS: 123,
+	})
+
+	if !ok {
+		t.Fatal("expected finalized usage payload")
+	}
+	if payload.AccountID != "account-selected" || payload.AccountEmail != "selected@example.com" || payload.AuthID != "auth-selected" {
+		t.Fatalf("expected selected account metadata, got %#v", payload)
+	}
+}
+
+func TestRequestUsageTrackerSelectedAccountOverridesUsageAccount(t *testing.T) {
+	tracker := newRequestUsageTracker()
+	tracker.recordSelectedAccount("req-usage", &accountSpec{
+		ID:    "account-selected",
+		Email: "selected@example.com",
+	}, "auth-selected")
+	tracker.record(usagePayload{
+		Type:         "usage",
+		RequestID:    "req-usage",
+		AccountID:    "account-usage",
+		AccountEmail: "usage@example.com",
+		AuthID:       "auth-usage",
+		Success:      true,
+	})
+
+	payload, ok := tracker.finalize("req-usage", usageFinalizeInput{
+		status:        http.StatusOK,
+		latencyMS:     100,
+		completedAtMS: 123,
+	})
+
+	if !ok {
+		t.Fatal("expected finalized usage payload")
+	}
+	if payload.AccountID != "account-selected" || payload.AccountEmail != "selected@example.com" || payload.AuthID != "auth-selected" {
+		t.Fatalf("selected account metadata should win, got %#v", payload)
+	}
+}
+
+type countingSelector struct {
+	auth  *coreauth.Auth
+	count int
+}
+
+func (s *countingSelector) Pick(context.Context, string, string, cliproxyexecutor.Options, []*coreauth.Auth) (*coreauth.Auth, error) {
+	s.count++
+	return s.auth, nil
+}
+
+func TestRecordingSelectorRecordsSessionAffinityCacheHit(t *testing.T) {
+	account := &accountSpec{ID: "account-selected", Email: "selected@example.com"}
+	m := &manifest{
+		accountByAuthID: map[string]*accountSpec{"auth-selected": account},
+		accountByID:     map[string]*accountSpec{"account-selected": account},
+		accountByAPIKey: map[string]*accountSpec{},
+	}
+	auth := &coreauth.Auth{ID: "auth-selected", Provider: "codex", Status: coreauth.StatusActive}
+	fallback := &countingSelector{auth: auth}
+	affinity := coreauth.NewSessionAffinitySelectorWithConfig(coreauth.SessionAffinityConfig{
+		Fallback: fallback,
+		TTL:      time.Hour,
+	})
+	tracker := newRequestUsageTracker()
+	selector := &recordingSelector{inner: affinity, manifest: m, tracker: tracker}
+	headers := make(http.Header)
+	headers.Set("X-Session-ID", "session-selected")
+	opts := cliproxyexecutor.Options{Headers: headers}
+
+	ctx1 := internallogging.WithRequestID(context.Background(), "req-first")
+	if _, err := selector.Pick(ctx1, "codex", "gpt-5.5", opts, []*coreauth.Auth{auth}); err != nil {
+		t.Fatalf("first pick: %v", err)
+	}
+	ctx2 := internallogging.WithRequestID(context.Background(), "req-cache")
+	if _, err := selector.Pick(ctx2, "codex", "gpt-5.5", opts, []*coreauth.Auth{auth}); err != nil {
+		t.Fatalf("cache pick: %v", err)
+	}
+	if fallback.count != 1 {
+		t.Fatalf("expected second pick to use affinity cache, fallback count=%d", fallback.count)
+	}
+
+	payload, ok := tracker.finalize("req-cache", usageFinalizeInput{
+		status:        http.StatusOK,
+		latencyMS:     100,
+		completedAtMS: 123,
+	})
+	if !ok {
+		t.Fatal("expected finalized usage payload")
+	}
+	if payload.AccountID != "account-selected" || payload.AccountEmail != "selected@example.com" || payload.AuthID != "auth-selected" {
+		t.Fatalf("expected cache hit selected account metadata, got %#v", payload)
 	}
 }
 

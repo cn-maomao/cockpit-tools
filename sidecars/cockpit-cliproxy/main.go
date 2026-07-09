@@ -279,13 +279,23 @@ type usageFinalizeInput struct {
 	errorMessage  string
 }
 
+type selectedAccountRecord struct {
+	AccountID    string
+	AccountEmail string
+	AuthID       string
+}
+
 type requestUsageTracker struct {
-	mu      sync.Mutex
-	records map[string][]usagePayload
+	mu               sync.Mutex
+	records          map[string][]usagePayload
+	selectedAccounts map[string]selectedAccountRecord
 }
 
 func newRequestUsageTracker() *requestUsageTracker {
-	return &requestUsageTracker{records: make(map[string][]usagePayload)}
+	return &requestUsageTracker{
+		records:          make(map[string][]usagePayload),
+		selectedAccounts: make(map[string]selectedAccountRecord),
+	}
 }
 
 func (t *requestUsageTracker) record(payload usagePayload) {
@@ -302,6 +312,23 @@ func (t *requestUsageTracker) record(payload usagePayload) {
 	t.mu.Unlock()
 }
 
+func (t *requestUsageTracker) recordSelectedAccount(requestID string, account *accountSpec, authID string) {
+	if t == nil {
+		return
+	}
+	requestID = strings.TrimSpace(requestID)
+	if requestID == "" || account == nil {
+		return
+	}
+	t.mu.Lock()
+	t.selectedAccounts[requestID] = selectedAccountRecord{
+		AccountID:    strings.TrimSpace(account.ID),
+		AccountEmail: strings.TrimSpace(account.Email),
+		AuthID:       strings.TrimSpace(authID),
+	}
+	t.mu.Unlock()
+}
+
 func (t *requestUsageTracker) finalize(requestID string, input usageFinalizeInput) (usagePayload, bool) {
 	requestID = strings.TrimSpace(requestID)
 	if requestID == "" {
@@ -309,10 +336,14 @@ func (t *requestUsageTracker) finalize(requestID string, input usageFinalizeInpu
 	}
 
 	var records []usagePayload
+	var selected selectedAccountRecord
+	var selectedOK bool
 	if t != nil {
 		t.mu.Lock()
 		records = append(records, t.records[requestID]...)
 		delete(t.records, requestID)
+		selected, selectedOK = t.selectedAccounts[requestID]
+		delete(t.selectedAccounts, requestID)
 		t.mu.Unlock()
 	}
 
@@ -350,6 +381,15 @@ func (t *requestUsageTracker) finalize(requestID string, input usageFinalizeInpu
 	}
 	if strings.TrimSpace(payload.RequestKind) == "" {
 		payload.RequestKind = strings.TrimSpace(input.requestKind)
+	}
+	if selectedOK {
+		payload.AccountID = selected.AccountID
+		payload.AccountEmail = selected.AccountEmail
+		payload.AuthID = selected.AuthID
+	} else {
+		payload.AccountID = ""
+		payload.AccountEmail = ""
+		payload.AuthID = ""
 	}
 	if input.status > 0 {
 		payload.Status = input.status
@@ -1405,6 +1445,27 @@ type cockpitSelector struct {
 	cursor   int
 }
 
+type recordingSelector struct {
+	inner    coreauth.Selector
+	manifest *manifest
+	tracker  *requestUsageTracker
+}
+
+func (s *recordingSelector) Pick(ctx context.Context, provider, model string, opts cliproxyexecutor.Options, auths []*coreauth.Auth) (*coreauth.Auth, error) {
+	auth, err := s.inner.Pick(ctx, provider, model, opts, auths)
+	if err != nil || auth == nil || s.tracker == nil {
+		return auth, err
+	}
+	s.tracker.recordSelectedAccount(internallogging.GetRequestID(ctx), accountForAuthInManifest(s.manifest, auth), auth.ID)
+	return auth, nil
+}
+
+func (s *recordingSelector) Stop() {
+	if stoppable, ok := s.inner.(coreauth.StoppableSelector); ok {
+		stoppable.Stop()
+	}
+}
+
 type quotaReserveSelector struct {
 	manifest *manifest
 	fallback coreauth.Selector
@@ -2297,12 +2358,15 @@ func buildCoreAuthSelector(cfg *config.Config, selector coreauth.Selector, m *ma
 	return selector
 }
 
-func buildCoreAuthManager(cfg *config.Config, selector coreauth.Selector, hook coreauth.Hook, m *manifest, quota *quotaReserveStateStore) *coreauth.Manager {
+func buildCoreAuthManager(cfg *config.Config, selector coreauth.Selector, hook coreauth.Hook, m *manifest, quota *quotaReserveStateStore, tracker *requestUsageTracker) *coreauth.Manager {
 	tokenStore := sdkauth.GetTokenStore()
 	if dirSetter, ok := tokenStore.(interface{ SetBaseDir(string) }); ok && cfg != nil {
 		dirSetter.SetBaseDir(cfg.AuthDir)
 	}
 	selector = buildCoreAuthSelector(cfg, selector, m, quota)
+	if tracker != nil {
+		selector = &recordingSelector{inner: selector, manifest: m, tracker: tracker}
+	}
 	return coreauth.NewManager(tokenStore, selector, hook)
 }
 
@@ -5986,7 +6050,7 @@ func main() {
 	policy := &requestPolicy{manifest: m, emitter: emitter, tracker: usageTracker}
 	hook := &authHook{manifest: m, emitter: emitter}
 	selector := &cockpitSelector{manifest: m, emitter: emitter, quota: quotaState}
-	coreManager := buildCoreAuthManager(cfg, selector, hook, m, quotaState)
+	coreManager := buildCoreAuthManager(cfg, selector, hook, m, quotaState, usageTracker)
 
 	signalCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
