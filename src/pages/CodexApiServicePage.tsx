@@ -3277,9 +3277,7 @@ export function CodexApiServicePage() {
                         })}
                       </span>
                       <span>
-                        {t("codex.localAccess.stats.accountTokens", {
-                          count: keyUsage?.totalTokens ?? 0,
-                        })}
+                        {formatAccountTokenUsage(keyUsage)}
                       </span>
                       <span>
                         {t("codex.localAccess.stats.successRate", {

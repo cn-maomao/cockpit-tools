@@ -7,6 +7,13 @@ All notable changes to Cockpit Tools will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
+## [1.1.7] - 2026-07-10
+
+### Changed
+
+- **Compact per-client-key token usage**: client-key rows now render token totals with the same compact notation as service totals, such as `56.7M`.
+
+---
 ## [1.1.6] - 2026-07-10
 
 ### Fixed
