@@ -1410,8 +1410,7 @@ pub async fn fetch_codex_account_note_mail_url(
     if mail_url.is_empty() {
         return Err("MAIL_URL_EMPTY".to_string());
     }
-    let parsed = reqwest::Url::parse(mail_url)
-        .map_err(|_| "MAIL_URL_INVALID".to_string())?;
+    let parsed = reqwest::Url::parse(mail_url).map_err(|_| "MAIL_URL_INVALID".to_string())?;
     if !matches!(parsed.scheme(), "http" | "https") {
         return Err("MAIL_URL_UNSUPPORTED_SCHEME".to_string());
     }

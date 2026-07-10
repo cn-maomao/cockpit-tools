@@ -156,7 +156,14 @@ const CODEX_OFFICIAL_EMPTY_HEADERS: &[&str] = &[
     "x-client-request-id",
     "x-responsesapi-include-timing-metrics",
 ];
-const DEFAULT_CODEX_MODELS: &[&str] = &["gpt-5.5", "gpt-5.4", "gpt-5.4-mini"];
+const DEFAULT_CODEX_MODELS: &[&str] = &[
+    "gpt-5.6-sol",
+    "gpt-5.6-terra",
+    "gpt-5.6-luna",
+    "gpt-5.5",
+    "gpt-5.4",
+    "gpt-5.4-mini",
+];
 const CODEX_IMAGE_MODEL_ID: &str = "gpt-image-2";
 const CODEX_AUTO_REVIEW_MODEL_ID: &str = "codex-auto-review";
 const DEFAULT_IMAGES_MAIN_MODEL: &str = "gpt-5.4-mini";
@@ -1996,6 +2003,57 @@ fn build_image_generation_tool(
 fn should_inject_image_generation_tool(model: &str) -> bool {
     let normalized = model.trim().to_ascii_lowercase();
     !normalized.is_empty() && !normalized.ends_with("spark")
+}
+
+fn is_image_gen_function_name(name: &str) -> bool {
+    name.trim().eq_ignore_ascii_case("image_gen.imagegen")
+}
+
+fn tool_conflicts_with_hosted_image_generation(tool: &Value) -> bool {
+    if tool
+        .get("name")
+        .and_then(Value::as_str)
+        .is_some_and(is_image_gen_function_name)
+        || tool
+            .pointer("/function/name")
+            .and_then(Value::as_str)
+            .is_some_and(is_image_gen_function_name)
+    {
+        return true;
+    }
+
+    let namespace = tool
+        .get("name")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .unwrap_or_default();
+    namespace.eq_ignore_ascii_case("image_gen")
+        && tool
+            .get("tools")
+            .and_then(Value::as_array)
+            .is_some_and(|tools| {
+                tools.iter().any(|child| {
+                    child
+                        .get("name")
+                        .and_then(Value::as_str)
+                        .is_some_and(|name| name.trim().eq_ignore_ascii_case("imagegen"))
+                        || child
+                            .pointer("/function/name")
+                            .and_then(Value::as_str)
+                            .is_some_and(|name| name.trim().eq_ignore_ascii_case("imagegen"))
+                })
+            })
+}
+
+fn has_hosted_image_generation_tool_conflict(object: &Map<String, Value>) -> bool {
+    object
+        .get("tools")
+        .and_then(Value::as_array)
+        .is_some_and(|tools| {
+            tools
+                .iter()
+                .any(tool_conflicts_with_hosted_image_generation)
+        })
 }
 
 fn ensure_image_generation_tool_in_object(object: &mut Map<String, Value>) -> bool {
@@ -7337,9 +7395,9 @@ async fn prepare_sidecar_launch_config_in_dir(
             continue;
         }
 
-        if account_uses_bound_oauth_image_generation_compat(&account) {
+        if account_uses_oauth_chat_image_generation_compat(&account) {
             effective_image_generation_mode =
-                bound_oauth_image_generation_mode(effective_image_generation_mode);
+                oauth_chat_image_generation_mode(effective_image_generation_mode);
         }
 
         if account.is_api_key_auth() {
@@ -8185,6 +8243,8 @@ fn build_runtime_account(
     );
     runtime_account.account_name = Some("API Service".to_string());
     runtime_account.bound_oauth_account_id = bound_oauth_account_id;
+    runtime_account.api_model_catalog = supported_codex_model_ids();
+    runtime_account.api_wire_api = Some("responses".to_string());
     runtime_account
 }
 
@@ -8282,6 +8342,7 @@ async fn ensure_profile_takeover(
 
     let current = inspect_local_access_profile_attachment(profile_dir, Some(collection));
     if current.attached && current.error.is_none() {
+        write_local_access_profile_takeover(profile_dir, collection, None).await?;
         return Ok(());
     }
 
@@ -11076,7 +11137,11 @@ fn account_uses_bound_oauth_image_generation_compat(account: &CodexAccount) -> b
         && normalize_optional_account_ref(account.bound_oauth_account_id.as_deref()).is_some()
 }
 
-fn bound_oauth_image_generation_mode(
+fn account_uses_oauth_chat_image_generation_compat(account: &CodexAccount) -> bool {
+    !account.is_api_key_auth() || account_uses_bound_oauth_image_generation_compat(account)
+}
+
+fn oauth_chat_image_generation_mode(
     inherited_mode: CodexLocalAccessImageGenerationMode,
 ) -> CodexLocalAccessImageGenerationMode {
     if inherited_mode == CodexLocalAccessImageGenerationMode::Disabled {
@@ -11091,7 +11156,7 @@ fn provider_gateway_image_generation_mode_for_account(
     inherited_mode: CodexLocalAccessImageGenerationMode,
 ) -> CodexLocalAccessImageGenerationMode {
     if account_uses_bound_oauth_image_generation_compat(account) {
-        bound_oauth_image_generation_mode(inherited_mode)
+        oauth_chat_image_generation_mode(inherited_mode)
     } else {
         inherited_mode
     }
@@ -16450,6 +16515,20 @@ fn build_account_scoped_upstream_body<'a>(
     let Some(body_obj) = body_value.as_object_mut() else {
         return Ok(Cow::Borrowed(body));
     };
+    let image_generation_mode = if account_uses_oauth_chat_image_generation_compat(account) {
+        oauth_chat_image_generation_mode(image_generation_mode)
+    } else {
+        image_generation_mode
+    };
+
+    if has_hosted_image_generation_tool_conflict(body_obj) {
+        if !remove_image_generation_tool_from_object(body_obj) {
+            return Ok(Cow::Borrowed(body));
+        }
+        return serde_json::to_vec(&body_value)
+            .map(Cow::Owned)
+            .map_err(|e| format!("序列化账号级 responses 请求体失败: {}", e));
+    }
 
     if !image_generation_tools_allowed(image_generation_mode, request_kind) {
         if !remove_image_generation_tool_from_object(body_obj) {
@@ -18974,9 +19053,9 @@ mod tests {
         visible_codex_model_ids_for_api_key, websocket_accept_value,
         websocket_connect_error_from_http_response, windows_proxy_url_from_server,
         windows_reg_dword_enabled, windows_reg_query_map,
-        write_local_access_profile_model_override, write_provider_gateway_model_catalog,
-        write_string_atomic, write_string_atomic_if_changed, CodexLocalAccessCollection,
-        CodexLocalAccessGatewayMode, CodexLocalAccessScope,
+        write_local_access_profile_model_override, write_local_access_profile_takeover,
+        write_provider_gateway_model_catalog, write_string_atomic, write_string_atomic_if_changed,
+        CodexLocalAccessCollection, CodexLocalAccessGatewayMode, CodexLocalAccessScope,
         CodexModelProviderGatewayChatTestRequest, GatewayResponseAdapter, ParsedRequest,
         ResolvedLocalApiKey, ResponseUsageCollector, RoutingCandidate, SidecarUsageDetails,
         SidecarUsageEvent, UsageCapture, CODEX_AUTO_REVIEW_MODEL_ID,
@@ -21767,7 +21846,7 @@ data: {"type":"response.completed","response":{"id":"resp_123","usage":{"input_t
     }
 
     #[test]
-    fn injects_image_generation_tool_only_for_non_free_responses_accounts() {
+    fn injects_image_generation_tool_only_for_non_free_api_key_responses_accounts() {
         let request = ParsedRequest {
             method: "POST".to_string(),
             target: "/v1/responses".to_string(),
@@ -21784,18 +21863,40 @@ data: {"type":"response.completed","response":{"id":"resp_123","usage":{"input_t
             Some(true)
         );
 
-        let paid_account = test_account_with_plan("plus");
-        let paid_body = build_account_scoped_upstream_body(
+        let paid_oauth_account = test_account_with_plan("plus");
+        let paid_oauth_body = build_account_scoped_upstream_body(
             "/responses",
             &prepared.body,
-            &paid_account,
+            &paid_oauth_account,
             CodexLocalAccessImageGenerationMode::Enabled,
             CodexLocalAccessRequestKind::Text,
         )
-        .expect("paid body should build");
-        let paid_mapped_body: Value =
-            serde_json::from_slice(paid_body.as_ref()).expect("paid body should be json");
-        assert!(paid_mapped_body
+        .expect("paid oauth body should build");
+        let paid_oauth_mapped_body: Value = serde_json::from_slice(paid_oauth_body.as_ref())
+            .expect("paid oauth body should be json");
+        assert!(!has_image_generation_tool(&paid_oauth_mapped_body));
+
+        let api_key_account = CodexAccount::new_api_key(
+            "api-key-1".to_string(),
+            "api-key@example.com".to_string(),
+            "sk-test".to_string(),
+            CodexApiProviderMode::OpenaiBuiltin,
+            None,
+            None,
+            None,
+            Vec::new(),
+        );
+        let api_key_body = build_account_scoped_upstream_body(
+            "/responses",
+            &prepared.body,
+            &api_key_account,
+            CodexLocalAccessImageGenerationMode::Enabled,
+            CodexLocalAccessRequestKind::Text,
+        )
+        .expect("api key body should build");
+        let api_key_mapped_body: Value =
+            serde_json::from_slice(api_key_body.as_ref()).expect("api key body should be json");
+        assert!(api_key_mapped_body
             .get("tools")
             .and_then(Value::as_array)
             .map(|tools| tools.iter().any(|tool| {
@@ -21820,7 +21921,7 @@ data: {"type":"response.completed","response":{"id":"resp_123","usage":{"input_t
         let images_only_body = build_account_scoped_upstream_body(
             "/responses",
             &prepared.body,
-            &paid_account,
+            &api_key_account,
             CodexLocalAccessImageGenerationMode::ImagesOnly,
             CodexLocalAccessRequestKind::Text,
         )
@@ -21870,6 +21971,81 @@ data: {"type":"response.completed","response":{"id":"resp_123","usage":{"input_t
                 .iter()
                 .any(|tool| tool.get("type").and_then(Value::as_str) == Some("web_search_preview")))
             .unwrap_or(false));
+    }
+
+    #[test]
+    fn oauth_responses_does_not_mix_image_gen_function_with_hosted_tool() {
+        let account = test_account_with_plan("plus");
+        let body = br#"{
+            "model":"gpt-5.6-sol",
+            "input":"create an image",
+            "tools":[
+                {
+                    "type":"function",
+                    "name":"image_gen.imagegen",
+                    "description":"Generate an image",
+                    "parameters":{"type":"object","properties":{}}
+                }
+            ]
+        }"#;
+
+        let mapped_body = build_account_scoped_upstream_body(
+            "/responses",
+            body,
+            &account,
+            CodexLocalAccessImageGenerationMode::Enabled,
+            CodexLocalAccessRequestKind::Text,
+        )
+        .expect("oauth body should build");
+        let parsed: Value =
+            serde_json::from_slice(mapped_body.as_ref()).expect("body should remain json");
+
+        assert!(!has_image_generation_tool(&parsed));
+        assert!(parsed
+            .get("tools")
+            .and_then(Value::as_array)
+            .is_some_and(|tools| tools.iter().any(|tool| {
+                tool.get("name").and_then(Value::as_str) == Some("image_gen.imagegen")
+            })));
+    }
+
+    #[test]
+    fn oauth_responses_removes_hosted_tool_when_image_gen_namespace_is_present() {
+        let account = test_account_with_plan("plus");
+        let body = br#"{
+            "model":"gpt-5.6-sol",
+            "input":"create an image",
+            "tool_choice":{"type":"image_generation"},
+            "tools":[
+                {
+                    "type":"namespace",
+                    "name":"image_gen",
+                    "tools":[{"type":"function","name":"imagegen","parameters":{}}]
+                },
+                {"type":"image_generation","output_format":"png"}
+            ]
+        }"#;
+
+        let mapped_body = build_account_scoped_upstream_body(
+            "/responses",
+            body,
+            &account,
+            CodexLocalAccessImageGenerationMode::Enabled,
+            CodexLocalAccessRequestKind::Text,
+        )
+        .expect("oauth body should build");
+        let parsed: Value =
+            serde_json::from_slice(mapped_body.as_ref()).expect("body should remain json");
+
+        assert!(!has_image_generation_tool(&parsed));
+        assert!(parsed.get("tool_choice").is_none());
+        assert!(parsed
+            .get("tools")
+            .and_then(Value::as_array)
+            .is_some_and(|tools| tools.iter().any(|tool| {
+                tool.get("type").and_then(Value::as_str) == Some("namespace")
+                    && tool.get("name").and_then(Value::as_str) == Some("image_gen")
+            })));
     }
 
     #[test]
@@ -22787,6 +22963,55 @@ data: {"error":{"code":"server_error","type":"upstream","message":"stream aborte
     }
 
     #[test]
+    fn supported_codex_models_include_official_5_6_models() {
+        let models = supported_codex_model_ids();
+
+        for model_id in ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"] {
+            assert!(
+                models.iter().any(|model| model == model_id),
+                "missing official model {model_id}"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn local_access_takeover_writes_model_catalog_for_official_client() {
+        let profile_dir = make_temp_dir("codex-local-access-model-catalog-test");
+        let mut collection = test_local_access_collection(Vec::new());
+        collection.api_key = "local-service-key".to_string();
+
+        write_local_access_profile_takeover(&profile_dir, &collection, None)
+            .await
+            .expect("write local access takeover");
+
+        let config =
+            fs::read_to_string(profile_dir.join(CODEX_PROFILE_CONFIG_FILE)).expect("read config");
+        assert!(config.contains(&format!(
+            "model_catalog_json = \"{}\"",
+            CODEX_PROVIDER_MODEL_CATALOG_FILE
+        )));
+
+        let catalog_path = profile_dir.join(CODEX_PROVIDER_MODEL_CATALOG_FILE);
+        let catalog: Value =
+            serde_json::from_str(&fs::read_to_string(&catalog_path).expect("read catalog"))
+                .expect("parse catalog");
+        let models = catalog
+            .get("models")
+            .and_then(Value::as_array)
+            .expect("models should be an array");
+        for model_id in ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"] {
+            assert!(
+                models
+                    .iter()
+                    .any(|model| model.get("slug").and_then(Value::as_str) == Some(model_id)),
+                "catalog missing official model {model_id}"
+            );
+        }
+
+        fs::remove_dir_all(&profile_dir).expect("cleanup temp dir");
+    }
+
+    #[test]
     fn model_provider_chat_test_collection_uses_images_only() {
         let request = model_provider_chat_test_request("responses");
         let account = CodexAccount::new_api_key(
@@ -22871,6 +23096,39 @@ data: {"error":{"code":"server_error","type":"upstream","message":"stream aborte
 
         assert_eq!(config.get("disable-image-generation"), Some(&json!("chat")));
         assert_eq!(config.get("disable-auth-auto-refresh"), Some(&json!(true)));
+
+        fs::remove_dir_all(&dir).expect("cleanup temp dir");
+    }
+
+    #[tokio::test]
+    async fn sidecar_config_disables_chat_image_generation_for_oauth_pool() {
+        let dir = make_temp_dir("codex-sidecar-oauth-image-generation");
+        let account = CodexAccount::new(
+            "oauth-image-generation-1".to_string(),
+            "oauth@example.com".to_string(),
+            CodexTokens {
+                id_token: String::new(),
+                access_token: "access-token".to_string(),
+                refresh_token: Some("refresh-token".to_string()),
+            },
+        );
+
+        let collection = test_local_access_collection(vec![account.id.clone()]);
+        let launch_config = prepare_sidecar_launch_config_in_dir(
+            &collection,
+            dir.clone(),
+            HashMap::new(),
+            None,
+            HashMap::from([(account.id.clone(), account)]),
+        )
+        .await
+        .expect("sidecar config should build");
+        let config: Value = serde_json::from_str(
+            &fs::read_to_string(&launch_config.config_path).expect("read sidecar config"),
+        )
+        .expect("parse sidecar config");
+
+        assert_eq!(config.get("disable-image-generation"), Some(&json!("chat")));
 
         fs::remove_dir_all(&dir).expect("cleanup temp dir");
     }

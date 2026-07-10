@@ -1785,6 +1785,48 @@ func isCodexFreePlanAuth(auth *cliproxyauth.Auth) bool {
 	return strings.EqualFold(strings.TrimSpace(auth.Attributes["plan_type"]), "free")
 }
 
+func isImageGenFunctionName(name string) bool {
+	return strings.EqualFold(strings.TrimSpace(name), "image_gen.imagegen")
+}
+
+func codexToolConflictsWithHostedImageGeneration(tool gjson.Result) bool {
+	if isImageGenFunctionName(tool.Get("name").String()) || isImageGenFunctionName(tool.Get("function.name").String()) {
+		return true
+	}
+	if !strings.EqualFold(strings.TrimSpace(tool.Get("name").String()), "image_gen") {
+		return false
+	}
+	children := tool.Get("tools")
+	if !children.IsArray() {
+		return false
+	}
+	for _, child := range children.Array() {
+		if strings.EqualFold(strings.TrimSpace(child.Get("name").String()), "imagegen") ||
+			strings.EqualFold(strings.TrimSpace(child.Get("function.name").String()), "imagegen") {
+			return true
+		}
+	}
+	return false
+}
+
+func removeHostedImageGenerationForFunctionConflict(body []byte, tools gjson.Result) []byte {
+	toolItems := tools.Array()
+	for index := len(toolItems) - 1; index >= 0; index-- {
+		if toolItems[index].Get("type").String() != "image_generation" {
+			continue
+		}
+		body, _ = sjson.DeleteBytes(body, fmt.Sprintf("tools.%d", index))
+	}
+
+	toolChoice := gjson.GetBytes(body, "tool_choice")
+	if toolChoice.String() == "image_generation" ||
+		toolChoice.Get("type").String() == "image_generation" ||
+		(toolChoice.Get("type").String() == "tool" && toolChoice.Get("name").String() == "image_generation") {
+		body, _ = sjson.DeleteBytes(body, "tool_choice")
+	}
+	return body
+}
+
 func ensureImageGenerationTool(body []byte, baseModel string, auth *cliproxyauth.Auth) []byte {
 	if strings.HasSuffix(baseModel, "spark") {
 		return body
@@ -1798,10 +1840,21 @@ func ensureImageGenerationTool(body []byte, baseModel string, auth *cliproxyauth
 		body, _ = sjson.SetRawBytes(body, "tools", imageGenToolArrayJSON)
 		return body
 	}
+	hasFunctionConflict := false
+	hasHostedImageGeneration := false
 	for _, t := range tools.Array() {
-		if t.Get("type").String() == "image_generation" {
-			return body
+		if codexToolConflictsWithHostedImageGeneration(t) {
+			hasFunctionConflict = true
 		}
+		if t.Get("type").String() == "image_generation" {
+			hasHostedImageGeneration = true
+		}
+	}
+	if hasFunctionConflict {
+		return removeHostedImageGenerationForFunctionConflict(body, tools)
+	}
+	if hasHostedImageGeneration {
+		return body
 	}
 	body, _ = sjson.SetRawBytes(body, "tools.-1", imageGenToolJSON)
 	return body

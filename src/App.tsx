@@ -195,7 +195,7 @@ const RENDERABLE_PAGE_VALUES: readonly Page[] = [
 ];
 const RENDERABLE_PAGE_SET = new Set<string>(RENDERABLE_PAGE_VALUES);
 
-const TOP_PROMO_DEFAULT_EXCLUDED_PAGES: readonly Page[] = ['api-relay'];
+const TOP_PROMO_DEFAULT_EXCLUDED_PAGES: readonly Page[] = ['api-relay', 'settings'];
 const TOP_PROMO_PAGE_PLATFORM_TARGETS: Partial<Record<Page, readonly string[]>> = {
   overview: ['antigravity', 'antigravity-ide'],
   instances: ['antigravity', 'antigravity-ide'],

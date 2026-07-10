@@ -83,6 +83,62 @@ type AccountSelectPortalPosition = {
   placement: "top" | "bottom";
 };
 
+type BaseAccountSelectProps = {
+  value: string | null;
+  onChange: (nextId: string | null) => void;
+  allowUnbound?: boolean;
+  allowFollowCurrent?: boolean;
+  isFollowingCurrent?: boolean;
+  onFollowCurrent?: () => void;
+  disabled?: boolean;
+  missing?: boolean;
+  placeholder?: string;
+};
+
+type AccountMenuItemsRenderArgs<TAccount extends AccountLike> = {
+  visibleAccounts: TAccount[];
+  availableTags: string[];
+  searchValue: string;
+  onSearchChange: (value: string) => void;
+  tagFilter: string[];
+  onToggleTagFilter: (tag: string) => void;
+  onClearTagFilter: () => void;
+  value: string | null;
+  isFollowingCurrent?: boolean;
+  allowFollowCurrent?: boolean;
+  allowUnbound?: boolean;
+  onFollowCurrent?: () => void;
+  onChange: (nextId: string | null) => void;
+  onClose: () => void;
+  selectedAccount: TAccount | null;
+};
+
+type InlineAccountSelectProps<TAccount extends AccountLike> =
+  BaseAccountSelectProps & {
+    accounts: TAccount[];
+    launchMode: InstanceLaunchMode;
+    filterAccountsForLaunchMode: (
+      source: TAccount[],
+      launchMode: InstanceLaunchMode,
+    ) => TAccount[];
+    getAccountSearchText?: (account: TAccount) => string;
+    resolveAccountDisplayText: (account?: TAccount | null) => string;
+    isApiServiceBindId: (value?: string | null) => boolean;
+    resolveBoundAccount: (bindAccountId?: string | null) => {
+      account: TAccount | null;
+    };
+    renderAccountQuotaPreview: (account: TAccount) => ReactNode;
+    renderAccountBadge?: (account: TAccount) => ReactNode;
+    maskAccountText: (value?: string | null) => string;
+    resolveApiServiceLabel: () => string;
+    renderAccountMenuItems: (
+      args: AccountMenuItemsRenderArgs<TAccount>,
+    ) => ReactNode;
+    onOpenChange?: (open: boolean) => void;
+    instanceId?: string;
+    currentOpenId?: string | null;
+  };
+
 interface InstancesManagerProps<TAccount extends AccountLike> {
   instanceStore: InstanceStoreState;
   accounts: TAccount[];
