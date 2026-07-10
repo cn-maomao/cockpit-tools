@@ -2262,6 +2262,11 @@
       "oauthBinding": {
         "desc": "可选绑定。只要 OAuth 账号带 refresh_token 即可选择；未绑定时 API 服务按原 API Key 逻辑运行；绑定后登录态使用 OAuth 账号，Provider 使用当前 API 服务配置。",
         "currentService": "API 服务：{{name}}",
+        "quotaReserveToggle": "保留 OAuth 额度",
+        "quotaReserveDesc": "API 服务仅在 5 小时和周剩余额度均高于保留值时使用该 OAuth 账号。",
+        "quotaReserveHourlyLabel": "5 小时保留",
+        "quotaReserveWeeklyLabel": "周保留",
+        "quotaReserveInvalid": "请输入 1 到 100 的整数",
         "imageGenerationTooltip": "开启后，API 服务会在本地网关转发普通文本对话前移除 image_generation 工具声明；不会删除生图模型。",
         "imageGenerationConfirm": {
           "title": "禁用 image_generation 能力",

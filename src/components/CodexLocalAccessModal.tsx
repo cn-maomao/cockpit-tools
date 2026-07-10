@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
+  ArrowDown,
+  ArrowDownWideNarrow,
+  ArrowUp,
   Bug,
   Check,
   CircleAlert,
@@ -64,6 +67,10 @@ import {
   type MultiSelectFilterOption,
 } from "./MultiSelectFilterDropdown";
 import { SingleSelectDropdown } from "./SingleSelectDropdown";
+import {
+  SingleSelectFilterDropdown,
+  type SingleSelectFilterOption,
+} from "./SingleSelectFilterDropdown";
 import { PaginationControls } from "./PaginationControls";
 import { useEscClose } from "../hooks/useEscClose";
 import {
@@ -75,6 +82,30 @@ import "./CodexLocalAccessModal.css";
 
 const LOCAL_ACCESS_MEMBER_PAGE_SIZE_OPTIONS = [50, 100, 200] as const;
 
+export interface CodexLocalAccessMemberViewConfig {
+  accounts: CodexAccount[];
+  searchQuery: string;
+  filterTypes: string[];
+  tagFilter: string[];
+  groupFilter: string[];
+  sortBy: string;
+  sortDirection: "asc" | "desc";
+  tierFilterOptions: MultiSelectFilterOption[];
+  tierFilterAllLabel: string;
+  availableTags: string[];
+  groupFilterOptions: MultiSelectFilterOption[];
+  sortOptions: SingleSelectFilterOption[];
+  onSearchQueryChange: (value: string) => void;
+  onToggleFilterType: (value: string) => void;
+  onClearFilterTypes: () => void;
+  onToggleTagFilter: (value: string) => void;
+  onClearTagFilter: () => void;
+  onToggleGroupFilter: (value: string) => void;
+  onClearGroupFilter: () => void;
+  onSortByChange: (value: string) => void;
+  onToggleSortDirection: () => void;
+}
+
 interface CodexLocalAccessModalProps {
   isOpen: boolean;
   mode: "panel" | "members";
@@ -84,6 +115,7 @@ interface CodexLocalAccessModalProps {
   onAddressKindChange: (value: string) => void;
   accounts: CodexAccount[];
   accountGroups: CodexAccountGroup[];
+  memberView?: CodexLocalAccessMemberViewConfig;
   initialSelectedIds: string[];
   maskAccountText: (value?: string | null) => string;
   onClose: () => void;
@@ -274,6 +306,7 @@ export function CodexLocalAccessModal({
   onAddressKindChange,
   accounts,
   accountGroups,
+  memberView,
   initialSelectedIds,
   maskAccountText,
   onClose,
@@ -798,7 +831,23 @@ export function CodexLocalAccessModal({
     ],
   );
 
+  const memberSearchQuery = memberView?.searchQuery ?? query;
+  const memberFilterTypes = memberView?.filterTypes ?? filterTypes;
+  const memberTagFilter = memberView?.tagFilter ?? tagFilter;
+  const memberGroupFilter = memberView?.groupFilter ?? groupFilter;
+  const memberTierFilterOptions =
+    memberView?.tierFilterOptions ?? tierFilterOptions;
+  const memberTierFilterAllLabel =
+    memberView?.tierFilterAllLabel ?? allTierFilterLabel;
+  const memberAvailableTags = memberView?.availableTags ?? availableTags;
+  const memberGroupFilterOptions =
+    memberView?.groupFilterOptions ?? groupFilterOptions;
+
   const visibleAccounts = useMemo(() => {
+    if (memberView) {
+      return memberView.accounts;
+    }
+
     const queryText = query.trim().toLowerCase();
     const sorted = [...localAccessAccounts].sort((a, b) => {
       const aName = buildCodexAccountPresentation(
@@ -873,6 +922,7 @@ export function CodexLocalAccessModal({
     groupIdsByAccountId,
     groupNameByAccountId,
     localAccessAccounts,
+    memberView,
     query,
     t,
     tagFilter,
@@ -906,12 +956,14 @@ export function CodexLocalAccessModal({
   useEffect(() => {
     memberPagination.setCurrentPage(1);
   }, [
-    filterTypes,
-    groupFilter,
+    memberFilterTypes,
+    memberGroupFilter,
     memberPagination.setCurrentPage,
-    query,
+    memberSearchQuery,
     restrictFreeAccounts,
-    tagFilter,
+    memberTagFilter,
+    memberView?.sortBy,
+    memberView?.sortDirection,
   ]);
 
   const visibleEnabledAccounts = useMemo(
@@ -2663,58 +2715,135 @@ export function CodexLocalAccessModal({
                     <input
                       ref={searchInputRef}
                       type="text"
-                      value={query}
-                      onChange={(event) => setQuery(event.target.value)}
+                      value={memberSearchQuery}
+                      onChange={(event) => {
+                        if (memberView) {
+                          memberView.onSearchQueryChange(event.target.value);
+                          return;
+                        }
+                        setQuery(event.target.value);
+                      }}
                       placeholder={t("accounts.search")}
                     />
                   </div>
                   <div className="group-account-picker-filters">
                     <MultiSelectFilterDropdown
-                      options={tierFilterOptions}
-                      selectedValues={filterTypes}
-                      allLabel={allTierFilterLabel}
+                      options={memberTierFilterOptions}
+                      selectedValues={memberFilterTypes}
+                      allLabel={memberTierFilterAllLabel}
                       filterLabel={t("common.shared.filterLabel", "筛选")}
                       clearLabel={t("accounts.clearFilter", "清空筛选")}
                       emptyLabel={t("common.none", "暂无")}
                       ariaLabel={t("common.shared.filterLabel", "筛选")}
-                      onToggleValue={(value) =>
+                      onToggleValue={(value) => {
+                        if (memberView) {
+                          memberView.onToggleFilterType(value);
+                          return;
+                        }
                         setFilterTypes((prev) =>
                           prev.includes(value)
                             ? prev.filter((item) => item !== value)
                             : [...prev, value],
-                        )
-                      }
-                      onClear={() => setFilterTypes([])}
+                        );
+                      }}
+                      onClear={() => {
+                        if (memberView) {
+                          memberView.onClearFilterTypes();
+                          return;
+                        }
+                        setFilterTypes([]);
+                      }}
                     />
                     <AccountTagFilterDropdown
-                      availableTags={availableTags}
-                      selectedTags={tagFilter}
-                      onToggleTag={(value) =>
+                      availableTags={memberAvailableTags}
+                      selectedTags={memberTagFilter}
+                      onToggleTag={(value) => {
+                        if (memberView) {
+                          memberView.onToggleTagFilter(value);
+                          return;
+                        }
                         setTagFilter((prev) =>
                           prev.includes(value)
                             ? prev.filter((item) => item !== value)
                             : [...prev, value],
-                        )
-                      }
-                      onClear={() => setTagFilter([])}
+                        );
+                      }}
+                      onClear={() => {
+                        if (memberView) {
+                          memberView.onClearTagFilter();
+                          return;
+                        }
+                        setTagFilter([]);
+                      }}
                     />
                     <MultiSelectFilterDropdown
-                      options={groupFilterOptions}
-                      selectedValues={groupFilter}
+                      options={memberGroupFilterOptions}
+                      selectedValues={memberGroupFilter}
                       allLabel={t("accounts.groups.allGroups", "全部分组")}
                       filterLabel={t("accounts.groups.manageTitle", "分组管理")}
                       clearLabel={t("accounts.clearFilter", "清空筛选")}
                       emptyLabel={t("common.none", "暂无")}
                       ariaLabel={t("accounts.groups.manageTitle", "分组管理")}
-                      onToggleValue={(value) =>
+                      onToggleValue={(value) => {
+                        if (memberView) {
+                          memberView.onToggleGroupFilter(value);
+                          return;
+                        }
                         setGroupFilter((prev) =>
                           prev.includes(value)
                             ? prev.filter((item) => item !== value)
                             : [...prev, value],
-                        )
-                      }
-                      onClear={() => setGroupFilter([])}
+                        );
+                      }}
+                      onClear={() => {
+                        if (memberView) {
+                          memberView.onClearGroupFilter();
+                          return;
+                        }
+                        setGroupFilter([]);
+                      }}
                     />
+                    {memberView && (
+                      <>
+                        <SingleSelectFilterDropdown
+                          value={memberView.sortBy}
+                          options={memberView.sortOptions}
+                          ariaLabel={t("common.shared.sortLabel", "排序")}
+                          icon={<ArrowDownWideNarrow size={14} />}
+                          disabled={actionBusy}
+                          onChange={memberView.onSortByChange}
+                        />
+                        {memberView.sortBy !== "custom" && (
+                          <button
+                            type="button"
+                            className="sort-direction-btn codex-local-access-member-sort-direction"
+                            onClick={memberView.onToggleSortDirection}
+                            disabled={actionBusy}
+                            title={
+                              memberView.sortDirection === "desc"
+                                ? t(
+                                    "common.shared.sort.descTooltip",
+                                    "当前：降序，点击切换为升序",
+                                  )
+                                : t(
+                                    "common.shared.sort.ascTooltip",
+                                    "当前：升序，点击切换为降序",
+                                  )
+                            }
+                            aria-label={t(
+                              "common.shared.sort.toggleDirection",
+                              "切换排序方向",
+                            )}
+                          >
+                            {memberView.sortDirection === "desc" ? (
+                              <ArrowDown size={15} />
+                            ) : (
+                              <ArrowUp size={15} />
+                            )}
+                          </button>
+                        )}
+                      </>
+                    )}
                   </div>
                 </div>
 

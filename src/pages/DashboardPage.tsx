@@ -111,7 +111,12 @@ import {
   UnifiedQuotaMetric,
 } from '../presentation/platformAccountPresentation';
 import {
-  queryModelProviderUsage,
+  CODEX_API_KEY_USAGE_REFRESHED_EVENT,
+  readCodexApiKeyUsageCache,
+  refreshCodexApiKeyUsageForAccounts,
+} from '../services/codexApiKeyUsageRefreshService';
+import {
+  isModelProviderUsageUnavailableError,
   type ModelProviderUsageSummary,
 } from '../services/modelProviderUsageService';
 import * as traeService from '../services/traeService';
@@ -738,7 +743,9 @@ export function DashboardPage({
     loading: boolean;
     summary?: ModelProviderUsageSummary;
     error?: string;
-  }>>({});
+    unavailable?: boolean;
+    updatedAt?: number;
+  }>>(() => readCodexApiKeyUsageCache());
   const [cardRefreshing, setCardRefreshing] = React.useState<{
     ag: boolean;
     codex: boolean;
@@ -836,7 +843,10 @@ export function DashboardPage({
     }
   };
 
-  const refreshCodexApiUsage = useCallback(async (account: CodexAccount) => {
+  const refreshCodexApiUsage = useCallback(async (
+    account: CodexAccount,
+    options?: { force?: boolean },
+  ) => {
     if (isCodexChatCompletionsApiKeyAccount(account)) return;
     const apiKey = (account.openai_api_key || '').trim();
     const baseUrl = (account.api_base_url || '').trim();
@@ -847,18 +857,19 @@ export function DashboardPage({
         ...prev[account.id],
         loading: true,
         error: undefined,
+        unavailable: false,
       },
     }));
     try {
-      const summary = await queryModelProviderUsage({
-        baseUrl,
-        apiKey,
+      await refreshCodexApiKeyUsageForAccounts([account], {
+        force: options?.force,
       });
+      const usageState = readCodexApiKeyUsageCache()[account.id];
       setCodexApiUsageMap((prev) => ({
         ...prev,
         [account.id]: {
+          ...usageState,
           loading: false,
-          summary,
         },
       }));
     } catch (error) {
@@ -867,10 +878,27 @@ export function DashboardPage({
         [account.id]: {
           loading: false,
           summary: prev[account.id]?.summary,
-          error: String(error).replace(/^Error:\s*/, ''),
+          error: isModelProviderUsageUnavailableError(error)
+            ? undefined
+            : String(error).replace(/^Error:\s*/, ''),
+          unavailable: isModelProviderUsageUnavailableError(error),
+          updatedAt: Date.now(),
         },
       }));
     }
+  }, []);
+
+  React.useEffect(() => {
+    const syncUsageCache = () => {
+      const cache = readCodexApiKeyUsageCache();
+      setCodexApiUsageMap((previous) => ({ ...previous, ...cache }));
+    };
+    window.addEventListener(CODEX_API_KEY_USAGE_REFRESHED_EVENT, syncUsageCache);
+    return () =>
+      window.removeEventListener(
+        CODEX_API_KEY_USAGE_REFRESHED_EVENT,
+        syncUsageCache,
+      );
   }, []);
 
   const handleRefreshGitHubCopilot = async (accountId: string) => {
@@ -2226,7 +2254,7 @@ export function DashboardPage({
             {!isChatCompletionsApiKey && (
               <button
                 className="mini-icon-btn"
-                onClick={() => void refreshCodexApiUsage(account)}
+                onClick={() => void refreshCodexApiUsage(account, { force: true })}
                 title={t('common.refresh', '刷新')}
                 disabled={refreshing.has(account.id) || usageState?.loading}
               >
@@ -2266,10 +2294,17 @@ export function DashboardPage({
         !isCodexChatCompletionsApiKeyAccount(account!),
     );
     targetAccounts.forEach((account) => {
-      if (codexApiUsageMap[account.id]?.loading || codexApiUsageMap[account.id]?.summary) {
+      const usageState = codexApiUsageMap[account.id];
+      if (
+        usageState?.loading ||
+        usageState?.summary ||
+        usageState?.unavailable ||
+        usageState?.error ||
+        usageState?.updatedAt !== undefined
+      ) {
         return;
       }
-      void refreshCodexApiUsage(account);
+      void refreshCodexApiUsage(account, { force: false });
     });
   }, [codexApiUsageMap, codexCurrentAccount, codexRecommended, refreshCodexApiUsage]);
 

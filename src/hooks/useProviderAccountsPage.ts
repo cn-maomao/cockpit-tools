@@ -165,6 +165,8 @@ export interface ProviderPageConfig<TAccount extends ProviderAccountBase> {
   }) => void | Promise<void>;
   /** OAuth 成功后的提示文案（可选） */
   resolveOauthSuccessMessage?: () => string;
+  /** 首次渲染时使用的搜索内容 */
+  initialSearchQuery?: string;
   defaultSortBy?: string;
 }
 
@@ -767,6 +769,7 @@ export function useProviderAccountsPage<TAccount extends ProviderAccountBase>(
     oauthService,
     oauthTabKeys: oauthTabKeysConfig,
     dataService,
+    initialSearchQuery: initialSearchQueryConfig,
     defaultSortBy: defaultSortByConfig,
   } = config;
   const defaultSortBy = defaultSortByConfig?.trim() || DEFAULT_SORT_BY;
@@ -863,7 +866,9 @@ export function useProviderAccountsPage<TAccount extends ProviderAccountBase>(
   });
 
   // ─── Search & Filter ──────────────────────────────────────────────────
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(
+    () => initialSearchQueryConfig ?? '',
+  );
   const [filterType, setFilterType] = useState<string>(() => {
     if (!readAccountsOverviewFilterPersistenceEnabled(filterPersistenceScope)) {
       return 'all';

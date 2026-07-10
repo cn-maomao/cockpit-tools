@@ -1940,6 +1940,11 @@
       "oauthBinding": {
         "desc": "Volitelné. Vybrat lze pouze účty OAuth s refresh_token. Bez propojení služba API používá původní logiku API Key; po propojení se přihlášení bere z účtu OAuth a Provider z konfigurace služby API.",
         "currentService": "Služba API: {{name}}",
+        "quotaReserveToggle": "Rezervovat kvótu OAuth",
+        "quotaReserveDesc": "Služba API používá tento účet OAuth jen tehdy, když je zbývající 5hodinová i týdenní kvóta vyšší než rezervovaná hodnota.",
+        "quotaReserveHourlyLabel": "Rezerva 5 hodin",
+        "quotaReserveWeeklyLabel": "Týdenní rezerva",
+        "quotaReserveInvalid": "Zadejte celé číslo od 1 do 100.",
         "imageGenerationTooltip": "Po zapnutí služba API v místní bráně před přeposláním běžných textových konverzací odstraní deklaraci nástroje image_generation; obrazové modely se nemažou.",
         "imageGenerationConfirm": {
           "title": "Zakázat image_generation",

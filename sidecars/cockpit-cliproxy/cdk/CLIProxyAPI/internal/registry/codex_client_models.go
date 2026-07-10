@@ -19,6 +19,7 @@ type codexClientModelOverride struct {
 	DisplayName              string                      `json:"display_name"`
 	Description              string                      `json:"description"`
 	ContextWindow            int                         `json:"context_window"`
+	UseResponsesLite         bool                        `json:"use_responses_lite"`
 	SupportedReasoningLevels []codexClientReasoningLevel `json:"supported_reasoning_levels"`
 }
 
@@ -29,6 +30,7 @@ type codexClientReasoningLevel struct {
 var (
 	codexClientBuiltinModelsOnce sync.Once
 	codexClientBuiltinModels     []*ModelInfo
+	codexResponsesLiteModels     map[string]struct{}
 )
 
 // GetCodexClientModelsJSON returns the embedded Codex client model catalog.
@@ -42,10 +44,14 @@ func codexClientBuiltinModelInfos() []*ModelInfo {
 		if err := json.Unmarshal(codexClientModelsJSON, &payload); err != nil {
 			return
 		}
+		codexResponsesLiteModels = make(map[string]struct{})
 		for _, model := range payload.ModelOverrides {
 			slug := strings.TrimSpace(model.Slug)
 			if slug == "" {
 				continue
+			}
+			if model.UseResponsesLite {
+				codexResponsesLiteModels[strings.ToLower(slug)] = struct{}{}
 			}
 			levels := make([]string, 0, len(model.SupportedReasoningLevels))
 			for _, rawLevel := range model.SupportedReasoningLevels {
@@ -69,4 +75,12 @@ func codexClientBuiltinModelInfos() []*ModelInfo {
 	})
 
 	return cloneModelInfos(codexClientBuiltinModels)
+}
+
+// CodexClientModelUsesResponsesLite reports whether the embedded Codex client
+// catalog routes the model through the Responses Lite protocol.
+func CodexClientModelUsesResponsesLite(modelID string) bool {
+	codexClientBuiltinModelInfos()
+	_, ok := codexResponsesLiteModels[strings.ToLower(strings.TrimSpace(modelID))]
+	return ok
 }

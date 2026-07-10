@@ -6,6 +6,22 @@ import (
 	"github.com/tidwall/gjson"
 )
 
+func TestConvertOpenAIResponsesRequestToCodex_ResponsesLiteDisablesParallelTools(t *testing.T) {
+	inputJSON := []byte(`{"model":"gpt-5.6-luna","parallel_tool_calls":true,"input":"ping"}`)
+	output := ConvertOpenAIResponsesRequestToCodex("gpt-5.6-luna", inputJSON, false)
+	if got := gjson.GetBytes(output, "parallel_tool_calls"); !got.Exists() || got.Bool() {
+		t.Fatalf("parallel_tool_calls = %s, want false", got.Raw)
+	}
+}
+
+func TestConvertOpenAIResponsesRequestToCodex_PreservesExplicitParallelToolsSetting(t *testing.T) {
+	inputJSON := []byte(`{"model":"gpt-5.5","parallel_tool_calls":false,"input":"ping"}`)
+	output := ConvertOpenAIResponsesRequestToCodex("gpt-5.5", inputJSON, false)
+	if got := gjson.GetBytes(output, "parallel_tool_calls"); !got.Exists() || got.Bool() {
+		t.Fatalf("parallel_tool_calls = %s, want false", got.Raw)
+	}
+}
+
 // TestConvertSystemRoleToDeveloper_BasicConversion tests the basic system -> developer role conversion
 func TestConvertSystemRoleToDeveloper_BasicConversion(t *testing.T) {
 	inputJSON := []byte(`{

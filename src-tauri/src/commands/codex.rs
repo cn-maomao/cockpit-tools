@@ -6,7 +6,7 @@ use crate::models::codex_local_access::{
     CodexLocalAccessAccountModelRule, CodexLocalAccessChatMessage, CodexLocalAccessChatResult,
     CodexLocalAccessClientBaseUrlHost, CodexLocalAccessCustomRoutingRule,
     CodexLocalAccessGatewayMode, CodexLocalAccessModelAlias, CodexLocalAccessModelPricing,
-    CodexLocalAccessPortCleanupResult, CodexLocalAccessRequestKind,
+    CodexLocalAccessPortCleanupResult, CodexLocalAccessQuotaReserve, CodexLocalAccessRequestKind,
     CodexLocalAccessRoutingStrategy, CodexLocalAccessScope, CodexLocalAccessState,
     CodexLocalAccessTestFailure, CodexLocalAccessTestResult, CodexLocalAccessTimeoutPreset,
     CodexLocalAccessTimeouts, CodexLocalAccessUsageEventPage,
@@ -2879,10 +2879,12 @@ pub async fn codex_local_access_rotate_api_key() -> Result<CodexLocalAccessState
 pub async fn codex_local_access_update_bound_oauth_account(
     bound_oauth_account_id: Option<String>,
     bound_oauth_use_local_gateway: Option<bool>,
+    bound_oauth_quota_reserve: Option<CodexLocalAccessQuotaReserve>,
 ) -> Result<CodexLocalAccessState, String> {
     codex_local_access::update_local_access_bound_oauth_account(
         bound_oauth_account_id,
         bound_oauth_use_local_gateway.unwrap_or(false),
+        bound_oauth_quota_reserve,
     )
     .await
 }

@@ -154,6 +154,7 @@ import type {
   CodexLocalAccessAccountHealth,
   CodexLocalAccessCustomRoutingRule,
   CodexLocalAccessGatewayMode,
+  CodexLocalAccessOAuthQuotaReserve,
   CodexLocalAccessRoutingStrategy,
   CodexLocalAccessScope,
   CodexLocalAccessState,
@@ -168,7 +169,22 @@ import {
   isCodexCodeReviewQuotaVisibleByDefault,
 } from "../utils/codexPreferences";
 import { emitAccountsChanged } from "../utils/accountSyncEvents";
-import { compareCurrentAccountFirst } from "../utils/currentAccountSort";
+import {
+  CODEX_OVERVIEW_FILTER_FIELDS,
+  CODEX_OVERVIEW_FILTER_SCOPE,
+  buildCodexOverviewGroupFilterOptions,
+  buildCodexOverviewSortOptions,
+  buildCodexPlanFilterOptions,
+  createCodexOverviewAccountComparator,
+  createCodexPlanFilterCounts,
+  filterAndSortCodexOverviewAccounts,
+  incrementCodexPlanFilterCount,
+  isCodexOverviewAccountAbnormal,
+  readCodexCustomSortActive,
+  readCodexCustomSortOrder,
+  writeCodexCustomSortActive,
+  writeCodexCustomSortOrder,
+} from "../utils/codexAccountOverview";
 import {
   CODEX_API_PROVIDER_CUSTOM_ID,
   CODEX_API_PROVIDER_PRESETS,
@@ -205,12 +221,16 @@ import {
   type CodexModelProviderUsageSummary,
   upsertCodexModelProviderFromCredential,
 } from "../services/codexModelProviderService";
+import {
+  CODEX_API_KEY_USAGE_REFRESHED_EVENT,
+  readCodexApiKeyUsageCache,
+  writeCodexApiKeyUsageCache,
+  type CodexApiKeyUsageState,
+} from "../services/codexApiKeyUsageRefreshService";
+import { isModelProviderUsageUnavailableError } from "../services/modelProviderUsageService";
 import { useSponsorStore } from "../stores/useSponsorStore";
 import type { Sponsor } from "../types/sponsor";
-import {
-  buildValidAccountsFilterOption,
-  splitValidityFilterValues,
-} from "../utils/accountValidityFilter";
+import { buildValidAccountsFilterOption } from "../utils/accountValidityFilter";
 import {
   buildPaginatedGroups,
   buildPaginationPageSizeStorageKey,
@@ -224,7 +244,6 @@ import {
   type CodexExportFormat,
 } from "../utils/codexExportFormats";
 import {
-  normalizeAccountsOverviewScope,
   readAccountsOverviewFilterField,
   readAccountsOverviewFilterPersistenceEnabled,
   readAccountsOverviewFilterStringArray,
@@ -288,103 +307,12 @@ const CODEX_TOKEN_BATCH_EXAMPLE = `[
 ]`;
 const OPENAI_OFFICIAL_PRESET_ID = "openai_official";
 const OPENAI_OFFICIAL_BASE_URL = "https://api.openai.com/v1";
-const CODEX_PRIMARY_PLAN_FILTER_KEYS = [
-  "FREE",
-  "PLUS",
-  "PRO",
-  "TEAM",
-  "ENTERPRISE",
-] as const;
-const CODEX_SPECIAL_PLAN_FILTER_KEYS = new Set(["PENDING", "ERROR", "VALID"]);
-
-type CodexPlanFilterCounts = {
-  all: number;
-  VALID: number;
-  ERROR: number;
-  counts: Record<string, number>;
-};
-
-function normalizeCodexPlanFilterValue(value: string): string {
-  return value.trim().toUpperCase();
-}
-
-function createCodexPlanFilterCounts(total: number): CodexPlanFilterCounts {
-  return {
-    all: total,
-    VALID: 0,
-    ERROR: 0,
-    counts: {},
-  };
-}
-
-function incrementCodexPlanFilterCount(
-  counts: CodexPlanFilterCounts,
-  value: string,
-) {
-  const key = normalizeCodexPlanFilterValue(value);
-  if (!key) return;
-  counts.counts[key] = (counts.counts[key] ?? 0) + 1;
-}
-
-function getCodexPlanFilterCount(
-  counts: CodexPlanFilterCounts,
-  value: string,
-): number {
-  return counts.counts[normalizeCodexPlanFilterValue(value)] ?? 0;
-}
-
-function buildCodexPlanFilterOptions(
-  counts: CodexPlanFilterCounts,
-  options?: {
-    includeValid?: boolean;
-    pendingLabel?: string;
-    validOption?: MultiSelectFilterOption;
-  },
-): MultiSelectFilterOption[] {
-  const usedKeys = new Set<string>();
-  const result: MultiSelectFilterOption[] = [];
-
-  for (const key of CODEX_PRIMARY_PLAN_FILTER_KEYS) {
-    usedKeys.add(key);
-    result.push({
-      value: key,
-      label: `${key} (${getCodexPlanFilterCount(counts, key)})`,
-    });
+function parseOAuthQuotaReservePercent(value: string): number | null {
+  const normalized = value.trim();
+  if (!/^(?:[1-9]\d?|100)$/.test(normalized)) {
+    return null;
   }
-
-  Object.keys(counts.counts)
-    .map(normalizeCodexPlanFilterValue)
-    .filter(
-      (key) =>
-        key &&
-        !usedKeys.has(key) &&
-        !CODEX_SPECIAL_PLAN_FILTER_KEYS.has(key),
-    )
-    .sort((left, right) => left.localeCompare(right))
-    .forEach((key) => {
-      usedKeys.add(key);
-      result.push({
-        value: key,
-        label: `${key} (${getCodexPlanFilterCount(counts, key)})`,
-      });
-    });
-
-  result.push({
-    value: "PENDING",
-    label: `${options?.pendingLabel ?? "待授权"} (${getCodexPlanFilterCount(
-      counts,
-      "PENDING",
-    )})`,
-  });
-  result.push({
-    value: "ERROR",
-    label: `ERROR (${counts.ERROR})`,
-  });
-  if (options?.includeValid && options.validOption) {
-    result.push(options.validOption);
-  }
-
-  return result;
+  return Number(normalized);
 }
 
 function normalizeCodexApiBaseUrl(rawValue?: string | null): string {
@@ -414,33 +342,25 @@ const CODEX_LOCAL_ACCESS_ADDRESS_KIND_KEY =
   "agtools.codex.local_access_address_kind.v1";
 const CODEX_LOCAL_ACCESS_GATEWAY_GUIDE_DISMISSED_KEY =
   "agtools.codex.api_service.gateway_guide.dismissed.v1";
-const CODEX_CUSTOM_SORT_ORDER_KEY =
-  "agtools.codex.accounts.custom_sort_order.v1";
-const CODEX_CUSTOM_SORT_ACTIVE_KEY =
-  "agtools.codex.accounts.custom_sort_active.v1";
 const DEFAULT_CODEX_API_PROVIDER_ID = OPENAI_OFFICIAL_PRESET_ID;
 const DEFAULT_CODEX_API_BASE_URL = OPENAI_OFFICIAL_BASE_URL;
 const CODEX_LOCAL_ACCESS_FALLBACK_PORT = 54140;
 const CODEX_LOCAL_ACCESS_FALLBACK_BASE_URL = `http://127.0.0.1:${CODEX_LOCAL_ACCESS_FALLBACK_PORT}/v1`;
 const CODEX_LOCAL_ACCESS_FALLBACK_API_KEY_MASK = "agt_codex_••••••••••••";
-const CODEX_FILTER_PERSISTENCE_SCOPE = normalizeAccountsOverviewScope("Codex");
-const FILTER_TYPES_FIELD = "filter_types";
-const EXPIRY_FILTER_FIELD = "expiry_filter";
-const GROUP_FILTER_FIELD = "group_filter";
-const ACTIVE_GROUP_ID_FIELD = "active_group_id";
+const CODEX_FILTER_PERSISTENCE_SCOPE = CODEX_OVERVIEW_FILTER_SCOPE;
+const SEARCH_QUERY_FIELD = CODEX_OVERVIEW_FILTER_FIELDS.searchQuery;
+const FILTER_TYPES_FIELD = CODEX_OVERVIEW_FILTER_FIELDS.filterTypes;
+const EXPIRY_FILTER_FIELD = CODEX_OVERVIEW_FILTER_FIELDS.expiryFilter;
+const GROUP_FILTER_FIELD = CODEX_OVERVIEW_FILTER_FIELDS.groupFilter;
+const ACTIVE_GROUP_ID_FIELD = CODEX_OVERVIEW_FILTER_FIELDS.activeGroupId;
 const OAUTH_BINDING_PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
 
 type CodexOverviewLayoutMode = "compact" | "list" | "grid";
-type OAuthBindingSortBy = "account" | "created_at" | "last_used" | "plan";
 type OAuthBindingTargetKind = "api_key_account" | "local_access";
-type CodexApiKeyUsageState = {
-  loading: boolean;
-  summary?: CodexModelProviderUsageSummary;
-  error?: string;
-  unavailable?: boolean;
-  updatedAt?: number;
+type OAuthBindingQuotaReserveFieldErrors = {
+  hourlyPercent?: string;
+  weeklyPercent?: string;
 };
-
 type CodexAccountNoteFormState = {
   note: string;
   twoFactorSecret: string;
@@ -547,65 +467,6 @@ function isPendingOAuthCodexAccount(account?: CodexAccount | null): boolean {
   return isCodexPendingOAuthAccount(account);
 }
 
-const CODEX_API_KEY_USAGE_CACHE_KEY = "agtools.codex.apiKeyUsage.cache.v1";
-const CODEX_API_KEY_USAGE_AUTO_REFRESH_INTERVAL_MS = 10 * 60 * 1000;
-
-function readCodexApiKeyUsageCache(): Record<string, CodexApiKeyUsageState> {
-  try {
-    const raw = localStorage.getItem(CODEX_API_KEY_USAGE_CACHE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
-    if (!parsed || typeof parsed !== "object") return {};
-    const next: Record<string, CodexApiKeyUsageState> = {};
-    Object.entries(parsed).forEach(([accountId, value]) => {
-      if (!value || typeof value !== "object") return;
-      const item = value as {
-        summary?: CodexModelProviderUsageSummary;
-        error?: string;
-        unavailable?: boolean;
-        updatedAt?: number;
-      };
-      next[accountId] = {
-        loading: false,
-        summary: item.summary,
-        error: typeof item.error === "string" ? item.error : undefined,
-        unavailable: item.unavailable === true,
-        updatedAt:
-          typeof item.updatedAt === "number" && Number.isFinite(item.updatedAt)
-            ? item.updatedAt
-            : undefined,
-      };
-    });
-    return next;
-  } catch {
-    return {};
-  }
-}
-
-function writeCodexApiKeyUsageCache(
-  value: Record<string, CodexApiKeyUsageState>,
-): void {
-  try {
-    localStorage.setItem(
-      CODEX_API_KEY_USAGE_CACHE_KEY,
-      JSON.stringify(
-        Object.fromEntries(
-          Object.entries(value).map(([accountId, item]) => [
-            accountId,
-            {
-              summary: item.summary,
-              error: item.error,
-              unavailable: item.unavailable === true,
-              updatedAt: item.updatedAt,
-            },
-          ]),
-        ),
-      ),
-    );
-  } catch {
-    // ignore persistence failures
-  }
-}
 
 function isSponsorModelProvider(
   provider: CodexModelProvider | null | undefined,
@@ -769,15 +630,6 @@ function readCockpitApiOptionalNumber(
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
-function isProviderUsageUnavailableError(error: unknown): boolean {
-  const message = String(error).replace(/^Error:\s*/, "");
-  return (
-    message.includes("PROVIDER_USAGE_DETECT_FAILED") ||
-    message.includes("PROVIDER_USAGE_HTTP_404") ||
-    message.includes("PROVIDER_USAGE_TYPE_UNSUPPORTED")
-  );
-}
-
 function formatCockpitApiInteger(value: number): string {
   return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(
     Math.max(0, value),
@@ -841,48 +693,6 @@ function resolveApiKeyUsageMode(
     return "new_api";
   }
   return null;
-}
-
-function readCodexCustomSortOrder(): string[] {
-  try {
-    const raw = localStorage.getItem(CODEX_CUSTOM_SORT_ORDER_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (item): item is string =>
-        typeof item === "string" && item.trim().length > 0,
-    );
-  } catch {
-    return [];
-  }
-}
-
-function writeCodexCustomSortOrder(accountIds: string[]): void {
-  try {
-    localStorage.setItem(
-      CODEX_CUSTOM_SORT_ORDER_KEY,
-      JSON.stringify(accountIds),
-    );
-  } catch {
-    // ignore persistence failures
-  }
-}
-
-function readCodexCustomSortActive(): boolean {
-  try {
-    return localStorage.getItem(CODEX_CUSTOM_SORT_ACTIVE_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-function writeCodexCustomSortActive(active: boolean): void {
-  try {
-    localStorage.setItem(CODEX_CUSTOM_SORT_ACTIVE_KEY, active ? "1" : "0");
-  } catch {
-    // ignore persistence failures
-  }
 }
 
 interface CodexOverviewGeneralConfig {
@@ -1395,6 +1205,15 @@ export function CodexAccountsPage() {
       exportAccounts: codexService.exportCodexAccounts,
     },
     getDisplayEmail: (account) => account.email ?? account.id,
+    initialSearchQuery: readAccountsOverviewFilterPersistenceEnabled(
+      CODEX_FILTER_PERSISTENCE_SCOPE,
+    )
+      ? readAccountsOverviewFilterField(
+          CODEX_FILTER_PERSISTENCE_SCOPE,
+          SEARCH_QUERY_FIELD,
+          "",
+        )
+      : "",
     defaultSortBy: readCodexCustomSortActive() ? "custom" : undefined,
   });
 
@@ -1812,6 +1631,21 @@ export function CodexAccountsPage() {
     if (!filterPersistenceEnabled) {
       removeAccountsOverviewFilterField(
         filterPersistenceScope,
+        SEARCH_QUERY_FIELD,
+      );
+      return;
+    }
+    writeAccountsOverviewFilterField(
+      filterPersistenceScope,
+      SEARCH_QUERY_FIELD,
+      searchQuery,
+    );
+  }, [filterPersistenceEnabled, filterPersistenceScope, searchQuery]);
+
+  useEffect(() => {
+    if (!filterPersistenceEnabled) {
+      removeAccountsOverviewFilterField(
+        filterPersistenceScope,
         FILTER_TYPES_FIELD,
       );
       return;
@@ -1973,6 +1807,23 @@ export function CodexAccountsPage() {
   useEffect(() => {
     void reloadLocalAccessState();
   }, [reloadLocalAccessState]);
+
+  useEffect(() => {
+    if (
+      !localAccessState?.running ||
+      !localAccessState.collection?.boundOauthQuotaReserve
+    ) {
+      return;
+    }
+    const timer = window.setInterval(() => {
+      void reloadLocalAccessState();
+    }, 60_000);
+    return () => window.clearInterval(timer);
+  }, [
+    localAccessState?.collection?.boundOauthQuotaReserve,
+    localAccessState?.running,
+    reloadLocalAccessState,
+  ]);
 
   useEffect(() => {
     void reloadLocalAccessEntryVisibility();
@@ -3510,18 +3361,24 @@ export function CodexAccountsPage() {
     oauthBindingUseLocalGateway,
     setOauthBindingUseLocalGateway,
   ] = useState(false);
-  const [oauthBindingSearchQuery, setOauthBindingSearchQuery] = useState("");
-  const [oauthBindingFilterTypes, setOauthBindingFilterTypes] = useState<
-    string[]
-  >([]);
-  const [oauthBindingTagFilter, setOauthBindingTagFilter] = useState<string[]>(
-    [],
+  const [oauthBindingQuotaReserve, setOauthBindingQuotaReserve] =
+    useState<CodexLocalAccessOAuthQuotaReserve | null>(null);
+  const [oauthBindingQuotaReserveEditorOpen, setOauthBindingQuotaReserveEditorOpen] =
+    useState(false);
+  const [oauthBindingHourlyReserveDraft, setOauthBindingHourlyReserveDraft] =
+    useState("");
+  const [oauthBindingWeeklyReserveDraft, setOauthBindingWeeklyReserveDraft] =
+    useState("");
+  const [
+    oauthBindingQuotaReserveFieldErrors,
+    setOauthBindingQuotaReserveFieldErrors,
+  ] = useState<OAuthBindingQuotaReserveFieldErrors>({});
+  const oauthBindingHourlyReserveInputRef = useRef<HTMLInputElement | null>(
+    null,
   );
-  const [oauthBindingSortBy, setOauthBindingSortBy] =
-    useState<OAuthBindingSortBy>("last_used");
-  const [oauthBindingSortDirection, setOauthBindingSortDirection] = useState<
-    "asc" | "desc"
-  >("desc");
+  const oauthBindingWeeklyReserveInputRef = useRef<HTMLInputElement | null>(
+    null,
+  );
   const {
     message: oauthBindingError,
     scrollKey: oauthBindingErrorScrollKey,
@@ -3717,6 +3574,8 @@ export function CodexAccountsPage() {
     oauthBindingTargetKind === "local_access" ||
     (oauthBindingTargetKind === "api_key_account" &&
       Boolean(oauthBindingAccount));
+  const isLocalAccessOAuthBinding =
+    oauthBindingTargetKind === "local_access";
   const cockpitApiPanelAccount = useMemo(
     () =>
       cockpitApiPanelAccountId
@@ -3757,9 +3616,6 @@ export function CodexAccountsPage() {
       setOauthBindingSelectedAccountId("");
       setOauthBindingAutoSwitch(false);
       setOauthBindingUseLocalGateway(false);
-      setOauthBindingSearchQuery("");
-      setOauthBindingFilterTypes([]);
-      setOauthBindingTagFilter([]);
       setOauthBindingError(null);
     }
     if (oauthBindingTargetKind === "local_access" && !localAccessCollection) {
@@ -3768,9 +3624,6 @@ export function CodexAccountsPage() {
       setOauthBindingSelectedAccountId("");
       setOauthBindingAutoSwitch(false);
       setOauthBindingUseLocalGateway(false);
-      setOauthBindingSearchQuery("");
-      setOauthBindingFilterTypes([]);
-      setOauthBindingTagFilter([]);
       setOauthBindingError(null);
     }
   }, [
@@ -4724,9 +4577,11 @@ export function CodexAccountsPage() {
     setOauthBindingSelectedAccountId("");
     setOauthBindingAutoSwitch(false);
     setOauthBindingUseLocalGateway(false);
-    setOauthBindingSearchQuery("");
-    setOauthBindingFilterTypes([]);
-    setOauthBindingTagFilter([]);
+    setOauthBindingQuotaReserve(null);
+    setOauthBindingQuotaReserveEditorOpen(false);
+    setOauthBindingHourlyReserveDraft("");
+    setOauthBindingWeeklyReserveDraft("");
+    setOauthBindingQuotaReserveFieldErrors({});
     setOauthBindingError(null);
   }, [setOauthBindingError]);
 
@@ -4788,9 +4643,11 @@ export function CodexAccountsPage() {
       setOauthBindingUseLocalGateway(
         Boolean(account.bound_oauth_use_local_gateway),
       );
-      setOauthBindingSearchQuery("");
-      setOauthBindingFilterTypes([]);
-      setOauthBindingTagFilter([]);
+      setOauthBindingQuotaReserve(null);
+      setOauthBindingQuotaReserveEditorOpen(false);
+      setOauthBindingHourlyReserveDraft("");
+      setOauthBindingWeeklyReserveDraft("");
+      setOauthBindingQuotaReserveFieldErrors({});
       setOauthBindingError(null);
     },
     [
@@ -4802,6 +4659,22 @@ export function CodexAccountsPage() {
 
   const openLocalAccessOAuthBindingModal = useCallback(
     (options?: { autoSwitch?: boolean }) => {
+      const persistedQuotaReserve =
+        localAccessCollection?.boundOauthQuotaReserve ?? null;
+      const hourlyPercent = persistedQuotaReserve
+        ? parseOAuthQuotaReservePercent(
+            String(persistedQuotaReserve.hourlyPercent),
+          )
+        : null;
+      const weeklyPercent = persistedQuotaReserve
+        ? parseOAuthQuotaReservePercent(
+            String(persistedQuotaReserve.weeklyPercent),
+          )
+        : null;
+      const quotaReserve =
+        hourlyPercent !== null && weeklyPercent !== null
+          ? { hourlyPercent, weeklyPercent }
+          : null;
       setOauthBindingTargetKind("local_access");
       setOauthBindingAccountId(null);
       setOauthBindingSelectedAccountId(
@@ -4814,18 +4687,111 @@ export function CodexAccountsPage() {
       setOauthBindingUseLocalGateway(
         localAccessCollection?.imageGenerationMode === "images_only",
       );
-      setOauthBindingSearchQuery("");
-      setOauthBindingFilterTypes([]);
-      setOauthBindingTagFilter([]);
+      setOauthBindingQuotaReserve(quotaReserve);
+      setOauthBindingQuotaReserveEditorOpen(false);
+      setOauthBindingHourlyReserveDraft("");
+      setOauthBindingWeeklyReserveDraft("");
+      setOauthBindingQuotaReserveFieldErrors({});
       setOauthBindingError(null);
     },
     [
       boundLocalAccessOAuthAccount,
       isOAuthBindingEligibleAccount,
       localAccessCollection?.imageGenerationMode,
+      localAccessCollection?.boundOauthQuotaReserve,
       setOauthBindingError,
     ],
   );
+
+  const openOAuthBindingQuotaReserveEditor = useCallback(() => {
+    setOauthBindingHourlyReserveDraft(
+      oauthBindingQuotaReserve
+        ? String(oauthBindingQuotaReserve.hourlyPercent)
+        : "",
+    );
+    setOauthBindingWeeklyReserveDraft(
+      oauthBindingQuotaReserve
+        ? String(oauthBindingQuotaReserve.weeklyPercent)
+        : "",
+    );
+    setOauthBindingQuotaReserveFieldErrors({});
+    setOauthBindingQuotaReserveEditorOpen(true);
+    window.requestAnimationFrame(() => {
+      oauthBindingHourlyReserveInputRef.current?.focus();
+    });
+  }, [oauthBindingQuotaReserve]);
+
+  const closeOAuthBindingQuotaReserveEditor = useCallback(() => {
+    setOauthBindingQuotaReserveEditorOpen(false);
+    setOauthBindingQuotaReserveFieldErrors({});
+  }, []);
+
+  const handleOAuthBindingQuotaReserveToggle = useCallback(
+    (checked: boolean) => {
+      setOauthBindingError(null);
+      if (!checked) {
+        setOauthBindingQuotaReserve(null);
+        setOauthBindingQuotaReserveEditorOpen(false);
+        setOauthBindingQuotaReserveFieldErrors({});
+        return;
+      }
+      openOAuthBindingQuotaReserveEditor();
+    },
+    [openOAuthBindingQuotaReserveEditor, setOauthBindingError],
+  );
+
+  const validateOAuthBindingQuotaReserveField = useCallback(
+    (
+      field: keyof OAuthBindingQuotaReserveFieldErrors,
+      rawValue: string,
+    ) => {
+      const valid = parseOAuthQuotaReservePercent(rawValue) !== null;
+      setOauthBindingQuotaReserveFieldErrors((prev) => ({
+        ...prev,
+        [field]: valid
+          ? undefined
+          : t(
+              "codex.localAccess.oauthBinding.quotaReserveInvalid",
+              "请输入 1 到 100 的整数",
+            ),
+      }));
+    },
+    [t],
+  );
+
+  const confirmOAuthBindingQuotaReserveEditor = useCallback(() => {
+    const hourlyPercent = parseOAuthQuotaReservePercent(
+      oauthBindingHourlyReserveDraft,
+    );
+    const weeklyPercent = parseOAuthQuotaReservePercent(
+      oauthBindingWeeklyReserveDraft,
+    );
+    const invalidMessage = t(
+      "codex.localAccess.oauthBinding.quotaReserveInvalid",
+      "请输入 1 到 100 的整数",
+    );
+    const fieldErrors: OAuthBindingQuotaReserveFieldErrors = {};
+    if (hourlyPercent === null) {
+      fieldErrors.hourlyPercent = invalidMessage;
+    }
+    if (weeklyPercent === null) {
+      fieldErrors.weeklyPercent = invalidMessage;
+    }
+    if (hourlyPercent === null || weeklyPercent === null) {
+      setOauthBindingQuotaReserveFieldErrors(fieldErrors);
+      window.requestAnimationFrame(() => {
+        const target = fieldErrors.hourlyPercent
+          ? oauthBindingHourlyReserveInputRef.current
+          : oauthBindingWeeklyReserveInputRef.current;
+        target?.scrollIntoView({ behavior: "smooth", block: "center" });
+        target?.focus();
+      });
+      return;
+    }
+    setOauthBindingQuotaReserve({ hourlyPercent, weeklyPercent });
+    setOauthBindingQuotaReserveEditorOpen(false);
+    setOauthBindingQuotaReserveFieldErrors({});
+  }, [oauthBindingHourlyReserveDraft, oauthBindingWeeklyReserveDraft, t]);
 
   const formatCodexAuthFailureMessage = useCallback(
     (rawError: unknown) => {
@@ -4965,6 +4931,8 @@ export function CodexAccountsPage() {
       return;
     }
     if (!oauthBindingTargetKind) return;
+    setOauthBindingError(null);
+    setOauthBindingQuotaReserveFieldErrors({});
     if (!selectedOAuthBindingAccount) {
       setOauthBindingError(
         t("codex.api.oauthBinding.validationRequired", "请选择 OAuth 账号"),
@@ -4981,14 +4949,19 @@ export function CodexAccountsPage() {
       return;
     }
 
+    const quotaReserve =
+      oauthBindingTargetKind === "local_access"
+        ? oauthBindingQuotaReserve
+        : null;
+
     setOauthBindingSaving(true);
-    setOauthBindingError(null);
     try {
       if (oauthBindingTargetKind === "local_access") {
         const nextState =
           await codexLocalAccessService.updateCodexLocalAccessBoundOAuthAccount(
             selectedOAuthBindingAccount.id,
             oauthBindingUseLocalGateway,
+            quotaReserve,
           );
         setLocalAccessState(nextState);
       } else if (oauthBindingAccount) {
@@ -5022,6 +4995,7 @@ export function CodexAccountsPage() {
     executeCodexAccountSwitch,
     oauthBindingAccount,
     oauthBindingAutoSwitch,
+    oauthBindingQuotaReserve,
     oauthBindingTargetKind,
     oauthBindingUseLocalGateway,
     isOAuthBindingEligibleAccount,
@@ -6357,10 +6331,10 @@ export function CodexAccountsPage() {
           [account.id]: {
             loading: false,
             summary: previous[account.id]?.summary,
-            error: isProviderUsageUnavailableError(error)
+            error: isModelProviderUsageUnavailableError(error)
               ? undefined
               : String(error).replace(/^Error:\s*/, ""),
-            unavailable: isProviderUsageUnavailableError(error),
+            unavailable: isModelProviderUsageUnavailableError(error),
             updatedAt,
           },
         }));
@@ -6396,14 +6370,14 @@ export function CodexAccountsPage() {
         return false;
       }
       const state = apiKeyUsageMap[account.id];
-      if (state?.loading || apiKeyUsageInFlightRef.current.has(account.id)) {
+      if (
+        state?.loading ||
+        state?.unavailable ||
+        apiKeyUsageInFlightRef.current.has(account.id)
+      ) {
         return false;
       }
-      const updatedAt = state?.updatedAt ?? 0;
-      return (
-        updatedAt <= 0 ||
-        Date.now() - updatedAt >= CODEX_API_KEY_USAGE_AUTO_REFRESH_INTERVAL_MS
-      );
+      return !state?.updatedAt;
     },
     [apiKeyUsageMap, canRefreshApiKeyUsage],
   );
@@ -6432,6 +6406,16 @@ export function CodexAccountsPage() {
   useEffect(() => {
     writeCodexApiKeyUsageCache(apiKeyUsageMap);
   }, [apiKeyUsageMap]);
+
+  useEffect(() => {
+    const syncUsageCache = () => setApiKeyUsageMap(readCodexApiKeyUsageCache());
+    window.addEventListener(CODEX_API_KEY_USAGE_REFRESHED_EVENT, syncUsageCache);
+    return () =>
+      window.removeEventListener(
+        CODEX_API_KEY_USAGE_REFRESHED_EVENT,
+        syncUsageCache,
+      );
+  }, []);
 
   useEffect(() => {
     const accountIds = new Set(accounts.map((account) => account.id));
@@ -7405,18 +7389,8 @@ export function CodexAccountsPage() {
   );
 
   const isAbnormalAccount = useCallback(
-    (account: CodexAccount) => {
-      if (isPendingOAuthCodexAccount(account)) {
-        return false;
-      }
-      if (account.requires_reauth === true) {
-        return true;
-      }
-      return shouldOfferReauthorizeAction(
-        resolveQuotaErrorMeta(account.quota_error),
-      );
-    },
-    [resolveQuotaErrorMeta, shouldOfferReauthorizeAction],
+    (account: CodexAccount) => isCodexOverviewAccountAbnormal(account),
+    [],
   );
 
   const localAccessAccountIdSet = useMemo(
@@ -7746,11 +7720,41 @@ export function CodexAccountsPage() {
     [t, tierCounts],
   );
 
+  const codexOverviewGroupFilterOptions = useMemo<MultiSelectFilterOption[]>(
+    () => buildCodexOverviewGroupFilterOptions(codexGroups),
+    [codexGroups],
+  );
+
+  const codexAccountSortOptions = useMemo<SingleSelectFilterOption[]>(
+    () => buildCodexOverviewSortOptions(t),
+    [t],
+  );
+
+  const oauthBindingCompareAccountsBySort = useMemo(
+    () =>
+      createCodexOverviewAccountComparator({
+        sortBy,
+        sortDirection,
+        customSortOrder,
+        currentAccountId: localAccessLaunchCurrent
+          ? null
+          : (currentAccount?.id ?? null),
+        resolveSubscriptionTimestamp: (account) =>
+          resolveSubscriptionPresentation(account).timestampMs,
+      }),
+    [
+      currentAccount?.id,
+      customSortOrder,
+      localAccessLaunchCurrent,
+      resolveSubscriptionPresentation,
+      sortBy,
+      sortDirection,
+    ],
+  );
+
   const oauthBindingTierCounts = useMemo(() => {
-    const counts = createCodexPlanFilterCounts(
-      oauthBindingEligibleAccounts.length,
-    );
-    oauthBindingEligibleAccounts.forEach((account) => {
+    const counts = createCodexPlanFilterCounts(oauthAccounts.length);
+    oauthAccounts.forEach((account) => {
       if (!isAbnormalAccount(account)) {
         counts.VALID += 1;
       }
@@ -7759,19 +7763,24 @@ export function CodexAccountsPage() {
       if (isAbnormalAccount(account)) counts.ERROR += 1;
     });
     return counts;
-  }, [isAbnormalAccount, oauthBindingEligibleAccounts, resolvePlanKey]);
+  }, [isAbnormalAccount, oauthAccounts, resolvePlanKey]);
 
   const oauthBindingTierFilterOptions = useMemo<MultiSelectFilterOption[]>(
     () =>
       buildCodexPlanFilterOptions(oauthBindingTierCounts, {
+        includeValid: true,
         pendingLabel: t("codex.pendingAuth.badge", "待授权"),
+        validOption: buildValidAccountsFilterOption(
+          t,
+          oauthBindingTierCounts.VALID,
+        ),
       }),
     [oauthBindingTierCounts, t],
   );
 
   const oauthBindingAvailableTags = useMemo(() => {
     const tagSet = new Set<string>();
-    oauthBindingEligibleAccounts.forEach((account) => {
+    oauthAccounts.forEach((account) => {
       (account.tags || []).forEach((tag) => {
         const normalized = normalizeTag(tag);
         if (normalized) {
@@ -7780,101 +7789,36 @@ export function CodexAccountsPage() {
       });
     });
     return Array.from(tagSet).sort((a, b) => a.localeCompare(b));
-  }, [normalizeTag, oauthBindingEligibleAccounts]);
+  }, [normalizeTag, oauthAccounts]);
 
-  const toggleOAuthBindingFilterTypeValue = useCallback((value: string) => {
-    setOauthBindingFilterTypes((prev) =>
-      prev.includes(value)
-        ? prev.filter((item) => item !== value)
-        : [...prev, value],
-    );
-  }, []);
-
-  const toggleOAuthBindingTagFilterValue = useCallback((tag: string) => {
-    setOauthBindingTagFilter((prev) =>
-      prev.includes(tag) ? prev.filter((item) => item !== tag) : [...prev, tag],
-    );
-  }, []);
-
-  const oauthBindingFilteredAccounts = useMemo(() => {
-    let result = [...oauthBindingEligibleAccounts];
-    const query = oauthBindingSearchQuery.trim().toLowerCase();
-    if (query) {
-      result = result.filter((account) => {
-        const presentation = resolvePresentation(account);
-        const searchable = [
-          presentation.displayName,
-          account.email,
-          account.account_name,
-          account.account_id,
-          account.organization_id,
-          account.plan_type,
-          ...(account.tags || []),
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-        return searchable.includes(query);
-      });
-    }
-
-    if (oauthBindingFilterTypes.length > 0) {
-      const { selectedTypes } = splitValidityFilterValues(
-        oauthBindingFilterTypes,
-      );
-      if (selectedTypes.size > 0) {
-        result = result.filter((account) => {
-          if (selectedTypes.has("ERROR") && isAbnormalAccount(account)) {
-            return true;
-          }
-          return selectedTypes.has(resolvePlanKey(account));
-        });
-      }
-    }
-
-    if (oauthBindingTagFilter.length > 0) {
-      const selectedTags = new Set(oauthBindingTagFilter.map(normalizeTag));
-      result = result.filter((account) =>
-        (account.tags || [])
-          .map(normalizeTag)
-          .some((tag) => selectedTags.has(tag)),
-      );
-    }
-
-    result.sort((a, b) => {
-      if (oauthBindingSortBy === "created_at") {
-        const diff = b.created_at - a.created_at;
-        return oauthBindingSortDirection === "desc" ? diff : -diff;
-      }
-      if (oauthBindingSortBy === "last_used") {
-        const diff = b.last_used - a.last_used;
-        return oauthBindingSortDirection === "desc" ? diff : -diff;
-      }
-      if (oauthBindingSortBy === "plan") {
-        const diff = resolvePresentation(a).planLabel.localeCompare(
-          resolvePresentation(b).planLabel,
-        );
-        return oauthBindingSortDirection === "desc" ? -diff : diff;
-      }
-
-      const diff = resolvePresentation(a).displayName.localeCompare(
-        resolvePresentation(b).displayName,
-      );
-      return oauthBindingSortDirection === "desc" ? -diff : diff;
-    });
-
-    return result;
-  }, [
-    normalizeTag,
-    oauthBindingEligibleAccounts,
-    oauthBindingFilterTypes,
-    oauthBindingSearchQuery,
-    oauthBindingSortBy,
-    oauthBindingSortDirection,
-    oauthBindingTagFilter,
-    resolvePlanKey,
-    resolvePresentation,
-  ]);
+  const oauthBindingFilteredAccounts = useMemo(
+    () =>
+      filterAndSortCodexOverviewAccounts({
+        accounts: oauthAccounts,
+        groups: codexGroups,
+        searchQuery,
+        filterTypes,
+        tagFilter,
+        groupFilter,
+        activeGroupId,
+        resolveDisplayName: (account) =>
+          resolvePresentation(account).displayName,
+        compareAccounts: oauthBindingCompareAccountsBySort,
+        isAbnormalAccount,
+      }),
+    [
+      activeGroupId,
+      codexGroups,
+      filterTypes,
+      groupFilter,
+      isAbnormalAccount,
+      oauthAccounts,
+      oauthBindingCompareAccountsBySort,
+      resolvePresentation,
+      searchQuery,
+      tagFilter,
+    ],
+  );
 
   const oauthBindingPagination = usePagination({
     items: oauthBindingFilteredAccounts,
@@ -7887,14 +7831,16 @@ export function CodexAccountsPage() {
     if (!oauthBindingTargetActive) return;
     oauthBindingPagination.setCurrentPage(1);
   }, [
+    activeGroupId,
+    filterTypes,
+    groupFilter,
     oauthBindingAccountId,
-    oauthBindingFilterTypes,
     oauthBindingPagination.setCurrentPage,
-    oauthBindingSearchQuery,
-    oauthBindingSortBy,
-    oauthBindingSortDirection,
-    oauthBindingTagFilter,
     oauthBindingTargetActive,
+    searchQuery,
+    sortBy,
+    sortDirection,
+    tagFilter,
   ]);
 
   const activeGroup = useMemo(() => {
@@ -8507,87 +8453,24 @@ export function CodexAccountsPage() {
   ]);
 
   // ─── Filtering & Sorting ────────────────────────────────────────────
-  const customSortOrderIndex = useMemo(() => {
-    const map = new Map<string, number>();
-    customSortOrder.forEach((accountId, index) => {
-      map.set(accountId, index);
-    });
-    return map;
-  }, [customSortOrder]);
   const overviewCurrentAccountId = localAccessLaunchCurrent
     ? null
     : (currentAccount?.id ?? null);
 
-  const compareAccountsBySort = useCallback(
-    (a: CodexAccount, b: CodexAccount) => {
-      if (sortBy === "custom") {
-        const aIndex =
-          customSortOrderIndex.get(a.id) ?? Number.MAX_SAFE_INTEGER;
-        const bIndex =
-          customSortOrderIndex.get(b.id) ?? Number.MAX_SAFE_INTEGER;
-        if (aIndex !== bIndex) {
-          return aIndex - bIndex;
-        }
-        return b.created_at - a.created_at;
-      }
-
-      const cockpitApiPriority =
-        Number(!isCodexNewApiAccount(a)) - Number(!isCodexNewApiAccount(b));
-      if (cockpitApiPriority !== 0) {
-        return cockpitApiPriority;
-      }
-
-      const currentFirstDiff = compareCurrentAccountFirst(
-        a.id,
-        b.id,
-        overviewCurrentAccountId,
-      );
-      if (currentFirstDiff !== 0) {
-        return currentFirstDiff;
-      }
-
-      if (sortBy === "created_at") {
-        const diff = b.created_at - a.created_at;
-        return sortDirection === "desc" ? diff : -diff;
-      }
-      if (sortBy === "weekly_reset" || sortBy === "hourly_reset") {
-        const aR =
-          sortBy === "weekly_reset"
-            ? (a.quota?.weekly_reset_time ?? null)
-            : (a.quota?.hourly_reset_time ?? null);
-        const bR =
-          sortBy === "weekly_reset"
-            ? (b.quota?.weekly_reset_time ?? null)
-            : (b.quota?.hourly_reset_time ?? null);
-        if (aR == null && bR == null) return 0;
-        if (aR == null) return 1;
-        if (bR == null) return -1;
-        return sortDirection === "desc" ? bR - aR : aR - bR;
-      }
-      if (sortBy === "subscription_expiry") {
-        const aR = isCodexApiKeyAccount(a)
-          ? null
-          : resolveSubscriptionPresentation(a).timestampMs;
-        const bR = isCodexApiKeyAccount(b)
-          ? null
-          : resolveSubscriptionPresentation(b).timestampMs;
-        if (aR == null && bR == null) return 0;
-        if (aR == null) return 1;
-        if (bR == null) return -1;
-        return sortDirection === "desc" ? bR - aR : aR - bR;
-      }
-      const aV =
-        sortBy === "weekly"
-          ? (a.quota?.weekly_percentage ?? -1)
-          : (a.quota?.hourly_percentage ?? -1);
-      const bV =
-        sortBy === "weekly"
-          ? (b.quota?.weekly_percentage ?? -1)
-          : (b.quota?.hourly_percentage ?? -1);
-      return sortDirection === "desc" ? bV - aV : aV - bV;
-    },
+  const compareAccountsBySort = useMemo(
+    () =>
+      createCodexOverviewAccountComparator({
+        sortBy,
+        sortDirection,
+        customSortOrder,
+        currentAccountId: overviewCurrentAccountId,
+        resolveSubscriptionTimestamp: (account) =>
+          isCodexApiKeyAccount(account)
+            ? null
+            : resolveSubscriptionPresentation(account).timestampMs,
+      }),
     [
-      customSortOrderIndex,
+      customSortOrder,
       overviewCurrentAccountId,
       resolveSubscriptionPresentation,
       sortBy,
@@ -8600,76 +8483,34 @@ export function CodexAccountsPage() {
     [accounts, compareAccountsBySort],
   );
 
-  const filteredAccounts = useMemo(() => {
-    let result = [...overviewAccounts];
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter((a) =>
-        resolvePresentation(a).displayName.toLowerCase().includes(query),
-      );
-    }
-    if (filterTypes.length > 0) {
-      const { requireValidAccounts, selectedTypes } =
-        splitValidityFilterValues(filterTypes);
-      if (requireValidAccounts) {
-        result = result.filter((account) => !isAbnormalAccount(account));
-      }
-      if (selectedTypes.size > 0) {
-        result = result.filter((a) => {
-          if (selectedTypes.has("ERROR") && isAbnormalAccount(a)) {
-            return true;
-          }
-          return selectedTypes.has(resolvePlanKey(a));
-        });
-      }
-    }
-    if (tagFilter.length > 0) {
-      const selectedTags = new Set(tagFilter.map(normalizeTag));
-      result = result.filter((a) =>
-        (a.tags || []).map(normalizeTag).some((tag) => selectedTags.has(tag)),
-      );
-    }
-    // 分组筛选 — 仅保留仍存在于 codexGroups 中的 ID，防止已删除分组导致空筛选
-    if (groupFilter.length > 0) {
-      const existingGroupIds = new Set(codexGroups.map((g) => g.id));
-      const activeFilter = groupFilter.filter((id) => existingGroupIds.has(id));
-      if (activeFilter.length > 0) {
-        const groupAccountIds = new Set<string>();
-        const selectedGroupIds = new Set(activeFilter);
-        for (const group of codexGroups) {
-          if (selectedGroupIds.has(group.id)) {
-            for (const aid of group.accountIds) groupAccountIds.add(aid);
-          }
-        }
-        result = result.filter((a) => groupAccountIds.has(a.id));
-      }
-    }
-    if (activeGroupId) {
-      const scopedGroup = codexGroups.find(
-        (group) => group.id === activeGroupId,
-      );
-      if (!scopedGroup) {
-        return [];
-      }
-      const scopedIds = new Set(scopedGroup.accountIds);
-      result = result.filter((account) => scopedIds.has(account.id));
-    }
-    result.sort(compareAccountsBySort);
-    return result;
-  }, [
-    activeGroupId,
-    codexGroups,
-    compareAccountsBySort,
-    filterTypes,
-    groupFilter,
-    isAbnormalAccount,
-    normalizeTag,
-    overviewAccounts,
-    resolvePlanKey,
-    resolvePresentation,
-    searchQuery,
-    tagFilter,
-  ]);
+  const filteredAccounts = useMemo(
+    () =>
+      filterAndSortCodexOverviewAccounts({
+        accounts: overviewAccounts,
+        groups: codexGroups,
+        searchQuery,
+        filterTypes,
+        tagFilter,
+        groupFilter,
+        activeGroupId,
+        resolveDisplayName: (account) =>
+          resolvePresentation(account).displayName,
+        compareAccounts: compareAccountsBySort,
+        isAbnormalAccount,
+      }),
+    [
+      activeGroupId,
+      codexGroups,
+      compareAccountsBySort,
+      filterTypes,
+      groupFilter,
+      isAbnormalAccount,
+      overviewAccounts,
+      resolvePresentation,
+      searchQuery,
+      tagFilter,
+    ],
+  );
 
   const filteredIds = useMemo(
     () => filteredAccounts.map((account) => account.id),
@@ -9884,6 +9725,24 @@ export function CodexAccountsPage() {
         )
       : t("codex.api.oauthBinding.unbound", "未绑定");
     const localAccessOAuthBindingLine = `${localAccessOAuthBindingLabel}：${localAccessOAuthBindingValue}`;
+    const quotaReserveStatus = localAccessState?.quotaReserveStatus ?? null;
+    const quotaReserveWarningLine =
+      quotaReserveStatus?.warning &&
+      quotaReserveStatus.effectiveWindow &&
+      quotaReserveStatus.effectiveRemainingPercent != null &&
+      quotaReserveStatus.effectiveReservePercent != null
+        ? `${
+            quotaReserveStatus.effectiveWindow === "weekly"
+              ? t(
+                  "codex.localAccess.oauthBinding.quotaReserveWeeklyLabel",
+                  "周保留",
+                )
+              : t(
+                  "codex.localAccess.oauthBinding.quotaReserveHourlyLabel",
+                  "5 小时保留",
+                )
+          }：${quotaReserveStatus.effectiveRemainingPercent}% / ${quotaReserveStatus.effectiveReservePercent}%`
+        : null;
     const hiddenCount = Math.max(
       0,
       localAccessAccounts.length - previewAccounts.length,
@@ -10210,6 +10069,20 @@ export function CodexAccountsPage() {
                   {t("codex.api.oauthBinding.actionShort", "绑定")}
                 </button>
               </div>
+              {quotaReserveWarningLine && (
+                <div
+                  className={`codex-local-access-quota-reserve-warning ${
+                    quotaReserveStatus?.blocked ? "is-blocked" : "is-near"
+                  }`}
+                  title={t(
+                    "codex.localAccess.oauthBinding.quotaReserveDesc",
+                    "API 服务仅在 5 小时和周剩余额度均高于保留值时使用该 OAuth 账号。",
+                  )}
+                >
+                  <CircleAlert size={13} />
+                  <span>{quotaReserveWarningLine}</span>
+                </div>
+              )}
             </div>
 
             <div className="folder-inline-preview codex-local-access-preview">
@@ -12622,36 +12495,7 @@ export function CodexAccountsPage() {
 
               <SingleSelectFilterDropdown
                 value={sortBy}
-                options={[
-                  {
-                    value: "created_at",
-                    label: t("common.shared.sort.createdAt", "按创建时间"),
-                  },
-                  {
-                    value: "weekly",
-                    label: t("codex.sort.weekly", "按周配额"),
-                  },
-                  {
-                    value: "hourly",
-                    label: t("codex.sort.hourly", "按5小时配额"),
-                  },
-                  {
-                    value: "weekly_reset",
-                    label: t("codex.sort.weeklyReset", "按周配额重置时间"),
-                  },
-                  {
-                    value: "hourly_reset",
-                    label: t("codex.sort.hourlyReset", "按5小时配额重置时间"),
-                  },
-                  {
-                    value: "subscription_expiry",
-                    label: t("codex.sort.subscriptionExpiry", "按订阅有效期"),
-                  },
-                  {
-                    value: "custom",
-                    label: t("codex.sort.custom", "自定义顺序"),
-                  },
-                ]}
+                options={codexAccountSortOptions}
                 ariaLabel={t("common.shared.sortLabel", "排序")}
                 icon={<ArrowDownWideNarrow size={14} />}
                 onChange={handleSortByChange}
@@ -14240,7 +14084,7 @@ export function CodexAccountsPage() {
                                   resolvePresentation(oauthBindingAccount)
                                     .displayName,
                                 ),
-                              })
+                            })
                             : null}
                       </div>
                     </div>
@@ -14252,37 +14096,96 @@ export function CodexAccountsPage() {
                             "选择 OAuth 账号",
                           )}
                         </label>
-                        {oauthBindingTargetKind && (
-                          <label
-                            className="codex-oauth-binding-gateway-toggle"
-                            title={t(
-                              oauthBindingTargetKind === "local_access"
-                                ? "codex.localAccess.oauthBinding.imageGenerationTooltip"
-                                : "codex.api.oauthBinding.localGatewayTooltip",
-                              oauthBindingTargetKind === "local_access"
-                                ? "开启后，API 服务会在本地网关转发普通文本对话前移除 image_generation 工具声明；不会删除生图模型。"
-                                : "开启后，绑定 OAuth 的 API Key 文本对话会走本地网关，并在转发前移除 image_generation 工具声明；不会删除生图模型。",
-                            )}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={oauthBindingUseLocalGateway}
-                              onChange={(event) =>
-                                void handleOAuthBindingLocalGatewayToggle(
-                                  event.target.checked,
-                                )
-                              }
-                              disabled={oauthBindingSaving}
-                            />
-                            <span>
-                              {t(
-                                "codex.api.oauthBinding.useLocalGateway",
-                                "禁用 image_generation",
+                        <div className="codex-oauth-binding-picker-controls">
+                          {isLocalAccessOAuthBinding && (
+                            <div className="codex-oauth-binding-quota-control">
+                              <label
+                                className="codex-oauth-binding-gateway-toggle codex-oauth-binding-quota-toggle"
+                                title={t(
+                                  "codex.localAccess.oauthBinding.quotaReserveDesc",
+                                  "API 服务仅在 5 小时和周剩余额度均高于保留值时使用该 OAuth 账号。",
+                                )}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(oauthBindingQuotaReserve)}
+                                  onChange={(event) =>
+                                    handleOAuthBindingQuotaReserveToggle(
+                                      event.target.checked,
+                                    )
+                                  }
+                                  disabled={oauthBindingSaving}
+                                />
+                                <span
+                                  className="codex-oauth-binding-checkbox-ui"
+                                  aria-hidden="true"
+                                />
+                                <span>
+                                  {t(
+                                    "codex.localAccess.oauthBinding.quotaReserveToggle",
+                                    "保留 OAuth 额度",
+                                  )}
+                                </span>
+                              </label>
+                              {oauthBindingQuotaReserve && (
+                                <button
+                                  type="button"
+                                  className="btn btn-icon codex-oauth-binding-quota-edit"
+                                  onClick={openOAuthBindingQuotaReserveEditor}
+                                  disabled={oauthBindingSaving}
+                                  title={`${t(
+                                    "codex.localAccess.oauthBinding.quotaReserveHourlyLabel",
+                                    "5 小时保留",
+                                  )} ${oauthBindingQuotaReserve.hourlyPercent}% · ${t(
+                                    "codex.localAccess.oauthBinding.quotaReserveWeeklyLabel",
+                                    "周保留",
+                                  )} ${oauthBindingQuotaReserve.weeklyPercent}%`}
+                                  aria-label={`${t("instances.actions.edit", "编辑")} ${t(
+                                    "codex.localAccess.oauthBinding.quotaReserveToggle",
+                                    "保留 OAuth 额度",
+                                  )}`}
+                                >
+                                  <Pencil size={12} />
+                                </button>
                               )}
-                            </span>
-                            <Info size={14} />
-                          </label>
-                        )}
+                            </div>
+                          )}
+                          {oauthBindingTargetKind && (
+                            <label
+                              className="codex-oauth-binding-gateway-toggle"
+                              title={t(
+                                oauthBindingTargetKind === "local_access"
+                                  ? "codex.localAccess.oauthBinding.imageGenerationTooltip"
+                                  : "codex.api.oauthBinding.localGatewayTooltip",
+                                oauthBindingTargetKind === "local_access"
+                                  ? "开启后，API 服务会在本地网关转发普通文本对话前移除 image_generation 工具声明；不会删除生图模型。"
+                                  : "开启后，绑定 OAuth 的 API Key 文本对话会走本地网关，并在转发前移除 image_generation 工具声明；不会删除生图模型。",
+                              )}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={oauthBindingUseLocalGateway}
+                                onChange={(event) =>
+                                  void handleOAuthBindingLocalGatewayToggle(
+                                    event.target.checked,
+                                  )
+                                }
+                                disabled={oauthBindingSaving}
+                              />
+                              <span
+                                className="codex-oauth-binding-checkbox-ui"
+                                aria-hidden="true"
+                              />
+                              <span>
+                                {t(
+                                  "codex.api.oauthBinding.useLocalGateway",
+                                  "禁用 image_generation",
+                                )}
+                              </span>
+                              <Info size={14} />
+                            </label>
+                          )}
+                        </div>
                       </div>
                       {oauthAccounts.length === 0 ? (
                         <div className="add-status error">
@@ -14294,18 +14197,19 @@ export function CodexAccountsPage() {
                             )}
                           </span>
                         </div>
-                      ) : oauthBindingEligibleAccounts.length === 0 ? (
-                        <div className="add-status error">
-                          <CircleAlert size={16} />
-                          <span>
-                            {t(
-                              "codex.api.oauthBinding.emptyEligible",
-                              "没有带 refresh_token 的 OAuth 账号，请重新 OAuth 授权或添加符合条件的 OAuth 账号。",
-                            )}
-                          </span>
-                        </div>
                       ) : (
                         <>
+                          {oauthBindingEligibleAccounts.length === 0 && (
+                            <div className="add-status error">
+                              <CircleAlert size={16} />
+                              <span>
+                                {t(
+                                  "codex.api.oauthBinding.emptyEligible",
+                                  "没有带 refresh_token 的 OAuth 账号，请重新 OAuth 授权或添加符合条件的 OAuth 账号。",
+                                )}
+                              </span>
+                            </div>
+                          )}
                           <div className="codex-oauth-binding-toolbar">
                             <div className="search-box codex-oauth-binding-search">
                               <Search size={16} className="search-icon" />
@@ -14315,16 +14219,16 @@ export function CodexAccountsPage() {
                                   "common.shared.search",
                                   "搜索账号...",
                                 )}
-                                value={oauthBindingSearchQuery}
+                                value={searchQuery}
                                 onChange={(event) =>
-                                  setOauthBindingSearchQuery(event.target.value)
+                                  setSearchQuery(event.target.value)
                                 }
                                 disabled={oauthBindingSaving}
                               />
                             </div>
                             <MultiSelectFilterDropdown
                               options={oauthBindingTierFilterOptions}
-                              selectedValues={oauthBindingFilterTypes}
+                              selectedValues={filterTypes}
                               allLabel={t("common.shared.filter.all", {
                                 count: oauthBindingTierCounts.all,
                               })}
@@ -14335,84 +14239,56 @@ export function CodexAccountsPage() {
                               clearLabel={t("accounts.clearFilter", "清空筛选")}
                               emptyLabel={t("common.none", "暂无")}
                               ariaLabel={t("common.shared.filterLabel", "筛选")}
-                              onToggleValue={toggleOAuthBindingFilterTypeValue}
-                              onClear={() => setOauthBindingFilterTypes([])}
+                              onToggleValue={toggleFilterTypeValue}
+                              onClear={clearFilterTypes}
                             />
                             <AccountTagFilterDropdown
                               availableTags={oauthBindingAvailableTags}
-                              selectedTags={oauthBindingTagFilter}
-                              onToggleTag={toggleOAuthBindingTagFilterValue}
-                              onClear={() => setOauthBindingTagFilter([])}
+                              selectedTags={tagFilter}
+                              onToggleTag={toggleTagFilterValue}
+                              onClear={clearTagFilter}
                             />
                             <SingleSelectFilterDropdown
-                              value={oauthBindingSortBy}
-                              options={[
-                                {
-                                  value: "last_used",
-                                  label: t(
-                                    "accounts.columns.lastUsed",
-                                    "最后使用",
-                                  ),
-                                },
-                                {
-                                  value: "created_at",
-                                  label: t(
-                                    "common.shared.sort.createdAt",
-                                    "按创建时间",
-                                  ),
-                                },
-                                {
-                                  value: "account",
-                                  label: t(
-                                    "common.shared.columns.account",
-                                    "账号",
-                                  ),
-                                },
-                                {
-                                  value: "plan",
-                                  label: t("accounts.sort.plan", "按套餐"),
-                                },
-                              ]}
+                              value={sortBy}
+                              options={codexAccountSortOptions}
                               ariaLabel={t("common.shared.sortLabel", "排序")}
                               icon={<ArrowDownWideNarrow size={14} />}
                               disabled={oauthBindingSaving}
-                              onChange={(value) =>
-                                setOauthBindingSortBy(
-                                  value as OAuthBindingSortBy,
-                                )
-                              }
+                              onChange={setSortBy}
                             />
-                            <button
-                              type="button"
-                              className="sort-direction-btn"
-                              onClick={() =>
-                                setOauthBindingSortDirection((prev) =>
-                                  prev === "desc" ? "asc" : "desc",
-                                )
-                              }
-                              disabled={oauthBindingSaving}
-                              title={
-                                oauthBindingSortDirection === "desc"
-                                  ? t(
-                                      "common.shared.sort.descTooltip",
-                                      "当前：降序，点击切换为升序",
-                                    )
-                                  : t(
-                                      "common.shared.sort.ascTooltip",
-                                      "当前：升序，点击切换为降序",
-                                    )
-                              }
-                              aria-label={t(
-                                "common.shared.sort.toggleDirection",
-                                "切换排序方向",
-                              )}
-                            >
-                              {oauthBindingSortDirection === "desc" ? (
-                                <ArrowDown size={15} />
-                              ) : (
-                                <ArrowUp size={15} />
-                              )}
-                            </button>
+                            {sortBy !== "custom" && (
+                              <button
+                                type="button"
+                                className="sort-direction-btn"
+                                onClick={() =>
+                                  setSortDirection((prev) =>
+                                    prev === "desc" ? "asc" : "desc",
+                                  )
+                                }
+                                disabled={oauthBindingSaving}
+                                title={
+                                  sortDirection === "desc"
+                                    ? t(
+                                        "common.shared.sort.descTooltip",
+                                        "当前：降序，点击切换为升序",
+                                      )
+                                    : t(
+                                        "common.shared.sort.ascTooltip",
+                                        "当前：升序，点击切换为降序",
+                                      )
+                                }
+                                aria-label={t(
+                                  "common.shared.sort.toggleDirection",
+                                  "切换排序方向",
+                                )}
+                              >
+                                {sortDirection === "desc" ? (
+                                  <ArrowDown size={15} />
+                                ) : (
+                                  <ArrowUp size={15} />
+                                )}
+                              </button>
+                            )}
                           </div>
                           {oauthBindingFilteredAccounts.length === 0 ? (
                             <div className="group-account-empty">
@@ -14434,6 +14310,10 @@ export function CodexAccountsPage() {
                                   const selected =
                                     oauthBindingSelectedAccountId ===
                                     account.id;
+                                  const eligible =
+                                    isOAuthBindingEligibleAccount(account);
+                                  const rowDisabled =
+                                    oauthBindingSaving || !eligible;
                                   const emailText = maskAccountText(
                                     account.email ||
                                       account.account_name ||
@@ -14445,9 +14325,17 @@ export function CodexAccountsPage() {
                                       key={account.id}
                                       className={`codex-oauth-binding-row ${selected ? "is-selected" : ""}`}
                                       aria-label={emailText}
-                                      aria-disabled={oauthBindingSaving}
+                                      aria-disabled={rowDisabled}
+                                      title={
+                                        eligible
+                                          ? emailText
+                                          : t(
+                                              "codex.api.oauthBinding.validationSubscriptionRequired",
+                                              "只能绑定带 refresh_token 的 OAuth 账号",
+                                            )
+                                      }
                                       onClick={(event) => {
-                                        if (oauthBindingSaving) {
+                                        if (rowDisabled) {
                                           event.preventDefault();
                                           return;
                                         }
@@ -14467,7 +14355,7 @@ export function CodexAccountsPage() {
                                           );
                                           setOauthBindingError(null);
                                         }}
-                                        disabled={oauthBindingSaving}
+                                        disabled={rowDisabled}
                                       />
                                       <div className="codex-oauth-binding-row-main">
                                         <span
@@ -14519,9 +14407,7 @@ export function CodexAccountsPage() {
                             rangeEnd={oauthBindingPagination.rangeEnd}
                             canGoPrevious={oauthBindingPagination.canGoPrevious}
                             canGoNext={oauthBindingPagination.canGoNext}
-                            onPageSizeChange={
-                              oauthBindingPagination.setPageSize
-                            }
+                            onPageSizeChange={oauthBindingPagination.setPageSize}
                             onPreviousPage={
                               oauthBindingPagination.goToPreviousPage
                             }
@@ -14578,6 +14464,159 @@ export function CodexAccountsPage() {
               </div>
             </div>
           )}
+
+          {oauthBindingQuotaReserveEditorOpen &&
+            isLocalAccessOAuthBinding && (
+              <div className="modal-overlay codex-oauth-binding-quota-overlay">
+                <div
+                  className="modal-content codex-add-modal codex-oauth-binding-quota-modal"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <div className="modal-header">
+                    <h2>
+                      {t(
+                        "codex.localAccess.oauthBinding.quotaReserveToggle",
+                        "保留 OAuth 额度",
+                      )}
+                    </h2>
+                    <button
+                      type="button"
+                      className="modal-close"
+                      onClick={closeOAuthBindingQuotaReserveEditor}
+                      aria-label={t("common.close", "关闭")}
+                    >
+                      <X />
+                    </button>
+                  </div>
+                  <div className="modal-body">
+                    <div className="add-section">
+                      <p className="section-desc codex-oauth-binding-quota-desc">
+                        {t(
+                          "codex.localAccess.oauthBinding.quotaReserveDesc",
+                          "API 服务仅在 5 小时和周剩余额度均高于保留值时使用该 OAuth 账号。",
+                        )}
+                      </p>
+                      <div className="codex-oauth-binding-quota-fields">
+                        <label className="codex-oauth-binding-quota-field">
+                          <span>
+                            {t(
+                              "codex.localAccess.oauthBinding.quotaReserveHourlyLabel",
+                              "5 小时保留",
+                            )}
+                          </span>
+                          <div className="codex-oauth-binding-quota-input-wrap">
+                            <input
+                              ref={oauthBindingHourlyReserveInputRef}
+                              className={
+                                oauthBindingQuotaReserveFieldErrors.hourlyPercent
+                                  ? "codex-account-note-input has-error"
+                                  : "codex-account-note-input"
+                              }
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              maxLength={3}
+                              value={oauthBindingHourlyReserveDraft}
+                              onChange={(event) => {
+                                if (!/^\d*$/.test(event.target.value)) return;
+                                setOauthBindingHourlyReserveDraft(
+                                  event.target.value,
+                                );
+                                setOauthBindingQuotaReserveFieldErrors(
+                                  (prev) => ({
+                                    ...prev,
+                                    hourlyPercent: undefined,
+                                  }),
+                                );
+                              }}
+                              onBlur={() =>
+                                validateOAuthBindingQuotaReserveField(
+                                  "hourlyPercent",
+                                  oauthBindingHourlyReserveDraft,
+                                )
+                              }
+                            />
+                            <span aria-hidden="true">%</span>
+                          </div>
+                          {oauthBindingQuotaReserveFieldErrors.hourlyPercent && (
+                            <span className="codex-account-note-field-error codex-oauth-binding-quota-error">
+                              {
+                                oauthBindingQuotaReserveFieldErrors.hourlyPercent
+                              }
+                            </span>
+                          )}
+                        </label>
+                        <label className="codex-oauth-binding-quota-field">
+                          <span>
+                            {t(
+                              "codex.localAccess.oauthBinding.quotaReserveWeeklyLabel",
+                              "周保留",
+                            )}
+                          </span>
+                          <div className="codex-oauth-binding-quota-input-wrap">
+                            <input
+                              ref={oauthBindingWeeklyReserveInputRef}
+                              className={
+                                oauthBindingQuotaReserveFieldErrors.weeklyPercent
+                                  ? "codex-account-note-input has-error"
+                                  : "codex-account-note-input"
+                              }
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              maxLength={3}
+                              value={oauthBindingWeeklyReserveDraft}
+                              onChange={(event) => {
+                                if (!/^\d*$/.test(event.target.value)) return;
+                                setOauthBindingWeeklyReserveDraft(
+                                  event.target.value,
+                                );
+                                setOauthBindingQuotaReserveFieldErrors(
+                                  (prev) => ({
+                                    ...prev,
+                                    weeklyPercent: undefined,
+                                  }),
+                                );
+                              }}
+                              onBlur={() =>
+                                validateOAuthBindingQuotaReserveField(
+                                  "weeklyPercent",
+                                  oauthBindingWeeklyReserveDraft,
+                                )
+                              }
+                            />
+                            <span aria-hidden="true">%</span>
+                          </div>
+                          {oauthBindingQuotaReserveFieldErrors.weeklyPercent && (
+                            <span className="codex-account-note-field-error codex-oauth-binding-quota-error">
+                              {
+                                oauthBindingQuotaReserveFieldErrors.weeklyPercent
+                              }
+                            </span>
+                          )}
+                        </label>
+                      </div>
+                      <div className="api-key-edit-actions">
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          onClick={closeOAuthBindingQuotaReserveEditor}
+                        >
+                          {t("common.cancel", "取消")}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          onClick={confirmOAuthBindingQuotaReserveEditor}
+                        >
+                          {t("common.confirm", "确认")}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
           {editingApiKeyCredentialsId && (
             <div
@@ -16320,6 +16359,38 @@ export function CodexAccountsPage() {
             onAddressKindChange={handleLocalAccessAddressKindChange}
             accounts={accounts}
             accountGroups={codexGroups}
+            memberView={
+              localAccessModalMode === "members"
+                ? {
+                    accounts: filteredAccounts,
+                    searchQuery,
+                    filterTypes,
+                    tagFilter,
+                    groupFilter,
+                    sortBy,
+                    sortDirection,
+                    tierFilterOptions,
+                    tierFilterAllLabel: t("common.shared.filter.all", {
+                      count: tierCounts.all,
+                    }),
+                    availableTags,
+                    groupFilterOptions: codexOverviewGroupFilterOptions,
+                    sortOptions: codexAccountSortOptions,
+                    onSearchQueryChange: setSearchQuery,
+                    onToggleFilterType: toggleFilterTypeValue,
+                    onClearFilterTypes: clearFilterTypes,
+                    onToggleTagFilter: toggleTagFilterValue,
+                    onClearTagFilter: clearTagFilter,
+                    onToggleGroupFilter: toggleGroupFilterValue,
+                    onClearGroupFilter: clearGroupFilter,
+                    onSortByChange: setSortBy,
+                    onToggleSortDirection: () =>
+                      setSortDirection((current) =>
+                        current === "desc" ? "asc" : "desc",
+                      ),
+                  }
+                : undefined
+            }
             initialSelectedIds={localAccessModalSelectedIds}
             maskAccountText={maskAccountText}
             onClose={() => setShowLocalAccessModal(false)}

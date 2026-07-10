@@ -43,6 +43,13 @@ func TestBuildCodexClientModelsPreserves56Capabilities(t *testing.T) {
 		if model == nil {
 			t.Fatalf("expected model %s", testCase.slug)
 		}
+		if supported, ok := model["supports_parallel_tool_calls"].(bool); !ok || supported {
+			t.Fatalf(
+				"%s supports_parallel_tool_calls = %#v, want false",
+				testCase.slug,
+				model["supports_parallel_tool_calls"],
+			)
+		}
 		if got := stringModelValue(model, "default_reasoning_level"); got != testCase.defaultEffort {
 			t.Fatalf("%s default reasoning = %q, want %q", testCase.slug, got, testCase.defaultEffort)
 		}

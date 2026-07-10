@@ -1940,6 +1940,11 @@
       "oauthBinding": {
         "desc": "Optional. Es können nur OAuth-Konten mit refresh_token ausgewählt werden. Ohne Verknüpfung nutzt der API-Dienst weiter den bisherigen API-Key-Ablauf; nach der Verknüpfung verwendet die Anmeldung das OAuth-Konto und der Provider die API-Dienst-Konfiguration.",
         "currentService": "API-Dienst: {{name}}",
+        "quotaReserveToggle": "OAuth-Kontingent reservieren",
+        "quotaReserveDesc": "Der API-Dienst nutzt dieses OAuth-Konto nur, solange sowohl das verbleibende 5-Stunden- als auch das Wochenkontingent über dem jeweiligen Reservewert liegt.",
+        "quotaReserveHourlyLabel": "5-Std.-Reserve",
+        "quotaReserveWeeklyLabel": "Wochenreserve",
+        "quotaReserveInvalid": "Geben Sie eine ganze Zahl von 1 bis 100 ein.",
         "imageGenerationTooltip": "Bei Aktivierung entfernt der API-Dienst im lokalen Gateway vor dem Weiterleiten normaler Textchats die Tool-Deklaration image_generation; Bildmodelle werden nicht entfernt.",
         "imageGenerationConfirm": {
           "title": "image_generation deaktivieren",

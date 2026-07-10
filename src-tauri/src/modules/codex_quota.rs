@@ -170,9 +170,14 @@ pub struct CodexResetCreditsSnapshot {
     next_expires_at: Option<i64>,
 }
 
-fn normalize_remaining_percentage(window: &WindowInfo) -> i32 {
-    let used = window.used_percent.unwrap_or(0).clamp(0, 100);
-    100 - used
+fn normalize_remaining_percentage(window: &WindowInfo) -> Result<i32, String> {
+    let used = window
+        .used_percent
+        .ok_or_else(|| "配额窗口缺少 used_percent".to_string())?;
+    if !(0..=100).contains(&used) {
+        return Err(format!("配额窗口 used_percent 超出范围: {}", used));
+    }
+    Ok(100 - used)
 }
 
 fn normalize_window_minutes(window: &WindowInfo) -> Option<i64> {
@@ -961,7 +966,7 @@ fn parse_quota_from_usage(usage: &UsageResponse, raw_body: &str) -> Result<Codex
     let (hourly_percentage, hourly_reset_time, hourly_window_minutes) =
         if let Some(primary) = primary_window {
             (
-                normalize_remaining_percentage(primary),
+                normalize_remaining_percentage(primary)?,
                 normalize_reset_time(primary),
                 normalize_window_minutes(primary),
             )
@@ -973,7 +978,7 @@ fn parse_quota_from_usage(usage: &UsageResponse, raw_body: &str) -> Result<Codex
     let (weekly_percentage, weekly_reset_time, weekly_window_minutes) =
         if let Some(secondary) = secondary_window {
             (
-                normalize_remaining_percentage(secondary),
+                normalize_remaining_percentage(secondary)?,
                 normalize_reset_time(secondary),
                 normalize_window_minutes(secondary),
             )
@@ -1416,7 +1421,21 @@ async fn refresh_account_quota_once(
     account_id: &str,
     options: RefreshQuotaOptions,
 ) -> Result<CodexQuota, String> {
-    let mut account = codex_account::prepare_account_for_injection(account_id).await?;
+    let mut account = match codex_account::prepare_account_for_injection(account_id).await {
+        Ok(account) => account,
+        Err(error) => {
+            if let Some(mut stored_account) = codex_account::load_account(account_id) {
+                write_quota_error(&mut stored_account, error.clone());
+                if let Err(save_error) = codex_account::save_account(&stored_account) {
+                    logger::log_warn(&format!(
+                        "准备 Codex 账号失败后写入配额错误失败: {}",
+                        save_error
+                    ));
+                }
+            }
+            return Err(error);
+        }
+    };
     if account.is_api_key_auth() {
         if is_new_api_account(&account) {
             let result = match fetch_new_api_quota(&account).await {
@@ -1514,14 +1533,26 @@ async fn refresh_account_quota_once(
 }
 
 pub async fn refresh_account_quota(account_id: &str) -> Result<CodexQuota, String> {
-    refresh_account_quota_once(account_id, RefreshQuotaOptions::default()).await
+    let result = refresh_account_quota_once(account_id, RefreshQuotaOptions::default()).await;
+    crate::modules::codex_local_access::reevaluate_bound_oauth_quota_reserve_after_refresh(
+        account_id,
+        result.is_ok(),
+    )
+    .await;
+    result
 }
 
 pub async fn refresh_account_quota_with_options(
     account_id: &str,
     options: RefreshQuotaOptions,
 ) -> Result<CodexQuota, String> {
-    refresh_account_quota_once(account_id, options).await
+    let result = refresh_account_quota_once(account_id, options).await;
+    crate::modules::codex_local_access::reevaluate_bound_oauth_quota_reserve_after_refresh(
+        account_id,
+        result.is_ok(),
+    )
+    .await;
+    result
 }
 
 pub async fn probe_import_account_quota(account: &CodexAccount) -> Result<CodexQuota, String> {
@@ -1613,14 +1644,32 @@ pub async fn refresh_all_quotas() -> Result<Vec<(String, Result<CodexQuota, Stri
 #[cfg(test)]
 mod tests {
     use super::{
-        normalize_http_error_body_for_display, parse_reset_credits_snapshot,
-        HTTP_ERROR_BODY_DISPLAY_MAX_CHARS,
+        normalize_http_error_body_for_display, normalize_remaining_percentage,
+        parse_reset_credits_snapshot, WindowInfo, HTTP_ERROR_BODY_DISPLAY_MAX_CHARS,
     };
     use serde_json::json;
 
     #[test]
     fn displays_empty_http_error_body_explicitly() {
         assert_eq!(normalize_http_error_body_for_display(" \n\t "), "<empty>");
+    }
+
+    #[test]
+    fn rejects_missing_or_invalid_window_usage_percent() {
+        let window = |used_percent| WindowInfo {
+            used_percent,
+            limit_window_seconds: Some(300),
+            reset_after_seconds: None,
+            reset_at: None,
+        };
+
+        assert!(normalize_remaining_percentage(&window(None)).is_err());
+        assert!(normalize_remaining_percentage(&window(Some(-1))).is_err());
+        assert!(normalize_remaining_percentage(&window(Some(101))).is_err());
+        assert_eq!(
+            normalize_remaining_percentage(&window(Some(37))).unwrap(),
+            63
+        );
     }
 
     #[test]

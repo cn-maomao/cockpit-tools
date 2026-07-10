@@ -1940,6 +1940,11 @@
       "oauthBinding": {
         "desc": "Необязательно. Можно выбрать только OAuth-аккаунты с refresh_token. Без привязки API-сервис работает по прежней логике API Key; после привязки вход использует OAuth-аккаунт, а Provider — настройки API-сервиса.",
         "currentService": "API-сервис: {{name}}",
+        "quotaReserveToggle": "Сохранить квоту OAuth",
+        "quotaReserveDesc": "API-сервис использует этот OAuth-аккаунт, только пока остатки 5-часовой и недельной квот выше заданных резервов.",
+        "quotaReserveHourlyLabel": "Резерв на 5 часов",
+        "quotaReserveWeeklyLabel": "Недельный резерв",
+        "quotaReserveInvalid": "Введите целое число от 1 до 100.",
         "imageGenerationTooltip": "Если включено, API-сервис удаляет объявление инструмента image_generation в локальном шлюзе перед пересылкой обычных текстовых диалогов; модели изображений не удаляются.",
         "imageGenerationConfirm": {
           "title": "Отключить image_generation",

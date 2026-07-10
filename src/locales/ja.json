@@ -1940,6 +1940,11 @@
       "oauthBinding": {
         "desc": "任意です。refresh_token があり自動更新できる OAuth アカウントのみ選択できます。未連携の場合、API サービスは従来の API Key ロジックで動作します。連携後はログイン状態に OAuth アカウントを使い、Provider は現在の API サービス設定を使います。",
         "currentService": "API サービス：{{name}}",
+        "quotaReserveToggle": "OAuth クォータを確保",
+        "quotaReserveDesc": "API サービスは、5 時間と週間の残りクォータがどちらも確保値を上回る場合にのみ、この OAuth アカウントを使用します。",
+        "quotaReserveHourlyLabel": "5 時間確保",
+        "quotaReserveWeeklyLabel": "週間確保",
+        "quotaReserveInvalid": "1 から 100 の整数を入力してください。",
         "imageGenerationTooltip": "有効にすると、API サービスは通常のテキスト対話を転送する前にローカルゲートウェイで image_generation ツール宣言を除外します。画像モデルは削除しません。",
         "imageGenerationConfirm": {
           "title": "image_generation を無効化",

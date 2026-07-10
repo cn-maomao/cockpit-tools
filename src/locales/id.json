@@ -1989,6 +1989,11 @@
       "oauthBinding": {
         "desc": "Opsional. Hanya akun OAuth dengan refresh_token yang dapat dipilih. Tanpa tautan, layanan API tetap memakai alur API Key lama; setelah ditautkan, status masuk memakai akun OAuth dan Provider memakai konfigurasi layanan API.",
         "currentService": "Layanan API: {{name}}",
+        "quotaReserveToggle": "Simpan kuota OAuth",
+        "quotaReserveDesc": "Layanan API hanya memakai akun OAuth ini selama sisa kuota 5 jam dan mingguan lebih tinggi dari nilai simpanan.",
+        "quotaReserveHourlyLabel": "Simpanan 5 jam",
+        "quotaReserveWeeklyLabel": "Simpanan mingguan",
+        "quotaReserveInvalid": "Masukkan bilangan bulat dari 1 sampai 100.",
         "imageGenerationTooltip": "Jika aktif, layanan API menghapus deklarasi alat image_generation di gateway lokal sebelum meneruskan percakapan teks; model gambar tidak dihapus.",
         "imageGenerationConfirm": {
           "title": "Nonaktifkan image_generation",

@@ -77,6 +77,18 @@ pub(crate) fn managed_codex_model_ids() -> Vec<String> {
 }
 
 pub fn normalize_responses_body_for_codex(body: &mut Value) -> bool {
+    normalize_responses_body_for_codex_with_lite(body, false)
+}
+
+pub fn normalize_responses_body_for_codex_with_lite(
+    body: &mut Value,
+    force_responses_lite: bool,
+) -> bool {
+    let responses_lite = force_responses_lite
+        || body
+            .get("model")
+            .and_then(Value::as_str)
+            .is_some_and(codex_model_uses_responses_lite);
     let Some(obj) = body.as_object_mut() else {
         return false;
     };
@@ -85,13 +97,31 @@ pub fn normalize_responses_body_for_codex(body: &mut Value) -> bool {
     changed |= ensure_string_field(obj, "instructions", "");
     changed |= ensure_bool_field(obj, "stream", true);
     changed |= ensure_bool_field(obj, "store", false);
-    changed |= ensure_bool_field(obj, "parallel_tool_calls", true);
+    changed |= ensure_bool_field(obj, "parallel_tool_calls", !responses_lite);
     changed |= ensure_reasoning_include(obj);
     changed |= normalize_responses_input(obj);
     changed |= normalize_codex_builtin_tools(obj);
     changed |= remove_unsupported_responses_fields(obj);
 
     changed
+}
+
+fn codex_model_uses_responses_lite(model_id: &str) -> bool {
+    codex_client_model_catalog()
+        .get("model_overrides")
+        .and_then(Value::as_array)
+        .is_some_and(|models| {
+            models.iter().any(|model| {
+                model
+                    .get("slug")
+                    .and_then(Value::as_str)
+                    .is_some_and(|slug| slug.eq_ignore_ascii_case(model_id.trim()))
+                    && model
+                        .get("use_responses_lite")
+                        .and_then(Value::as_bool)
+                        .unwrap_or(false)
+            })
+        })
 }
 
 fn build_codex_client_model(model_id: &str, index: usize) -> Value {
@@ -512,6 +542,36 @@ mod tests {
             body.pointer("/input/0/content/0/text")
                 .and_then(Value::as_str),
             Some("pong")
+        );
+    }
+
+    #[test]
+    fn disables_parallel_tool_calls_for_responses_lite_models() {
+        let mut body = json!({
+            "model": "gpt-5.6-luna",
+            "input": "pong",
+            "parallel_tool_calls": true,
+        });
+
+        normalize_responses_body_for_codex(&mut body);
+        assert_eq!(
+            body.get("parallel_tool_calls").and_then(Value::as_bool),
+            Some(false)
+        );
+    }
+
+    #[test]
+    fn responses_lite_header_forces_parallel_tool_calls_off() {
+        let mut body = json!({
+            "model": "custom-model",
+            "input": "pong",
+            "parallel_tool_calls": true,
+        });
+
+        normalize_responses_body_for_codex_with_lite(&mut body, true);
+        assert_eq!(
+            body.get("parallel_tool_calls").and_then(Value::as_bool),
+            Some(false)
         );
     }
 

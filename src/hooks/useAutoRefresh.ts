@@ -39,6 +39,7 @@ import {
   type AutoRefreshSchedulerHandle,
   type AutoRefreshSchedulerTask,
 } from '../utils/autoRefreshScheduler';
+import { refreshCodexApiKeyUsageForAccounts } from '../services/codexApiKeyUsageRefreshService';
 
 interface GeneralConfig {
   language: string;
@@ -468,7 +469,15 @@ export function useAutoRefresh() {
               fullRefreshingRef: codexRefreshingRef,
               currentRefreshingRef: codexCurrentRefreshingRef,
               runFullRefresh: async () => {
-                await refreshAllCodexQuotas();
+                try {
+                  await refreshAllCodexQuotas();
+                } finally {
+                  await refreshCodexApiKeyUsageForAccounts(
+                    useCodexAccountStore.getState().accounts,
+                  ).catch((error) => {
+                    console.error('[AutoRefresh] Codex API Key usage refresh failed:', error);
+                  });
+                }
               },
               runCurrentRefresh: async () => {
                 if (!useCodexAccountStore.getState().currentAccount?.id) {
@@ -477,9 +486,18 @@ export function useAutoRefresh() {
                 if (!useCodexAccountStore.getState().currentAccount?.id) {
                   return;
                 }
-                await invoke('refresh_current_codex_quota');
-                await fetchCodexAccounts();
-                await fetchCurrentCodexAccount();
+                try {
+                  await invoke('refresh_current_codex_quota');
+                  await fetchCodexAccounts();
+                  await fetchCurrentCodexAccount();
+                } finally {
+                  const currentAccount = useCodexAccountStore.getState().currentAccount;
+                  if (currentAccount) {
+                    await refreshCodexApiKeyUsageForAccounts([currentAccount]).catch((error) => {
+                      console.error('[AutoRefresh] Codex API Key usage refresh failed:', error);
+                    });
+                  }
+                }
               },
             },
             {

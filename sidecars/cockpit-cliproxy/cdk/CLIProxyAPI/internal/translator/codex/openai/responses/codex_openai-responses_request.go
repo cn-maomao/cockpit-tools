@@ -3,6 +3,7 @@ package responses
 import (
 	"fmt"
 
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/registry"
 	log "github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
@@ -19,7 +20,14 @@ func ConvertOpenAIResponsesRequestToCodex(modelName string, inputRawJSON []byte,
 
 	rawJSON, _ = sjson.SetBytes(rawJSON, "stream", true)
 	rawJSON, _ = sjson.SetBytes(rawJSON, "store", false)
-	rawJSON, _ = sjson.SetBytes(rawJSON, "parallel_tool_calls", true)
+	parallelToolCalls := true
+	if requested := gjson.GetBytes(rawJSON, "parallel_tool_calls"); requested.Exists() {
+		parallelToolCalls = requested.Bool()
+	}
+	if registry.CodexClientModelUsesResponsesLite(modelName) {
+		parallelToolCalls = false
+	}
+	rawJSON, _ = sjson.SetBytes(rawJSON, "parallel_tool_calls", parallelToolCalls)
 	rawJSON, _ = sjson.SetBytes(rawJSON, "include", []string{"reasoning.encrypted_content"})
 	// Codex Responses rejects token limit fields, so strip them out before forwarding.
 	rawJSON, _ = sjson.DeleteBytes(rawJSON, "max_output_tokens")

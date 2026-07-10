@@ -9,6 +9,7 @@ import type {
   CodexLocalAccessImageGenerationMode,
   CodexLocalAccessModelAlias,
   CodexLocalAccessModelPricing,
+  CodexLocalAccessOAuthQuotaReserve,
   CodexLocalAccessPortCleanupResult,
   CodexLocalAccessRequestLogQuery,
   CodexLocalAccessRoutingStrategy,
@@ -47,10 +48,12 @@ export async function rotateCodexLocalAccessApiKey(): Promise<CodexLocalAccessSt
 export async function updateCodexLocalAccessBoundOAuthAccount(
   boundOauthAccountId: string | null,
   boundOauthUseLocalGateway = false,
+  boundOauthQuotaReserve: CodexLocalAccessOAuthQuotaReserve | null = null,
 ): Promise<CodexLocalAccessState> {
   return await invoke("codex_local_access_update_bound_oauth_account", {
     boundOauthAccountId,
     boundOauthUseLocalGateway,
+    boundOauthQuotaReserve,
   });
 }
 

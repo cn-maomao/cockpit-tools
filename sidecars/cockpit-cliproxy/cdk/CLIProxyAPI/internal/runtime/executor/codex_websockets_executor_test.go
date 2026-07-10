@@ -742,6 +742,43 @@ func TestApplyCodexHeadersDoesNotInjectClientOnlyHeadersByDefault(t *testing.T) 
 	}
 }
 
+func TestApplyCodexHeadersPassesThroughResponsesLiteHeader(t *testing.T) {
+	for _, path := range []string{"/responses", "/responses/compact"} {
+		t.Run(path, func(t *testing.T) {
+			req, err := http.NewRequest(http.MethodPost, "https://example.com"+path, nil)
+			if err != nil {
+				t.Fatalf("NewRequest() error = %v", err)
+			}
+			req = req.WithContext(contextWithGinHeaders(map[string]string{
+				codexResponsesLiteHeaderName: "true",
+			}))
+
+			applyCodexHeaders(req, nil, "oauth-token", path == "/responses", nil)
+
+			if got := req.Header.Get(codexResponsesLiteHeaderName); got != "true" {
+				t.Fatalf("%s = %q, want true", codexResponsesLiteHeaderName, got)
+			}
+		})
+	}
+}
+
+func TestApplyCodexHeadersDoesNotInjectResponsesLiteHeader(t *testing.T) {
+	for _, path := range []string{"/responses", "/responses/compact"} {
+		t.Run(path, func(t *testing.T) {
+			req, err := http.NewRequest(http.MethodPost, "https://example.com"+path, nil)
+			if err != nil {
+				t.Fatalf("NewRequest() error = %v", err)
+			}
+
+			applyCodexHeaders(req, nil, "oauth-token", path == "/responses", nil)
+
+			if got := req.Header.Get(codexResponsesLiteHeaderName); got != "" {
+				t.Fatalf("%s = %q, want empty", codexResponsesLiteHeaderName, got)
+			}
+		})
+	}
+}
+
 func TestApplyCodexWebsocketHeadersPassesThroughAgtoolsDiagnosticHeaders(t *testing.T) {
 	ctx := contextWithGinHeaders(map[string]string{
 		"X-Agtools-Test-Run-Id":       "run-1",

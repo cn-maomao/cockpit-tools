@@ -2262,6 +2262,11 @@
       "oauthBinding": {
         "desc": "Optional. Only OAuth accounts with a refresh_token can be selected. Without a link, the API service keeps the original API-key flow; after linking, sign-in uses the OAuth account and Provider uses the API service config.",
         "currentService": "API Service: {{name}}",
+        "quotaReserveToggle": "Reserve OAuth quota",
+        "quotaReserveDesc": "The API service uses this OAuth account only while both the 5-hour and weekly remaining quotas are above the reserved values.",
+        "quotaReserveHourlyLabel": "5-hour reserve",
+        "quotaReserveWeeklyLabel": "Weekly reserve",
+        "quotaReserveInvalid": "Enter an integer from 1 to 100.",
         "imageGenerationTooltip": "When enabled, the API service removes the image_generation tool declaration in the local gateway before forwarding normal text chats; image models are not removed.",
         "imageGenerationConfirm": {
           "title": "Disable image_generation",

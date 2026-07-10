@@ -544,7 +544,7 @@ fn normalize_windows_candidate_path(raw: &str) -> Option<std::path::PathBuf> {
     }
 }
 
-#[cfg(target_os = "windows")]
+#[cfg(any(test, target_os = "windows"))]
 fn score_windows_candidate(
     path: &std::path::Path,
     exe_names_lower: &HashSet<String>,
@@ -573,6 +573,12 @@ fn score_windows_candidate(
             score += 5;
         }
         return Some(score);
+    }
+
+    // The legacy Codex and current ChatGPT clients share this scanner. Do not
+    // accept helper executables whose paths merely contain one of those names.
+    if exe_names_lower.contains("chatgpt.exe") && exe_names_lower.contains("codex.exe") {
+        return None;
     }
 
     let is_exe = path
@@ -1237,6 +1243,20 @@ fn scan_windows_app_launch_targets(
             signature,
             trae_platform,
         );
+    }
+
+    if app == "codex" {
+        candidates.sort_by_key(|candidate| {
+            let file_name = std::path::Path::new(&candidate.target)
+                .file_name()
+                .and_then(|value| value.to_str())
+                .unwrap_or("");
+            if file_name.eq_ignore_ascii_case("ChatGPT.exe") {
+                0
+            } else {
+                1
+            }
+        });
     }
 
     Ok(candidates)
@@ -3241,6 +3261,18 @@ fn parse_codex_store_version_from_dir_name(dir_name: &str) -> Option<Vec<u32>> {
 }
 
 #[cfg(target_os = "windows")]
+fn codex_store_package_priority(dir_name: &str) -> u8 {
+    let lower = dir_name.to_ascii_lowercase();
+    if lower.starts_with("openai.chatgpt_") || lower.starts_with("openai.chatgpt-desktop_") {
+        2
+    } else if lower.starts_with("openai.codex_") {
+        1
+    } else {
+        0
+    }
+}
+
+#[cfg(target_os = "windows")]
 fn find_codex_windows_app_main_exe(app_dir: &std::path::Path) -> Option<std::path::PathBuf> {
     for exe_name in ["ChatGPT.exe", "Codex.exe"] {
         let candidate = app_dir.join(exe_name);
@@ -3253,7 +3285,7 @@ fn find_codex_windows_app_main_exe(app_dir: &std::path::Path) -> Option<std::pat
 
 #[cfg(target_os = "windows")]
 fn detect_codex_exec_path_by_windowsapps_scan() -> Option<std::path::PathBuf> {
-    let mut best: Option<(Vec<u32>, std::path::PathBuf)> = None;
+    let mut best: Option<(u8, Vec<u32>, std::path::PathBuf)> = None;
 
     for drive in b'A'..=b'Z' {
         let drive_letter = drive as char;
@@ -3285,6 +3317,7 @@ fn detect_codex_exec_path_by_windowsapps_scan() -> Option<std::path::PathBuf> {
             let Some(version) = parse_codex_store_version_from_dir_name(&dir_name) else {
                 continue;
             };
+            let package_priority = codex_store_package_priority(&dir_name);
 
             let candidate = match find_codex_windows_app_main_exe(&entry.path().join("app")) {
                 Some(path) => path,
@@ -3293,17 +3326,19 @@ fn detect_codex_exec_path_by_windowsapps_scan() -> Option<std::path::PathBuf> {
 
             let replace = match &best {
                 None => true,
-                Some((best_version, _)) => {
-                    compare_windows_store_version(&version, best_version).is_gt()
+                Some((best_priority, best_version, _)) => {
+                    package_priority > *best_priority
+                        || (package_priority == *best_priority
+                            && compare_windows_store_version(&version, best_version).is_gt())
                 }
             };
             if replace {
-                best = Some((version, candidate));
+                best = Some((package_priority, version, candidate));
             }
         }
     }
 
-    if let Some((_, path)) = best {
+    if let Some((_, _, path)) = best {
         crate::modules::logger::log_info(&format!(
             "[Path Detect] codex windowsapps scan hit: {}",
             path.to_string_lossy()
@@ -3319,7 +3354,7 @@ fn detect_codex_exec_path_by_appx_install_location() -> Option<std::path::PathBu
     let script = r#"$names = @('OpenAI.ChatGPT', 'OpenAI.ChatGPT-Desktop', 'OpenAI.Codex')
 $pkg = $names |
   ForEach-Object { Get-AppxPackage -Name $_ -ErrorAction SilentlyContinue } |
-  Sort-Object -Property Version -Descending |
+  Sort-Object @{ Expression = { if ($_.Name -like 'OpenAI.ChatGPT*') { 0 } else { 1 } } }, @{ Expression = { $_.Version }; Descending = $true } |
   Select-Object -First 1
 if (-not $pkg) {
   $pkg = Get-AppxPackage |
@@ -3329,7 +3364,7 @@ if (-not $pkg) {
       $_.PackageFamilyName -like 'OpenAI.ChatGPT*' -or
       $_.PackageFamilyName -like 'OpenAI.Codex*'
     } |
-  Sort-Object -Property Version -Descending |
+  Sort-Object @{ Expression = { if ($_.Name -like 'OpenAI.ChatGPT*' -or $_.PackageFamilyName -like 'OpenAI.ChatGPT*') { 0 } else { 1 } } }, @{ Expression = { $_.Version }; Descending = $true } |
   Select-Object -First 1
 }
 if ($pkg -and -not [string]::IsNullOrWhiteSpace($pkg.InstallLocation)) {
@@ -3398,7 +3433,7 @@ fn detect_codex_store_app_user_model_id_by_appx_fallback() -> Option<String> {
     let script = r#"$names = @('OpenAI.ChatGPT', 'OpenAI.ChatGPT-Desktop', 'OpenAI.Codex')
 $pkg = $names |
   ForEach-Object { Get-AppxPackage -Name $_ -ErrorAction SilentlyContinue } |
-  Sort-Object -Property Version -Descending |
+  Sort-Object @{ Expression = { if ($_.Name -like 'OpenAI.ChatGPT*') { 0 } else { 1 } } }, @{ Expression = { $_.Version }; Descending = $true } |
   Select-Object -First 1
 if (-not $pkg) {
   $pkg = Get-AppxPackage |
@@ -3408,7 +3443,7 @@ if (-not $pkg) {
       $_.PackageFamilyName -like 'OpenAI.ChatGPT*' -or
       $_.PackageFamilyName -like 'OpenAI.Codex*'
     } |
-  Sort-Object -Property Version -Descending |
+  Sort-Object @{ Expression = { if ($_.Name -like 'OpenAI.ChatGPT*' -or $_.PackageFamilyName -like 'OpenAI.ChatGPT*') { 0 } else { 1 } } }, @{ Expression = { $_.Version }; Descending = $true } |
   Select-Object -First 1
 }
 if ($pkg -and -not [string]::IsNullOrWhiteSpace($pkg.PackageFamilyName)) {
@@ -3614,6 +3649,46 @@ pub(crate) fn detect_codex_exec_path() -> Option<std::path::PathBuf> {
 fn detect_and_save_codex_launch_path() -> Option<std::path::PathBuf> {
     let detected = detect_codex_exec_path()?;
     update_app_path_in_config("codex", &detected);
+    Some(detected)
+}
+
+#[cfg(any(test, target_os = "windows"))]
+fn normalized_windows_path_text(path: &Path) -> String {
+    path.to_string_lossy()
+        .replace('/', "\\")
+        .to_ascii_lowercase()
+}
+
+#[cfg(any(test, target_os = "windows"))]
+fn is_legacy_codex_store_launch_path(path: &Path) -> bool {
+    let normalized = normalized_windows_path_text(path);
+    normalized.ends_with("\\codex.exe") && normalized.contains("\\windowsapps\\openai.codex_")
+}
+
+#[cfg(any(test, target_os = "windows"))]
+fn is_chatgpt_launch_path(path: &Path) -> bool {
+    normalized_windows_path_text(path).ends_with("\\chatgpt.exe")
+}
+
+#[cfg(any(test, target_os = "windows"))]
+fn should_migrate_legacy_codex_launch_path(current: &Path, detected: &Path) -> bool {
+    is_legacy_codex_store_launch_path(current) && is_chatgpt_launch_path(detected)
+}
+
+#[cfg(target_os = "windows")]
+fn migrate_legacy_codex_launch_path(custom_path: &str) -> Option<std::path::PathBuf> {
+    let current_path = std::path::PathBuf::from(custom_path);
+    let detected = detect_codex_exec_path()?;
+    if !should_migrate_legacy_codex_launch_path(&current_path, &detected) {
+        return None;
+    }
+
+    update_app_path_in_config("codex", &detected);
+    crate::modules::logger::log_info(&format!(
+        "[Path Detect] migrated legacy Codex launch path to ChatGPT: old={} new={}",
+        current_path.to_string_lossy(),
+        detected.to_string_lossy()
+    ));
     Some(detected)
 }
 
@@ -4060,6 +4135,10 @@ fn resolve_codex_launch_path() -> Result<std::path::PathBuf, String> {
 #[cfg(not(target_os = "macos"))]
 fn resolve_codex_launch_path() -> Result<std::path::PathBuf, String> {
     if let Some(custom) = normalize_custom_path(Some(&config::get_user_config().codex_app_path)) {
+        #[cfg(target_os = "windows")]
+        if let Some(migrated) = migrate_legacy_codex_launch_path(&custom) {
+            return Ok(migrated);
+        }
         if let Some(exec) = resolve_macos_exec_path(&custom, "Codex") {
             return Ok(exec);
         }
@@ -12847,6 +12926,64 @@ mod codex_macos_launch_tests {
         assert!(!is_codex_macos_main_process_command_line(
             "/applications/chatgpt.app/contents/resources/codex app-server"
         ));
+    }
+}
+
+#[cfg(test)]
+mod codex_windows_path_migration_tests {
+    use super::{score_windows_candidate, should_migrate_legacy_codex_launch_path};
+    use std::collections::HashSet;
+    use std::path::Path;
+
+    #[test]
+    fn migrates_official_windows_store_codex_path_when_chatgpt_exists() {
+        assert!(should_migrate_legacy_codex_launch_path(
+            Path::new(
+                r"C:\Program Files\WindowsApps\OpenAI.Codex_1.0.0.0_x64__8wekyb3d8bbwe\app\Codex.exe"
+            ),
+            Path::new(
+                r"C:\Program Files\WindowsApps\OpenAI.ChatGPT_2.0.0.0_x64__8wekyb3d8bbwe\app\ChatGPT.exe"
+            ),
+        ));
+    }
+
+    #[test]
+    fn keeps_legacy_path_when_chatgpt_is_not_detected() {
+        assert!(!should_migrate_legacy_codex_launch_path(
+            Path::new(
+                r"C:\Program Files\WindowsApps\OpenAI.Codex_1.0.0.0_x64__8wekyb3d8bbwe\app\Codex.exe"
+            ),
+            Path::new(
+                r"C:\Program Files\WindowsApps\OpenAI.Codex_1.0.0.0_x64__8wekyb3d8bbwe\app\Codex.exe"
+            ),
+        ));
+    }
+
+    #[test]
+    fn does_not_replace_custom_codex_executable() {
+        assert!(!should_migrate_legacy_codex_launch_path(
+            Path::new(r"D:\Tools\Codex.exe"),
+            Path::new(
+                r"C:\Program Files\WindowsApps\OpenAI.ChatGPT_2.0.0.0_x64__8wekyb3d8bbwe\app\ChatGPT.exe"
+            ),
+        ));
+    }
+
+    #[test]
+    fn scan_rejects_codex_keyword_helper_executables() {
+        let exe_names = HashSet::from(["chatgpt.exe".to_string(), "codex.exe".to_string()]);
+        let keywords = vec!["chatgpt".to_string(), "codex".to_string()];
+
+        assert!(score_windows_candidate(
+            Path::new("C:/Tools/CodexHelper.exe"),
+            &exe_names,
+            &keywords,
+        )
+        .is_none());
+        assert!(
+            score_windows_candidate(Path::new("C:/Tools/ChatGPT.exe"), &exe_names, &keywords,)
+                .is_some()
+        );
     }
 }
 

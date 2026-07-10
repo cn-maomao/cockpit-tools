@@ -1940,6 +1940,11 @@
       "oauthBinding": {
         "desc": "선택 사항입니다. refresh_token이 있어 자동 갱신할 수 있는 OAuth 계정만 선택할 수 있습니다. 연결하지 않으면 API 서비스는 기존 API Key 로직으로 실행됩니다. 연결하면 로그인 상태는 OAuth 계정을 사용하고 Provider는 현재 API 서비스 설정을 사용합니다.",
         "currentService": "API 서비스: {{name}}",
+        "quotaReserveToggle": "OAuth 할당량 보존",
+        "quotaReserveDesc": "API 서비스는 5시간 및 주간 잔여 할당량이 모두 보존 값보다 높을 때만 이 OAuth 계정을 사용합니다.",
+        "quotaReserveHourlyLabel": "5시간 보존",
+        "quotaReserveWeeklyLabel": "주간 보존",
+        "quotaReserveInvalid": "1에서 100 사이의 정수를 입력하세요.",
         "imageGenerationTooltip": "켜면 API 서비스가 일반 텍스트 대화를 전달하기 전에 로컬 게이트웨이에서 image_generation 도구 선언을 제거합니다. 이미지 모델은 삭제하지 않습니다.",
         "imageGenerationConfirm": {
           "title": "image_generation 비활성화",

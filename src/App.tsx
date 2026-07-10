@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 import { FileText, FolderOpen, RefreshCw, X } from 'lucide-react';
 import { SideNav } from './components/layout/SideNav';
 import { GlobalModal } from './components/GlobalModal';
+import { AnnouncementHost } from './components/AnnouncementCenter';
 import { TopCenterPromoBanner } from './components/TopCenterPromoBanner';
 import type { QuickSettingsType } from './components/QuickSettingsPopover';
 import type { Page } from './types/navigation';
@@ -1299,10 +1300,7 @@ function MainApp() {
     && updateRuntimeInfo.linux_managed_install_supported;
 
   const getUpdaterCheckTarget = useCallback((): string | undefined => {
-    if (updateRuntimeInfo?.platform !== 'windows') {
-      return undefined;
-    }
-    if (typeof updateRuntimeInfo.updater_target !== 'string') {
+    if (typeof updateRuntimeInfo?.updater_target !== 'string') {
       return undefined;
     }
 
@@ -3841,6 +3839,8 @@ function MainApp() {
         sponsorEntryVisible={sponsorEntryVisible}
         onOpenLogViewer={() => setShowLogViewer(true)}
       />
+
+      <AnnouncementHost onNavigate={setPage} />
 
       {sideNavLayoutMode !== 'classic' && (
         <button

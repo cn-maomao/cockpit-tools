@@ -1940,6 +1940,11 @@
       "oauthBinding": {
         "desc": "İsteğe bağlı. Yalnızca refresh_token içeren OAuth hesapları seçilebilir. Bağlantı yoksa API hizmeti eski API Key akışıyla çalışır; bağlanınca oturum OAuth hesabını, Provider ise API hizmeti yapılandırmasını kullanır.",
         "currentService": "API hizmeti: {{name}}",
+        "quotaReserveToggle": "OAuth kotasını koru",
+        "quotaReserveDesc": "API hizmeti bu OAuth hesabını yalnızca kalan 5 saatlik ve haftalık kotalar koruma değerlerinin üzerindeyken kullanır.",
+        "quotaReserveHourlyLabel": "5 saatlik koruma",
+        "quotaReserveWeeklyLabel": "Haftalık koruma",
+        "quotaReserveInvalid": "1 ile 100 arasında bir tam sayı girin.",
         "imageGenerationTooltip": "Açılınca API hizmeti, normal metin sohbetlerini iletmeden önce yerel ağ geçidinde image_generation araç bildirimini kaldırır; görsel modeller silinmez.",
         "imageGenerationConfirm": {
           "title": "image_generation kapat",

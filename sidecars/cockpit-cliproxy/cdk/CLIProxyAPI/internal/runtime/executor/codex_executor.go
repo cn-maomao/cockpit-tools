@@ -35,9 +35,10 @@ import (
 )
 
 const (
-	codexUserAgent             = "codex-tui/0.135.0 (Mac OS 26.5.0; arm64) iTerm.app/3.6.10 (codex-tui; 0.135.0)"
-	codexOriginator            = "codex-tui"
-	codexDefaultImageToolModel = "gpt-image-2"
+	codexUserAgent               = "codex-tui/0.135.0 (Mac OS 26.5.0; arm64) iTerm.app/3.6.10 (codex-tui; 0.135.0)"
+	codexOriginator              = "codex-tui"
+	codexDefaultImageToolModel   = "gpt-image-2"
+	codexResponsesLiteHeaderName = "X-OpenAI-Internal-Codex-Responses-Lite"
 )
 
 var dataTag = []byte("data:")
@@ -1644,6 +1645,7 @@ func applyCodexHeaders(r *http.Request, auth *cliproxyauth.Auth, token string, s
 	misc.EnsureHeader(r.Header, ginHeaders, "Version", "")
 	misc.EnsureHeader(r.Header, ginHeaders, "X-Codex-Turn-Metadata", "")
 	misc.EnsureHeader(r.Header, ginHeaders, "X-Client-Request-Id", "")
+	misc.EnsureHeader(r.Header, ginHeaders, codexResponsesLiteHeaderName, "")
 	copyCodexAgtoolsDiagnosticHeaders(r.Header, ginHeaders)
 	cfgUserAgent, _ := codexHeaderDefaults(cfg, auth)
 	ensureHeaderWithConfigPrecedence(r.Header, ginHeaders, "User-Agent", cfgUserAgent, codexUserAgent)

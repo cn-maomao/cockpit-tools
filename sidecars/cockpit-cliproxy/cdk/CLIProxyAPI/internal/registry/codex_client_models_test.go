@@ -39,6 +39,17 @@ func TestCodexPlanModelsIncludeManaged56Models(t *testing.T) {
 	t.Fatal("missing Sol model")
 }
 
+func TestCodexResponsesLiteModels(t *testing.T) {
+	for _, slug := range []string{"gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"} {
+		if !CodexClientModelUsesResponsesLite(slug) {
+			t.Fatalf("expected %s to use Responses Lite", slug)
+		}
+	}
+	if CodexClientModelUsesResponsesLite("gpt-5.5") {
+		t.Fatal("gpt-5.5 should not use Responses Lite")
+	}
+}
+
 func containsString(values []string, expected string) bool {
 	for _, value := range values {
 		if value == expected {
