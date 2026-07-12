@@ -7294,6 +7294,21 @@
   max-height: min(70vh, 720px);
 }
 
+.codex-provider-save-button .codex-provider-save-button-label {
+  display: grid;
+  place-items: center;
+}
+
+.codex-provider-save-button .codex-provider-save-button-label > span {
+  grid-area: 1 / 1;
+}
+
+.codex-provider-save-button
+  .codex-provider-save-button-label
+  > span[aria-hidden="true"] {
+  visibility: hidden;
+}
+
 .codex-provider-label-with-help {
   display: inline-flex;
   align-items: center;

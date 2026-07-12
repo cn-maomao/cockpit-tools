@@ -6,6 +6,8 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use tauri::AppHandle;
 
+const GROK_CLI_INSTALL_COMMAND: &str = "curl -fsSL https://x.ai/cli/install.sh | bash";
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GrokCliStatus {
@@ -42,6 +44,30 @@ fn command_exists(name: &str) -> Option<PathBuf> {
         .map(str::trim)
         .find(|line| !line.is_empty())
         .map(PathBuf::from)
+}
+
+#[cfg(target_os = "windows")]
+fn resolve_windows_bash() -> Option<PathBuf> {
+    if let Some(path) = command_exists("bash") {
+        return Some(path);
+    }
+    let mut candidates = Vec::new();
+    for variable in ["ProgramFiles", "ProgramFiles(x86)"] {
+        if let Ok(root) = std::env::var(variable) {
+            candidates.push(PathBuf::from(root).join("Git/bin/bash.exe"));
+        }
+    }
+    if let Ok(root) = std::env::var("LOCALAPPDATA") {
+        candidates.push(PathBuf::from(root).join("Programs/Git/bin/bash.exe"));
+    }
+    let system_drive = std::env::var("SystemDrive").unwrap_or_else(|_| "C:".to_string());
+    candidates.push(PathBuf::from(format!(
+        "{}\\msys64\\usr\\bin\\bash.exe",
+        system_drive
+    )));
+    candidates
+        .into_iter()
+        .find(|candidate| validate_cli_file(candidate).is_ok())
 }
 
 fn expand_home_path(raw: &str) -> PathBuf {
@@ -214,6 +240,53 @@ pub fn grok_update_cli_runtime_config(
         normalized.map(|path| path.to_string_lossy().to_string()),
     )?;
     grok_get_cli_status()
+}
+
+#[tauri::command]
+pub fn grok_execute_cli_install_command(terminal: Option<String>) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    let command = {
+        let bash = resolve_windows_bash().ok_or_else(|| {
+            "未检测到 Bash。请先安装 Git for Windows 或 MSYS2，再执行 Grok CLI 官方安装命令"
+                .to_string()
+        })?;
+        let quote = |value: &str| format!("'{}'", value.replace('\'', "''"));
+        format!(
+            "& {} -lc {}",
+            quote(&bash.to_string_lossy()),
+            quote(GROK_CLI_INSTALL_COMMAND)
+        )
+    };
+    #[cfg(not(target_os = "windows"))]
+    let command = GROK_CLI_INSTALL_COMMAND.to_string();
+
+    #[cfg(target_os = "linux")]
+    {
+        let configured_terminal = crate::modules::config::get_user_config().default_terminal;
+        let terminal = terminal.unwrap_or(configured_terminal).trim().to_string();
+        let shell_command = format!("{}; exec bash", command);
+        let open = |program: &str, args: &[&str]| {
+            Command::new(program)
+                .args(args)
+                .spawn()
+                .map(|_| ())
+                .map_err(|error| error.to_string())
+        };
+        if terminal != "system" && !terminal.is_empty() {
+            return open(&terminal, &["-e", "bash", "-lc", &shell_command])
+                .map_err(|error| format!("打开终端失败 ({}): {}", terminal, error));
+        }
+        return open(
+            "x-terminal-emulator",
+            &["-e", "bash", "-lc", &shell_command],
+        )
+        .or_else(|_| open("gnome-terminal", &["--", "bash", "-lc", &shell_command]))
+        .or_else(|_| open("konsole", &["-e", "bash", "-lc", &shell_command]))
+        .map_err(|error| format!("未找到可用终端，无法执行 Grok CLI 安装命令: {}", error));
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    super::claude::execute_claude_cli_command(&command, terminal).map(|_| ())
 }
 
 #[cfg(test)]

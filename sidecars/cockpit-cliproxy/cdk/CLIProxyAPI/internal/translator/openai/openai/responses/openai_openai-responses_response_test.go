@@ -260,6 +260,45 @@ func TestConvertOpenAIChatCompletionsResponseToOpenAIResponses_CustomToolUsesNat
 	}
 }
 
+func TestConvertOpenAIChatCompletionsResponseToOpenAIResponses_RestoresAdditionalImageTool(t *testing.T) {
+	request := []byte(`{
+		"model":"gpt-5.6-sol",
+		"input":[{"type":"additional_tools","tools":[{
+			"type":"namespace",
+			"name":"image_gen",
+			"tools":[{"type":"function","name":"imagegen","parameters":{"type":"object"}}]
+		}]}]
+	}`)
+	in := []string{
+		`data: {"id":"resp_image","object":"chat.completion.chunk","created":1773896263,"model":"model","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"call_image","type":"function","function":{"name":"image_gen__imagegen","arguments":""}}]},"finish_reason":null}]}`,
+		`data: {"id":"resp_image","object":"chat.completion.chunk","created":1773896263,"model":"model","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\"prompt\":\"a cat\"}"}}]},"finish_reason":"tool_calls"}]}`,
+		`data: [DONE]`,
+	}
+
+	var param any
+	events := map[string]gjson.Result{}
+	for _, line := range in {
+		for _, chunk := range ConvertOpenAIChatCompletionsResponseToOpenAIResponses(context.Background(), "model", request, request, []byte(line), &param) {
+			event, data := parseOpenAIResponsesSSEEvent(t, chunk)
+			events[event] = data
+		}
+	}
+
+	done := events["response.output_item.done"].Get("item")
+	if got := done.Get("type").String(); got != "function_call" {
+		t.Fatalf("item type = %q, want function_call", got)
+	}
+	if got := done.Get("name").String(); got != "imagegen" {
+		t.Fatalf("item name = %q, want imagegen", got)
+	}
+	if got := done.Get("namespace").String(); got != "image_gen" {
+		t.Fatalf("item namespace = %q, want image_gen", got)
+	}
+	if got := done.Get("arguments").String(); got != `{"prompt":"a cat"}` {
+		t.Fatalf("item arguments = %q", got)
+	}
+}
+
 func TestConvertOpenAIChatCompletionsResponseToOpenAIResponsesNonStream_RestoresToolSearchAndNamespace(t *testing.T) {
 	request := []byte(`{
 		"model":"gpt-5.4",

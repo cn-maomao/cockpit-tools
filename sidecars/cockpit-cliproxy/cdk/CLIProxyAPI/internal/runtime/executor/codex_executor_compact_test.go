@@ -71,6 +71,9 @@ func TestCodexExecutorCompactAddsDefaultInstructions(t *testing.T) {
 			if gjson.GetBytes(gotBody, "instructions").String() != "" {
 				t.Fatalf("instructions = %q, want empty string", gjson.GetBytes(gotBody, "instructions").String())
 			}
+			if tools := gjson.GetBytes(gotBody, "tools"); tools.Exists() {
+				t.Fatalf("compact request must not inject tools, got %s", tools.Raw)
+			}
 			if string(resp.Payload) != `{"id":"resp_1","object":"response.compaction","usage":{"input_tokens":1,"output_tokens":2,"total_tokens":3}}` {
 				t.Fatalf("payload = %s", string(resp.Payload))
 			}

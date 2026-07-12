@@ -304,3 +304,29 @@ func TestConvertOpenAIResponsesRequestToOpenAIChatCompletions_ExposesToolSearchA
 		t.Fatalf("tool call name = %q, want tool_search", got)
 	}
 }
+
+func TestConvertOpenAIResponsesRequestToOpenAIChatCompletions_ExposesAdditionalImageTool(t *testing.T) {
+	raw := []byte(`{
+		"model":"gpt-5.6-sol",
+		"input":[
+			{"role":"user","content":"draw a cat"},
+			{"type":"additional_tools","tools":[{
+				"type":"namespace",
+				"name":"image_gen",
+				"tools":[{"type":"function","name":"imagegen","description":"Generate an image","parameters":{"type":"object"}}]
+			}]}
+		]
+	}`)
+
+	out := ConvertOpenAIResponsesRequestToOpenAIChatCompletions("chat-model", raw, true)
+
+	if got := gjson.GetBytes(out, "tools.#").Int(); got != 1 {
+		t.Fatalf("tools count = %d, want 1; out=%s", got, out)
+	}
+	if got := gjson.GetBytes(out, "tools.0.function.name").String(); got != "image_gen__imagegen" {
+		t.Fatalf("tool name = %q, want image_gen__imagegen; out=%s", got, out)
+	}
+	if got := gjson.GetBytes(out, "tools.0.function.description").String(); got != "Generate an image" {
+		t.Fatalf("tool description = %q, want Generate an image; out=%s", got, out)
+	}
+}

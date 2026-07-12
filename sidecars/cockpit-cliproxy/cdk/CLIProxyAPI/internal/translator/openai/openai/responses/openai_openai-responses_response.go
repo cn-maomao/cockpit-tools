@@ -77,6 +77,14 @@ func toolSpecsFromRequest(requestRawJSON []byte) map[string]responsesToolSpec {
 	}
 	root := gjson.ParseBytes(requestRawJSON)
 	addToolSpecs(root.Get("tools"), "", specs)
+	if input := root.Get("input"); input.Exists() && input.IsArray() {
+		input.ForEach(func(_, item gjson.Result) bool {
+			if item.Get("type").String() == "additional_tools" {
+				addToolSpecs(item.Get("tools"), "", specs)
+			}
+			return true
+		})
+	}
 	collectToolSearchOutputSpecs(root.Get("input"), specs)
 	return specs
 }

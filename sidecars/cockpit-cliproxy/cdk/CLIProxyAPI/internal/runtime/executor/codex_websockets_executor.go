@@ -219,7 +219,7 @@ func (e *CodexWebsocketsExecutor) Execute(ctx context.Context, auth *cliproxyaut
 	body, _ = sjson.DeleteBytes(body, "safety_identifier")
 	body = normalizeCodexInstructions(body)
 	if helps.ShouldInjectImageGenerationTool(e.cfg, requestPath, opts.Headers) {
-		body = ensureImageGenerationTool(body, baseModel, auth)
+		body = ensureImageGenerationTool(body, baseModel, auth, opts.Headers)
 	}
 	body = sanitizeOpenAIResponsesReasoningEncryptedContent(ctx, "codex websockets executor", body)
 
@@ -437,7 +437,7 @@ func (e *CodexWebsocketsExecutor) ExecuteStream(ctx context.Context, auth *clipr
 	body = helps.ApplyPayloadConfigWithRequest(e.cfg, baseModel, to.String(), from.String(), "", body, body, requestedModel, requestPath, opts.Headers)
 	body = normalizeCodexInstructions(body)
 	if helps.ShouldInjectImageGenerationTool(e.cfg, requestPath, opts.Headers) {
-		body = ensureImageGenerationTool(body, baseModel, auth)
+		body = ensureImageGenerationTool(body, baseModel, auth, opts.Headers)
 	}
 	body = sanitizeOpenAIResponsesReasoningEncryptedContent(ctx, "codex websockets executor", body)
 

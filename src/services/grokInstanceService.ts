@@ -41,6 +41,14 @@ export async function updateGrokCliRuntimeConfig(
   });
 }
 
+export async function executeGrokCliInstallCommand(
+  terminal?: string,
+): Promise<void> {
+  await invoke('grok_execute_cli_install_command', {
+    terminal: terminal ?? null,
+  });
+}
+
 export async function getGrokInstanceLaunchCommand(
   instanceId: string,
 ): Promise<GrokInstanceLaunchInfo> {

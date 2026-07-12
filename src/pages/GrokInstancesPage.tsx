@@ -70,6 +70,8 @@ export function GrokInstancesContent({
   const [cliActionError, setCliActionError] = useState<string | null>(null);
   const [cliActionErrorScrollKey, setCliActionErrorScrollKey] = useState(0);
   const [installCommandCopied, setInstallCommandCopied] = useState(false);
+  const [installExecuting, setInstallExecuting] = useState(false);
+  const [installOpened, setInstallOpened] = useState(false);
   const [retryInstanceId, setRetryInstanceId] = useState<string | null>(null);
   const { terminalOptions, selectedTerminal, setSelectedTerminal } =
     useLaunchTerminalOptions();
@@ -80,6 +82,8 @@ export function GrokInstancesContent({
     setCliError(null);
     setCliActionError(null);
     setInstallCommandCopied(false);
+    setInstallExecuting(false);
+    setInstallOpened(false);
     setRetryInstanceId(null);
   });
 
@@ -197,6 +201,8 @@ export function GrokInstancesContent({
     setCliError(null);
     setCliActionError(null);
     setInstallCommandCopied(false);
+    setInstallExecuting(false);
+    setInstallOpened(false);
     setRetryInstanceId(null);
   };
 
@@ -205,12 +211,14 @@ export function GrokInstancesContent({
     setCliError(null);
     setCliActionError(null);
     setInstallCommandCopied(false);
+    setInstallExecuting(false);
+    setInstallOpened(false);
     setCliModalOpen(true);
     void loadCliStatus(true);
   };
 
   const handleSaveCliPath = async () => {
-    if (cliSaving) return;
+    if (cliSaving || installExecuting) return;
     setCliSaving(true);
     setCliError(null);
     setCliActionError(null);
@@ -263,6 +271,21 @@ export function GrokInstancesContent({
       reportCliActionError(
         t('common.shared.export.copyFailed', '复制失败，请手动复制'),
       );
+    }
+  };
+
+  const handleExecuteInstallCommand = async () => {
+    if (installExecuting) return;
+    setCliActionError(null);
+    setInstallOpened(false);
+    setInstallExecuting(true);
+    try {
+      await grokInstanceService.executeGrokCliInstallCommand(selectedTerminal);
+      setInstallOpened(true);
+    } catch (error) {
+      reportCliActionError(String(error));
+    } finally {
+      setInstallExecuting(false);
     }
   };
 
@@ -332,6 +355,8 @@ export function GrokInstancesContent({
 
   const handleTerminalChange = (terminal: string) => {
     setSelectedTerminal(terminal);
+    setCliActionError(null);
+    setInstallOpened(false);
     setLaunchModal((current) =>
       current
         ? { ...current, executeError: null, executeMessage: null }
@@ -447,7 +472,7 @@ export function GrokInstancesContent({
                   type="button"
                   className="btn btn-secondary icon-only"
                   onClick={() => void loadCliStatus(true)}
-                  disabled={cliStatusLoading || cliSaving}
+                  disabled={cliStatusLoading || cliSaving || installExecuting}
                   title={t('common.refresh', '刷新')}
                   aria-label={t('common.refresh', '刷新')}
                 >
@@ -491,6 +516,36 @@ export function GrokInstancesContent({
                       )}
                     </button>
                   </div>
+                  <div className="grok-cli-install-actions">
+                    <div className="grok-cli-install-terminal">
+                      <label>
+                        {t('instances.launchDialog.terminal', '终端')}
+                      </label>
+                      <SingleSelectDropdown
+                        value={selectedTerminal}
+                        onChange={handleTerminalChange}
+                        options={terminalOptions}
+                        disabled={installExecuting || cliSaving}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => void handleExecuteInstallCommand()}
+                      disabled={installExecuting || cliSaving}
+                    >
+                      <Play size={14} />
+                      {installExecuting
+                        ? t('common.loading', '加载中...')
+                        : t('grok.instances.runInTerminal', '终端执行')}
+                    </button>
+                  </div>
+                  {installOpened && (
+                    <div className="add-status success">
+                      <Check size={14} />
+                      <span>{t('common.success', '成功')}</span>
+                    </div>
+                  )}
                 </div>
               )}
               <ModalErrorMessage
@@ -507,7 +562,7 @@ export function GrokInstancesContent({
                     setCliPath(event.target.value);
                     setCliError(null);
                   }}
-                  disabled={cliSaving}
+                  disabled={cliSaving || installExecuting}
                   autoFocus
                 />
                 <ModalErrorMessage
@@ -520,14 +575,14 @@ export function GrokInstancesContent({
               <button
                 className="btn btn-secondary"
                 onClick={closeCliModal}
-                disabled={cliSaving}
+                disabled={cliSaving || installExecuting}
               >
                 {t('common.cancel', '取消')}
               </button>
               <button
                 className="btn btn-primary"
                 onClick={() => void handleSaveCliPath()}
-                disabled={cliSaving}
+                disabled={cliSaving || installExecuting}
               >
                 {cliSaving
                   ? t('common.loading', '加载中...')

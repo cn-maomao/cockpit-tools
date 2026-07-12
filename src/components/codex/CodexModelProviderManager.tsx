@@ -4804,13 +4804,18 @@ export function CodexModelProviderManager({
                 {t("common.cancel", "取消")}
               </button>
               <button
-                className="btn btn-primary"
+                className="btn btn-primary codex-provider-save-button"
                 onClick={() => void handleSaveProvider()}
                 disabled={saving}
               >
-                {saving
-                  ? t("common.saving", "保存中...")
-                  : t("common.save", "保存")}
+                <span className="codex-provider-save-button-label">
+                  <span aria-hidden={saving}>
+                    {t("common.save", "保存")}
+                  </span>
+                  <span aria-hidden={!saving}>
+                    {t("common.saving", "保存中...")}
+                  </span>
+                </span>
               </button>
             </div>
           </div>

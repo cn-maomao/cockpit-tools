@@ -1074,6 +1074,7 @@ pub fn run() {
             commands::gemini::inject_gemini_account,
             // Grok Commands
             commands::grok::grok_get_cli_status,
+            commands::grok::grok_execute_cli_install_command,
             commands::grok::grok_update_cli_runtime_config,
             commands::grok::list_grok_accounts,
             commands::grok::delete_grok_account,

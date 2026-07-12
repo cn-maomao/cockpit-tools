@@ -132,6 +132,40 @@
   flex: 0 0 auto;
 }
 
+.grok-cli-settings-modal .grok-cli-install-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+}
+
+.grok-cli-settings-modal .grok-cli-install-terminal {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.grok-cli-settings-modal .grok-cli-install-terminal > label {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.grok-cli-settings-modal .grok-cli-install-actions > .btn {
+  min-height: 36px;
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .grok-cli-settings-modal .grok-cli-install-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .grok-cli-settings-modal .grok-cli-install-actions > .btn {
+    width: 100%;
+  }
+}
+
 .instances-page .sort-select {
   position: relative;
   width: clamp(110px, 12vw, 150px);
