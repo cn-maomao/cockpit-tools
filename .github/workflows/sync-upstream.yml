@@ -67,7 +67,7 @@ jobs:
   build:
     name: Dispatch final build
     needs: sync
-    if: needs.sync.outputs.updated == 'true' || github.event_name == 'workflow_dispatch'
+    if: needs.sync.outputs.updated == 'true' || github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - name: Run Build Matrix on main
