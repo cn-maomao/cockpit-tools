@@ -5190,6 +5190,29 @@
     "btnExportTitle": "导出已保存为 JSON"
   },
   "grok": {
+    "tools": {
+      "tab": "Grok 工具",
+      "title": "自动注册与 Grok2API",
+      "desc": "浏览器注册成功后，账号会立即导入内置 Grok2API，无需复制 Token 或运行外部命令。",
+      "apiPort": "服务端口",
+      "baseUrl": "OpenAI Base URL",
+      "apiKey": "API Key",
+      "startToGenerate": "启动服务后自动生成",
+      "startApi": "启动 API 服务",
+      "autoStartApi": "随 Cockpit 自动启动",
+      "registration": "自动注册",
+      "mailProvider": "邮箱服务",
+      "count": "注册数量",
+      "domains": "邮箱域名（逗号分隔）",
+      "proxy": "浏览器代理（可选）",
+      "browserPath": "Chrome / Edge 路径（留空自动检测）",
+      "enableNsfw": "注册后自动开启 NSFW 设置",
+      "start": "开始全自动注册",
+      "cancel": "停止注册",
+      "progress": "任务进度",
+      "successCount": "成功 {{count}}",
+      "failedCount": "失败 {{count}}"
+    },
     "search": "搜索 Grok CLI 账号...",
     "flowNotice": {
       "title": "Grok CLI 账号管理说明",

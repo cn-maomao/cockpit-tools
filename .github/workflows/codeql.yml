@@ -32,6 +32,25 @@ jobs:
         with:
           languages: ${{ matrix.language }}
 
+      - name: Python setup
+        if: matrix.language == 'rust'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Node.js setup
+        if: matrix.language == 'rust'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build Grok registration sidecar
+        if: matrix.language == 'rust'
+        env:
+          PYTHON: python
+          PIP_INDEX_URL: https://pypi.tuna.tsinghua.edu.cn/simple
+        run: node scripts/build-grok-register-sidecar.cjs --target=x86_64-unknown-linux-gnu --install
+
       - name: Autobuild
         uses: github/codeql-action/autobuild@v4
 

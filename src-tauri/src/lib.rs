@@ -349,6 +349,7 @@ pub fn run() {
 
             modules::provider_token_keeper::ensure_started(app.handle().clone());
             modules::auto_local_import::ensure_started(app.handle().clone());
+            modules::grok_tools::restore_auto_start(app.handle().clone());
 
             // Wakeup restore/start and Deep Link registration/read can hit disk or OS
             // APIs — never block setup (window + skeleton tray first).
@@ -1110,6 +1111,12 @@ pub fn run() {
             // Grok Commands
             commands::grok::grok_get_cli_status,
             commands::grok::grok_execute_cli_install_command,
+            commands::grok::grok_tools_get_status,
+            commands::grok::grok_tools_update_settings,
+            commands::grok::grok_tools_start_api,
+            commands::grok::grok_tools_stop_api,
+            commands::grok::grok_tools_start_registration,
+            commands::grok::grok_tools_cancel_registration,
             commands::grok::grok_update_cli_runtime_config,
             commands::grok::list_grok_accounts,
             commands::grok::delete_grok_account,
@@ -1241,6 +1248,7 @@ pub fn run() {
                 }
             }
             RunEvent::Exit => {
+                modules::grok_tools::shutdown();
                 tauri::async_runtime::spawn(async {
                     modules::codex_local_access::shutdown_local_access_gateway_for_app_exit().await;
                 });

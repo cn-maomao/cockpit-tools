@@ -54,26 +54,32 @@ jobs:
         include:
           - label: "macos-aarch64"
             platform: "macos-latest"
+            target: "aarch64-apple-darwin"
             args: "--target aarch64-apple-darwin"
             release_dir: "target/aarch64-apple-darwin/release"
           - label: "macos-x86_64"
             platform: "macos-latest"
+            target: "x86_64-apple-darwin"
             args: "--target x86_64-apple-darwin"
             release_dir: "target/x86_64-apple-darwin/release"
           - label: "macos-universal"
             platform: "macos-latest"
+            target: "universal-apple-darwin"
             args: "--target universal-apple-darwin"
             release_dir: "target/universal-apple-darwin/release"
           - label: "ubuntu-22.04"
             platform: "ubuntu-22.04"
+            target: "x86_64-unknown-linux-gnu"
             args: ""
             release_dir: "target/release"
           - label: "ubuntu-24.04-arm"
             platform: "ubuntu-24.04-arm"
+            target: "aarch64-unknown-linux-gnu"
             args: ""
             release_dir: "target/release"
           - label: "windows-latest"
             platform: "windows-latest"
+            target: "x86_64-pc-windows-msvc"
             args: ""
             release_dir: "target/release"
 
@@ -97,7 +103,14 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: sidecars/cockpit-cliproxy/go.mod
-          cache-dependency-path: sidecars/cockpit-cliproxy/go.sum
+          cache-dependency-path: |
+            sidecars/cockpit-cliproxy/go.sum
+            sidecars/grok2api/backend/go.sum
+
+      - name: Python setup
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
       - name: Node.js setup
         uses: actions/setup-node@v4
@@ -110,6 +123,13 @@ jobs:
 
       - name: Sync versions
         run: npm run sync-version
+
+      - name: Build Grok registration sidecar
+        shell: bash
+        env:
+          PYTHON: python
+          PIP_INDEX_URL: https://pypi.tuna.tsinghua.edu.cn/simple
+        run: node scripts/build-grok-register-sidecar.cjs --target=${{ matrix.target }} --install
 
       - name: Cache Tauri binary dependencies
         uses: actions/cache@v4

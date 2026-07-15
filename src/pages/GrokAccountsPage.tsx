@@ -43,6 +43,7 @@ import {
   type GrokAccount,
 } from "../types/grok";
 import { GrokInstancesContent } from "./GrokInstancesPage";
+import { GrokToolsContent } from "../components/grok/GrokToolsContent";
 
 const FLOW_NOTICE_KEY = "agtools.grok.flow_notice_collapsed";
 const CURRENT_ACCOUNT_KEY = "agtools.grok.current_account_id";
@@ -863,8 +864,11 @@ export function GrokAccountsPage() {
         platform="grok"
         active={activeTab}
         onTabChange={setActiveTab}
+        tabs={["overview", "instances", "tools"]}
       />
-      {activeTab === "instances" ? (
+      {activeTab === "tools" ? (
+        <GrokToolsContent />
+      ) : activeTab === "instances" ? (
         <GrokInstancesContent accountsForSelect={accountsForInstances} />
       ) : (
         <CodebuddySuiteAccountsSharedView

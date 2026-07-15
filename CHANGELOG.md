@@ -11,6 +11,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- **End-to-end Grok automation**: a native Grok tools page now runs browser registration, captures successful accounts, imports them into the bundled Grok2API, and generates a ready-to-use OpenAI-compatible Base URL and API key.
+- **Bundled Grok sidecars**: Cockpit now manages `grok-register` and `grok2api` configuration, secrets, processes, health, logs, and shutdown cleanup.
 - **Codex API Service supports random account routing**: new requests can distribute across eligible accounts while preserving session affinity, cooldown, account health, quota reserve, and model eligibility rules.
 - **Optional immediate SSE 200 responses for the sidecar gateway**: commits `200 OK` and an `: accepted` SSE comment before the upstream stream opens; disabled by default, with upstream failures reported as SSE errors after headers are committed.
 

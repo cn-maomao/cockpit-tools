@@ -199,7 +199,14 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: sidecars/cockpit-cliproxy/go.mod
-          cache-dependency-path: sidecars/cockpit-cliproxy/go.sum
+          cache-dependency-path: |
+            sidecars/cockpit-cliproxy/go.sum
+            sidecars/grok2api/backend/go.sum
+
+      - name: Python setup
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
       - name: Node.js setup
         uses: actions/setup-node@v4
@@ -212,6 +219,13 @@ jobs:
 
       - name: Sync versions
         run: npm run sync-version
+
+      - name: Build Grok registration sidecar
+        shell: bash
+        env:
+          PYTHON: python
+          PIP_INDEX_URL: https://pypi.tuna.tsinghua.edu.cn/simple
+        run: node scripts/build-grok-register-sidecar.cjs --target=x86_64-pc-windows-msvc --install
 
       - name: Build Windows app
         shell: bash
@@ -322,7 +336,14 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: sidecars/cockpit-cliproxy/go.mod
-          cache-dependency-path: sidecars/cockpit-cliproxy/go.sum
+          cache-dependency-path: |
+            sidecars/cockpit-cliproxy/go.sum
+            sidecars/grok2api/backend/go.sum
+
+      - name: Python setup
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
       - name: Node.js setup
         uses: actions/setup-node@v4
@@ -335,6 +356,13 @@ jobs:
 
       - name: Sync versions
         run: npm run sync-version
+
+      - name: Build Grok registration sidecar
+        shell: bash
+        env:
+          PYTHON: python
+          PIP_INDEX_URL: https://pypi.tuna.tsinghua.edu.cn/simple
+        run: node scripts/build-grok-register-sidecar.cjs --target=aarch64-apple-darwin --install
 
       - name: Build macOS Apple Silicon app
         shell: bash
@@ -426,7 +454,14 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: sidecars/cockpit-cliproxy/go.mod
-          cache-dependency-path: sidecars/cockpit-cliproxy/go.sum
+          cache-dependency-path: |
+            sidecars/cockpit-cliproxy/go.sum
+            sidecars/grok2api/backend/go.sum
+
+      - name: Python setup
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
       - name: Node.js setup
         uses: actions/setup-node@v4
@@ -439,6 +474,13 @@ jobs:
 
       - name: Sync versions
         run: npm run sync-version
+
+      - name: Build Grok registration sidecar
+        shell: bash
+        env:
+          PYTHON: python
+          PIP_INDEX_URL: https://pypi.tuna.tsinghua.edu.cn/simple
+        run: node scripts/build-grok-register-sidecar.cjs --target=x86_64-apple-darwin --install
 
       - name: Build macOS Intel app
         shell: bash
@@ -532,7 +574,14 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: sidecars/cockpit-cliproxy/go.mod
-          cache-dependency-path: sidecars/cockpit-cliproxy/go.sum
+          cache-dependency-path: |
+            sidecars/cockpit-cliproxy/go.sum
+            sidecars/grok2api/backend/go.sum
+
+      - name: Python setup
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
       - name: Node.js setup
         uses: actions/setup-node@v4
@@ -545,6 +594,13 @@ jobs:
 
       - name: Sync versions
         run: npm run sync-version
+
+      - name: Build Grok registration sidecar
+        shell: bash
+        env:
+          PYTHON: python
+          PIP_INDEX_URL: https://pypi.tuna.tsinghua.edu.cn/simple
+        run: node scripts/build-grok-register-sidecar.cjs --target=universal-apple-darwin --install
 
       - name: Build macOS Universal app
         shell: bash
@@ -593,9 +649,11 @@ jobs:
         include:
           - label: "x86_64"
             platform: "ubuntu-22.04"
+            rust_target: "x86_64-unknown-linux-gnu"
             targets: "linux-x86_64-appimage,linux-x86_64-deb,linux-x86_64-rpm"
           - label: "aarch64"
             platform: "ubuntu-24.04-arm"
+            rust_target: "aarch64-unknown-linux-gnu"
             targets: "linux-aarch64-appimage,linux-aarch64-deb,linux-aarch64-rpm"
     env:
       GH_REPO: ${{ github.repository }}
@@ -617,7 +675,14 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: sidecars/cockpit-cliproxy/go.mod
-          cache-dependency-path: sidecars/cockpit-cliproxy/go.sum
+          cache-dependency-path: |
+            sidecars/cockpit-cliproxy/go.sum
+            sidecars/grok2api/backend/go.sum
+
+      - name: Python setup
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
       - name: Node.js setup
         uses: actions/setup-node@v4
@@ -630,6 +695,13 @@ jobs:
 
       - name: Sync versions
         run: npm run sync-version
+
+      - name: Build Grok registration sidecar
+        shell: bash
+        env:
+          PYTHON: python
+          PIP_INDEX_URL: https://pypi.tuna.tsinghua.edu.cn/simple
+        run: node scripts/build-grok-register-sidecar.cjs --target=${{ matrix.rust_target }} --install
 
       - name: Build Linux app
         shell: bash

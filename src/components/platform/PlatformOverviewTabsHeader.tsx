@@ -1,6 +1,6 @@
 import { ReactNode, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Clock3, FolderOpen, Github, Layers, Server } from 'lucide-react';
+import { Clock3, FolderOpen, Github, Layers, Server, Wrench } from 'lucide-react';
 import { CodexIcon } from '../icons/CodexIcon';
 import { ClaudeIcon } from '../icons/ClaudeIcon';
 import { WindsurfIcon } from '../icons/WindsurfIcon';
@@ -29,7 +29,8 @@ export type PlatformOverviewTab =
   | 'wakeup'
   | 'instances'
   | 'sessions'
-  | 'providers';
+  | 'providers'
+  | 'tools';
 export type PlatformOverviewHeaderId =
   | 'codex'
   | 'claude'
@@ -232,6 +233,11 @@ export function PlatformOverviewTabsHeader({
       key: 'providers',
       label: t('codex.modelProviders.tab', '模型供应商'),
       icon: <Server className="tab-icon" />,
+    },
+    tools: {
+      key: 'tools',
+      label: t('grok.tools.tab', 'Grok 工具'),
+      icon: <Wrench className="tab-icon" />,
     },
   };
   const tabSpecs: TabSpec[] = tabOrder.map((tab) => tabLabels[tab]);

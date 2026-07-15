@@ -51,7 +51,9 @@
     "targets": "all",
     "createUpdaterArtifacts": true,
     "externalBin": [
-      "../sidecars/cockpit-cliproxy/bin/cockpit-cliproxy"
+      "../sidecars/cockpit-cliproxy/bin/cockpit-cliproxy",
+      "../sidecars/grok2api/bin/cockpit-grok2api",
+      "../sidecars/grok-register/bin/cockpit-grok-register"
     ],
     "icon": [
       "icons/48x48.png",

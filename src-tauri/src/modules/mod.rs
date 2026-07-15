@@ -47,6 +47,7 @@ pub mod github_copilot_oauth;
 pub mod grok_account;
 pub mod grok_instance;
 pub mod grok_oauth;
+pub mod grok_tools;
 pub mod group_settings;
 pub mod i18n;
 pub mod import;

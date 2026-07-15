@@ -1,6 +1,7 @@
 use crate::models::grok::{GrokAccountView, GrokOAuthStartResponse};
-use crate::modules::{config, grok_account, grok_oauth, logger};
+use crate::modules::{config, grok_account, grok_oauth, grok_tools, logger};
 use serde::Serialize;
+#[cfg(unix)]
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -170,6 +171,50 @@ pub(crate) async fn detect_grok_client_version() -> Option<String> {
     }
     parse_grok_client_version(&String::from_utf8_lossy(&output.stdout))
         .or_else(|| parse_grok_client_version(&String::from_utf8_lossy(&output.stderr)))
+}
+
+#[tauri::command]
+pub fn grok_tools_get_status() -> Result<grok_tools::GrokToolsStatus, String> {
+    grok_tools::status()
+}
+
+#[tauri::command]
+pub fn grok_tools_update_settings(
+    settings: grok_tools::GrokToolsSettings,
+) -> Result<grok_tools::GrokToolsStatus, String> {
+    grok_tools::update_settings(settings)
+}
+
+#[tauri::command]
+pub async fn grok_tools_start_api(app: AppHandle) -> Result<grok_tools::GrokToolsStatus, String> {
+    tauri::async_runtime::spawn_blocking(move || grok_tools::start_api(app))
+        .await
+        .map_err(|error| format!("启动 Grok2API 任务失败: {error}"))?
+}
+
+#[tauri::command]
+pub async fn grok_tools_stop_api(app: AppHandle) -> Result<grok_tools::GrokToolsStatus, String> {
+    tauri::async_runtime::spawn_blocking(move || grok_tools::stop_api(app))
+        .await
+        .map_err(|error| format!("停止 Grok2API 任务失败: {error}"))?
+}
+
+#[tauri::command]
+pub async fn grok_tools_start_registration(
+    app: AppHandle,
+) -> Result<grok_tools::GrokToolsStatus, String> {
+    tauri::async_runtime::spawn_blocking(move || grok_tools::start_registration(app))
+        .await
+        .map_err(|error| format!("启动 Grok 注册任务失败: {error}"))?
+}
+
+#[tauri::command]
+pub async fn grok_tools_cancel_registration(
+    app: AppHandle,
+) -> Result<grok_tools::GrokToolsStatus, String> {
+    tauri::async_runtime::spawn_blocking(move || grok_tools::cancel_registration(app))
+        .await
+        .map_err(|error| format!("停止 Grok 注册任务失败: {error}"))?
 }
 
 #[tauri::command]

@@ -452,6 +452,8 @@ QQ 交流群、微信群或新建的 Telegram 畅聊群都可以加入。
 
 - Antigravity 账号切号逻辑参考：[Antigravity-Manager](https://github.com/lbjlaq/Antigravity-Manager)
 - Codex API 服务集成 CLIProxyAPI，Grok CLI 账号与 OAuth 实现方向亦参考其开源实现：[router-for-me/CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI)（MIT）
+- Grok 自动注册流程基于并适配：[AaronL725/grok-register](https://github.com/AaronL725/grok-register)（MIT）
+- Grok Web 多账号 API 服务基于并适配：[chenyme/grok2api](https://github.com/chenyme/grok2api)（MIT）
 - Grok 图标造型参考：[LobeHub/lobe-icons](https://github.com/lobehub/lobe-icons)（MIT）
 - Grok CLI 任务用量查询与兼容解析方向参考：[junhoyeo/tokscale](https://github.com/junhoyeo/tokscale)（MIT）
 - Codex API 服务协议兼容方向参考：[codex-proxy](https://github.com/icebear0828/codex-proxy)

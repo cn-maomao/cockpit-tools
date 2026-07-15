@@ -214,3 +214,190 @@
   gap: 6px;
   min-width: 180px;
 }
+.grok-tools-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: min(980px, calc(100% - 32px));
+  margin: 18px auto 32px;
+}
+
+.grok-tools-loading,
+.grok-tools-intro,
+.grok-tool-card-header > div,
+.grok-tool-actions,
+.grok-tool-input-action,
+.grok-tool-progress-row {
+  display: flex;
+  align-items: center;
+}
+
+.grok-tools-loading {
+  justify-content: center;
+  gap: 8px;
+  min-height: 240px;
+  color: var(--text-secondary);
+}
+
+.grok-tools-intro {
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid color-mix(in srgb, var(--primary) 28%, var(--border));
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--primary) 7%, var(--bg-secondary));
+}
+
+.grok-tools-intro h3,
+.grok-tools-intro p {
+  margin: 0;
+}
+
+.grok-tools-intro h3 {
+  font-size: 16px;
+}
+
+.grok-tools-intro p {
+  margin-top: 3px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.grok-tools-error {
+  padding: 11px 14px;
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--border));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--danger) 8%, var(--bg-secondary));
+  color: var(--danger);
+  font-size: 13px;
+}
+
+.grok-tool-card {
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-secondary);
+  box-shadow: var(--shadow-sm);
+}
+
+.grok-tool-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.grok-tool-card-header > div {
+  gap: 8px;
+}
+
+.grok-tool-status {
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.grok-tool-status.ready {
+  background: rgba(34, 197, 94, 0.12);
+  color: #16a34a;
+}
+
+.grok-tool-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.grok-tool-grid.compact {
+  align-items: end;
+}
+
+.grok-tool-grid label {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.grok-tool-grid label.wide {
+  grid-column: 1 / -1;
+}
+
+.grok-tool-grid .grok-tool-check {
+  flex-direction: row;
+  align-items: center;
+}
+
+.grok-tool-input-action {
+  gap: 6px;
+}
+
+.grok-tool-input-action .form-input {
+  min-width: 0;
+  flex: 1;
+}
+
+.grok-tool-actions {
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.grok-tool-autostart {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: auto;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.grok-tool-progress-row {
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.grok-tool-progress-row span {
+  color: var(--text-secondary);
+}
+
+.grok-tool-progress {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--bg-tertiary);
+}
+
+.grok-tool-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+  transition: width 180ms ease;
+}
+
+.grok-tool-logs {
+  max-height: 260px;
+  margin-top: 14px;
+  padding: 12px;
+  overflow: auto;
+  border-radius: 8px;
+  background: #111827;
+  color: #d1d5db;
+  font: 12px/1.6 var(--font-mono);
+}
+
+@media (max-width: 760px) {
+  .grok-tool-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .grok-tool-grid label.wide {
+    grid-column: auto;
+  }
+}

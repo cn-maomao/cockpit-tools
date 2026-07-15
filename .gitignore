@@ -9,6 +9,8 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+__pycache__/
+*.pyc
 dist
 dist-ssr
 *.local
@@ -38,6 +40,8 @@ docs/plugin-architecture-design.md
 src-tauri/arms_cache/
 arms.biz.trace.*
 sidecars/cockpit-cliproxy/bin/
+sidecars/grok2api/bin/
+sidecars/grok-register/bin/
 src-tauri/resources/electron/*
 !src-tauri/resources/electron/.gitkeep
 
