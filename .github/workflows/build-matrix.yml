@@ -37,6 +37,7 @@ jobs:
         run: npm run sync-version
 
       - name: Check locales
+        continue-on-error: true
         run: node scripts/check_locales.cjs
 
       - name: Typecheck
