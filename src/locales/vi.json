@@ -3200,6 +3200,11 @@
         "models": "Mô hình và năng lực",
         "logs": "Thống kê và nhật ký"
       },
+      "statsRange": {
+        "today": "Hôm nay",
+        "thisWeek": "Tuần này",
+        "thisMonth": "Tháng này"
+      },
       "healthTitle": "Sức khỏe dịch vụ",
       "compat": {
         "title": "Tương thích giao thức",
@@ -3277,6 +3282,24 @@
       "keys": {
         "policyTitle": "Chính sách mô hình",
         "advancedPolicyTitle": "Nâng cao: chính sách mô hình",
+        "accountScope": "Phạm vi luân chuyển",
+        "accountScopeInherit": "Tự động theo nhóm tài khoản dịch vụ",
+        "accountScopeFixed": "Khóa này cố định với tài khoản liên kết và không thể kế thừa nhóm dịch vụ",
+        "accountScopeSelected": "Đã chọn {{count}} tài khoản",
+        "accountScopeInheritedCount": "Nhóm: kế thừa {{count}}",
+        "accountScopeUnavailable": "Nhóm: không có tài khoản",
+        "accountScopeCount": "Nhóm: {{selected}}/{{total}}",
+        "accountScopeRequired": "Chọn ít nhất một tài khoản",
+        "accountScopeModeInherit": "Kế thừa nhóm dịch vụ",
+        "accountScopeModeCustom": "Nhóm tài khoản tùy chỉnh",
+        "accountPrioritySet": "Ghim tài khoản ưu tiên",
+        "accountPriorityPromote": "Đưa tài khoản lên ưu tiên cao nhất",
+        "accountPriorityClear": "Bỏ ghim tài khoản ưu tiên",
+        "accountPrioritySaved": "Đã ghim tài khoản ưu tiên",
+        "accountPriorityCleared": "Đã bỏ ghim tài khoản ưu tiên",
+        "usageRange": "Kỳ sử dụng khóa API",
+        "unsaved": "Chưa lưu",
+        "resetPolicy": "Bỏ thay đổi",
         "modelPrefix": "Tiền tố mô hình",
         "modelPrefixPlaceholder": "Ví dụ: codex",
         "allowedModels": "Mô hình được phép",

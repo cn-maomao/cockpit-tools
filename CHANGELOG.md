@@ -7,14 +7,17 @@ All notable changes to Cockpit Tools will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
-## [1.3.3] - 2026-07-15
+## [1.3.4] - 2026-07-15
 
 ### Added
 
 - **End-to-end Grok automation**: a native Grok tools page now runs browser registration, captures successful accounts, imports them into the bundled Grok2API, and generates a ready-to-use OpenAI-compatible Base URL and API key.
 - **Bundled Grok sidecars**: Cockpit now manages `grok-register` and `grok2api` configuration, secrets, processes, health, logs, and shutdown cleanup.
+- **Codex API Service Client Keys support per-key account routing and model policy**: each key can inherit the service account pool or use a custom ordered pool with a pinned priority account; keys can restrict allowed/excluded models and model prefixes; OAuth-bound and provider-gateway keys keep a fixed account scope instead of inheriting or clearing it; the sidecar enforces the selected pool and isolates session affinity per client key. Thanks @kin001 for #1470.
+- **Client Keys show per-key usage for today, this week, and this month**: each key surfaces request count, compact token totals, success rate, and estimated cost using local calendar boundaries (local midnight, Monday, and the first day of the month). Thanks @kin001 for #1470.
 - **Codex API Service supports random account routing**: new requests can distribute across eligible accounts while preserving session affinity, cooldown, account health, quota reserve, and model eligibility rules.
 - **Optional immediate SSE 200 responses for the sidecar gateway**: commits `200 OK` and an `: accepted` SSE comment before the upstream stream opens; disabled by default, with upstream failures reported as SSE errors after headers are committed.
+- **Codex API Service request logs can show and filter by multi-instance source**: instances bound to the local API service record a source marker; the log list displays the instance name, and the filter is a dropdown of instance names (no need to remember directory IDs).
 
 ### Changed
 
@@ -23,8 +26,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- **Fixed Codex API Service startup being rejected for OAuth-bound accounts**: profiles using OAuth `auth.json` / Keychain login state now pass local-gateway takeover validation, while API-key-only profiles continue using the image-generation compatibility configuration.
+- **Fixed Grok CLI still showing a “current” badge when “sync official login on switch” is off**: with the switch off, account switches no longer track a global current account and the overview no longer shows the current badge; with it on, official login sync and the current badge still work as before.
+- **Fixed OAuth-backed Codex API Service requests failing or losing image tools on Responses Lite models**: regular Lite requests now filter unsupported hosted tools, while image-generation requests automatically use full Responses and preserve hosted `image_generation`, `image_gen.imagegen`, and `image_gen` namespace tools; pure API-key service behavior remains unchanged.
+- **Fixed GPT-5.3-Codex-Spark missing from model selection and profile catalogs**: Spark now appears in the model selector and generated Codex profile catalogs, with quota progress available when the account reports it. Thanks @kin001 for #1470.
+- **Fixed OAuth binding conflicting with Codex API Service image-generation settings and inconsistent local/third-party projection**: OAuth-bound profiles use `requires_openai_auth = true` so the OAuth login remains active; local loopback API Service always allows image-generation projection; third-party providers only write actor and related headers when the model catalog explicitly includes `gpt-image-2`, and clear stale actor headers when it does not, so the client does not open image gen and hang on Confirming; multi-instance profiles and takeover checks follow the same rules.
+- **Fixed the “copy source instance” dropdown failing to open or closing immediately when creating multi-instance profiles**: the control now uses a stable portal-mounted select so parent re-renders no longer tear down the open menu.
 - **Fixed Codex accounts failing to batch-import or batch-delete under special Windows mount paths**: batch operations are no longer blocked when their task snapshot directory cannot be created, and existing directories are no longer recreated.
+- **Fixed Codex wakeup tasks still listing accounts after they were deleted**: deleting accounts now prunes matching `account_ids` from wakeup tasks; load / save / run also drop missing accounts; tasks with no remaining accounts are removed; cards, edit drafts, and test lists only show accounts that still exist.
 
 ---
 ## [1.3.2] - 2026-07-15

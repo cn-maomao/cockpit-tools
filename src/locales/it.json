@@ -3200,6 +3200,11 @@
         "models": "Modelli e capacità",
         "logs": "Statistiche e log"
       },
+      "statsRange": {
+        "today": "Oggi",
+        "thisWeek": "Questa settimana",
+        "thisMonth": "Questo mese"
+      },
       "healthTitle": "Stato servizio",
       "compat": {
         "title": "Compat. protocolli",
@@ -3277,6 +3282,24 @@
       "keys": {
         "policyTitle": "Criterio modelli",
         "advancedPolicyTitle": "Avanzate: criterio modelli",
+        "accountScope": "Ambito rotazione account",
+        "accountScopeInherit": "Segui automaticamente il pool account del servizio",
+        "accountScopeFixed": "Questa chiave resta associata al proprio account e non può ereditare il pool del servizio",
+        "accountScopeSelected": "{{count}} account selezionati",
+        "accountScopeInheritedCount": "Pool account: {{count}} ereditati",
+        "accountScopeUnavailable": "Pool account: nessun account disponibile",
+        "accountScopeCount": "Pool account: {{selected}}/{{total}}",
+        "accountScopeRequired": "Seleziona almeno un account per il pool personalizzato",
+        "accountScopeModeInherit": "Eredita pool servizio",
+        "accountScopeModeCustom": "Pool personalizzato",
+        "accountPrioritySet": "Fissa account per routing prioritario",
+        "accountPriorityPromote": "Sposta account alla priorità massima",
+        "accountPriorityClear": "Rimuovi account prioritario",
+        "accountPrioritySaved": "Account prioritario fissato",
+        "accountPriorityCleared": "Account prioritario rimosso",
+        "usageRange": "Periodo d'uso chiave API",
+        "unsaved": "Non salvato",
+        "resetPolicy": "Scarta modifiche",
         "modelPrefix": "Prefisso modello",
         "modelPrefixPlaceholder": "Esempio: codex",
         "allowedModels": "Modelli ammessi",

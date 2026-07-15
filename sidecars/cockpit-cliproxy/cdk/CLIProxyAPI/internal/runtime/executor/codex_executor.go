@@ -857,9 +857,10 @@ func (e *CodexExecutor) Execute(ctx context.Context, auth *cliproxyauth.Auth, re
 	body, _ = sjson.DeleteBytes(body, "safety_identifier")
 	body, _ = sjson.DeleteBytes(body, "stream_options")
 	body = normalizeCodexInstructions(body)
-	if helps.ShouldInjectImageGenerationTool(e.cfg, requestPath, opts.Headers) {
+	if helps.ShouldInjectImageGenerationToolForModel(e.cfg, baseModel, requestPath, opts.Headers) {
 		body = ensureImageGenerationTool(body, baseModel, auth)
 	}
+	body, useFullResponses := normalizeCodexResponsesLiteRequest(body, opts.Headers, auth, true)
 	body = sanitizeOpenAIResponsesReasoningEncryptedContent(ctx, "codex executor", body)
 	body, replayScope := applyCodexReasoningReplayCache(ctx, from, req, opts, body)
 	if sourceFormatEqual(from, sdktranslator.FormatClaude) {
@@ -874,6 +875,7 @@ func (e *CodexExecutor) Execute(ctx context.Context, auth *cliproxyauth.Auth, re
 		return resp, err
 	}
 	applyCodexHeaders(httpReq, auth, apiKey, true, e.cfg)
+	removeCodexResponsesLiteHeaderForFullResponse(httpReq.Header, useFullResponses)
 	applyCodexIdentityConfuseHeaders(httpReq.Header, &identityState)
 	var authID, authLabel, authType, authValue string
 	if auth != nil {
@@ -1027,9 +1029,10 @@ func (e *CodexExecutor) executeCompact(ctx context.Context, auth *cliproxyauth.A
 	body, _ = sjson.SetBytes(body, "model", baseModel)
 	body, _ = sjson.DeleteBytes(body, "stream")
 	body = normalizeCodexInstructions(body)
-	if helps.ShouldInjectImageGenerationTool(e.cfg, requestPath, opts.Headers) {
+	if helps.ShouldInjectImageGenerationToolForModel(e.cfg, baseModel, requestPath, opts.Headers) {
 		body = ensureImageGenerationTool(body, baseModel, auth)
 	}
+	body, _ = normalizeCodexResponsesLiteRequest(body, opts.Headers, auth, false)
 	body = sanitizeOpenAIResponsesReasoningEncryptedContent(ctx, "codex executor", body)
 	reporter.SetTranslatedReasoningEffort(body, to.String())
 
@@ -1135,9 +1138,10 @@ func (e *CodexExecutor) ExecuteStream(ctx context.Context, auth *cliproxyauth.Au
 	body, _ = sjson.DeleteBytes(body, "stream_options")
 	body, _ = sjson.SetBytes(body, "model", baseModel)
 	body = normalizeCodexInstructions(body)
-	if helps.ShouldInjectImageGenerationTool(e.cfg, requestPath, opts.Headers) {
+	if helps.ShouldInjectImageGenerationToolForModel(e.cfg, baseModel, requestPath, opts.Headers) {
 		body = ensureImageGenerationTool(body, baseModel, auth)
 	}
+	body, useFullResponses := normalizeCodexResponsesLiteRequest(body, opts.Headers, auth, true)
 	body = sanitizeOpenAIResponsesReasoningEncryptedContent(ctx, "codex executor", body)
 	body, replayScope := applyCodexReasoningReplayCache(ctx, from, req, opts, body)
 	if sourceFormatEqual(from, sdktranslator.FormatClaude) {
@@ -1152,6 +1156,7 @@ func (e *CodexExecutor) ExecuteStream(ctx context.Context, auth *cliproxyauth.Au
 		return nil, err
 	}
 	applyCodexHeaders(httpReq, auth, apiKey, true, e.cfg)
+	removeCodexResponsesLiteHeaderForFullResponse(httpReq.Header, useFullResponses)
 	applyCodexIdentityConfuseHeaders(httpReq.Header, &identityState)
 	var authID, authLabel, authType, authValue string
 	if auth != nil {
@@ -1645,7 +1650,7 @@ func applyCodexHeaders(r *http.Request, auth *cliproxyauth.Auth, token string, s
 	misc.EnsureHeader(r.Header, ginHeaders, "Version", "")
 	misc.EnsureHeader(r.Header, ginHeaders, "X-Codex-Turn-Metadata", "")
 	misc.EnsureHeader(r.Header, ginHeaders, "X-Client-Request-Id", "")
-	misc.EnsureHeader(r.Header, ginHeaders, codexResponsesLiteHeaderName, "")
+	copyCodexResponsesLiteHeader(r.Header, ginHeaders)
 	copyCodexAgtoolsDiagnosticHeaders(r.Header, ginHeaders)
 	cfgUserAgent, _ := codexHeaderDefaults(cfg, auth)
 	ensureHeaderWithConfigPrecedence(r.Header, ginHeaders, "User-Agent", cfgUserAgent, codexUserAgent)
@@ -1684,6 +1689,24 @@ func applyCodexHeaders(r *http.Request, auth *cliproxyauth.Auth, token string, s
 		attrs = auth.Attributes
 	}
 	util.ApplyCustomHeadersFromAttrs(r, attrs)
+}
+
+func copyCodexResponsesLiteHeader(dst http.Header, src http.Header) {
+	if dst == nil || !helps.IsCodexResponsesLiteRequest(src) {
+		return
+	}
+	values := []string{""}
+	for key, sourceValues := range src {
+		if !strings.EqualFold(strings.TrimSpace(key), codexResponsesLiteHeaderName) {
+			continue
+		}
+		if len(sourceValues) > 0 {
+			values = append([]string(nil), sourceValues...)
+		}
+		break
+	}
+	deleteHeaderCaseInsensitive(dst, codexResponsesLiteHeaderName)
+	dst[http.CanonicalHeaderKey(codexResponsesLiteHeaderName)] = values
 }
 
 func copyCodexAgtoolsDiagnosticHeaders(dst http.Header, src http.Header) {
@@ -1772,6 +1795,95 @@ func normalizeCodexInstructions(body []byte) []byte {
 		body, _ = sjson.SetBytes(body, "instructions", "")
 	}
 	return body
+}
+
+func normalizeCodexResponsesLiteRequest(body []byte, headers http.Header, auth *cliproxyauth.Auth, allowFullResponsesForImage bool) ([]byte, bool) {
+	if !codexResponsesLiteEnabled(headers) || codexAuthUsesAPIKey(auth) {
+		return body, false
+	}
+
+	body, _ = sjson.SetBytes(body, "parallel_tool_calls", false)
+	if allowFullResponsesForImage && codexRequestUsesImageGeneration(body) {
+		return body, true
+	}
+
+	tools := gjson.GetBytes(body, "tools")
+	if tools.IsArray() {
+		toolItems := tools.Array()
+		for index := len(toolItems) - 1; index >= 0; index-- {
+			if codexResponsesLiteToolSupported(toolItems[index]) {
+				continue
+			}
+			body, _ = sjson.DeleteBytes(body, fmt.Sprintf("tools.%d", index))
+		}
+		if remaining := gjson.GetBytes(body, "tools"); remaining.IsArray() && len(remaining.Array()) == 0 {
+			body, _ = sjson.DeleteBytes(body, "tools")
+		}
+	}
+
+	toolChoice := gjson.GetBytes(body, "tool_choice")
+	if !toolChoice.Exists() {
+		return body, false
+	}
+	if toolChoice.Type == gjson.String {
+		switch toolChoice.String() {
+		case "auto", "none", "required":
+			return body, false
+		default:
+			body, _ = sjson.DeleteBytes(body, "tool_choice")
+			return body, false
+		}
+	}
+	if !codexResponsesLiteToolSupported(toolChoice) {
+		body, _ = sjson.DeleteBytes(body, "tool_choice")
+	}
+	return body, false
+}
+
+func codexRequestUsesImageGeneration(body []byte) bool {
+	tools := gjson.GetBytes(body, "tools")
+	if tools.IsArray() {
+		for _, tool := range tools.Array() {
+			if strings.EqualFold(strings.TrimSpace(tool.Get("type").String()), "image_generation") ||
+				codexToolConflictsWithHostedImageGeneration(tool) {
+				return true
+			}
+		}
+	}
+
+	toolChoice := gjson.GetBytes(body, "tool_choice")
+	return strings.EqualFold(strings.TrimSpace(toolChoice.String()), "image_generation") ||
+		isImageGenFunctionName(toolChoice.String()) ||
+		strings.EqualFold(strings.TrimSpace(toolChoice.Get("type").String()), "image_generation") ||
+		(strings.EqualFold(strings.TrimSpace(toolChoice.Get("type").String()), "tool") &&
+			strings.EqualFold(strings.TrimSpace(toolChoice.Get("name").String()), "image_generation")) ||
+		codexToolConflictsWithHostedImageGeneration(toolChoice)
+}
+
+func removeCodexResponsesLiteHeaderForFullResponse(headers http.Header, useFullResponses bool) {
+	if useFullResponses {
+		deleteHeaderCaseInsensitive(headers, codexResponsesLiteHeaderName)
+	}
+}
+
+func codexResponsesLiteEnabled(headers http.Header) bool {
+	for name := range headers {
+		if strings.EqualFold(name, codexResponsesLiteHeaderName) {
+			return true
+		}
+	}
+	return false
+}
+
+func codexResponsesLiteToolSupported(tool gjson.Result) bool {
+	switch strings.TrimSpace(tool.Get("type").String()) {
+	case "function", "custom":
+		return true
+	case "tool_search":
+		return strings.EqualFold(strings.TrimSpace(tool.Get("execution").String()), "client")
+	default:
+		return false
+	}
 }
 
 var imageGenToolJSON = []byte(`{"type":"image_generation","output_format":"png"}`)

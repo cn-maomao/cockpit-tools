@@ -3200,6 +3200,11 @@
         "models": "모델 및 기능",
         "logs": "통계 및 로그"
       },
+      "statsRange": {
+        "today": "오늘",
+        "thisWeek": "이번 주",
+        "thisMonth": "이번 달"
+      },
       "healthTitle": "서비스 상태",
       "compat": {
         "title": "프로토콜 호환",
@@ -3277,6 +3282,24 @@
       "keys": {
         "policyTitle": "모델 정책",
         "advancedPolicyTitle": "고급 기능: 모델 정책",
+        "accountScope": "계정 순환 범위",
+        "accountScopeInherit": "서비스 계정 풀 자동 사용",
+        "accountScopeFixed": "이 키는 연결된 계정에 고정되며 서비스 풀을 상속할 수 없습니다",
+        "accountScopeSelected": "계정 {{count}}개 선택됨",
+        "accountScopeInheritedCount": "계정 풀: {{count}}개 상속",
+        "accountScopeUnavailable": "계정 풀: 사용 가능 계정 없음",
+        "accountScopeCount": "계정 풀: {{selected}}/{{total}}",
+        "accountScopeRequired": "사용자 지정 풀에 계정을 하나 이상 선택하세요",
+        "accountScopeModeInherit": "서비스 풀 상속",
+        "accountScopeModeCustom": "사용자 지정 풀",
+        "accountPrioritySet": "우선 라우팅 계정 고정",
+        "accountPriorityPromote": "계정을 최우선으로 이동",
+        "accountPriorityClear": "우선 계정 고정 해제",
+        "accountPrioritySaved": "우선 계정 고정됨",
+        "accountPriorityCleared": "우선 계정 고정 해제됨",
+        "usageRange": "API 키 사용 기간",
+        "unsaved": "저장 안 됨",
+        "resetPolicy": "변경 취소",
         "modelPrefix": "모델 접두사",
         "modelPrefixPlaceholder": "예: codex",
         "allowedModels": "허용 모델",

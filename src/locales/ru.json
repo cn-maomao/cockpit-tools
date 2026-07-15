@@ -3200,6 +3200,11 @@
         "models": "Модели и возможности",
         "logs": "Статистика и журналы"
       },
+      "statsRange": {
+        "today": "Сегодня",
+        "thisWeek": "Эта неделя",
+        "thisMonth": "Этот месяц"
+      },
       "healthTitle": "Состояние сервиса",
       "compat": {
         "title": "Совм. протоколов",
@@ -3277,6 +3282,24 @@
       "keys": {
         "policyTitle": "Политика моделей",
         "advancedPolicyTitle": "Дополнительно: политика моделей",
+        "accountScope": "Область ротации",
+        "accountScopeInherit": "Автоматически следовать пулу сервиса",
+        "accountScopeFixed": "Этот ключ привязан к аккаунту и не наследует пул сервиса",
+        "accountScopeSelected": "Выбрано аккаунтов: {{count}}",
+        "accountScopeInheritedCount": "Пул: унаследовано {{count}}",
+        "accountScopeUnavailable": "Пул: нет доступных аккаунтов",
+        "accountScopeCount": "Пул: {{selected}}/{{total}}",
+        "accountScopeRequired": "Выберите хотя бы один аккаунт",
+        "accountScopeModeInherit": "Наследовать пул сервиса",
+        "accountScopeModeCustom": "Свой пул аккаунтов",
+        "accountPrioritySet": "Закрепить аккаунт как приоритетный",
+        "accountPriorityPromote": "Сделать аккаунт первым",
+        "accountPriorityClear": "Снять приоритет аккаунта",
+        "accountPrioritySaved": "Приоритетный аккаунт закреплен",
+        "accountPriorityCleared": "Приоритет аккаунта снят",
+        "usageRange": "Период использования API-ключа",
+        "unsaved": "Не сохранено",
+        "resetPolicy": "Отменить изменения",
         "modelPrefix": "Префикс модели",
         "modelPrefixPlaceholder": "Например: codex",
         "allowedModels": "Разрешенные модели",

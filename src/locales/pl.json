@@ -3200,6 +3200,11 @@
         "models": "Modele i możliwości",
         "logs": "Statystyki i dzienniki"
       },
+      "statsRange": {
+        "today": "Dzisiaj",
+        "thisWeek": "Ten tydzień",
+        "thisMonth": "Ten miesiąc"
+      },
       "healthTitle": "Kondycja usługi",
       "compat": {
         "title": "Zgodność protokołów",
@@ -3277,6 +3282,24 @@
       "keys": {
         "policyTitle": "Polityka modeli",
         "advancedPolicyTitle": "Zaawansowane: polityka modeli",
+        "accountScope": "Zakres rotacji kont",
+        "accountScopeInherit": "Automatycznie używaj puli kont usługi",
+        "accountScopeFixed": "Ten klucz jest przypisany do swojego konta i nie może dziedziczyć puli usługi",
+        "accountScopeSelected": "Wybrano konta: {{count}}",
+        "accountScopeInheritedCount": "Pula kont: dziedziczone {{count}}",
+        "accountScopeUnavailable": "Pula kont: brak dostępnych kont",
+        "accountScopeCount": "Pula kont: {{selected}}/{{total}}",
+        "accountScopeRequired": "Wybierz co najmniej jedno konto do własnej puli",
+        "accountScopeModeInherit": "Dziedzicz pulę usługi",
+        "accountScopeModeCustom": "Własna pula kont",
+        "accountPrioritySet": "Przypnij konto do routingu priorytetowego",
+        "accountPriorityPromote": "Przenieś konto na najwyższy priorytet",
+        "accountPriorityClear": "Usuń przypięcie konta priorytetowego",
+        "accountPrioritySaved": "Przypięto konto priorytetowe",
+        "accountPriorityCleared": "Usunięto przypięcie konta priorytetowego",
+        "usageRange": "Okres użycia klucza API",
+        "unsaved": "Niezapisane",
+        "resetPolicy": "Odrzuć zmiany",
         "modelPrefix": "Prefiks modelu",
         "modelPrefixPlaceholder": "Przykład: codex",
         "allowedModels": "Dozwolone modele",

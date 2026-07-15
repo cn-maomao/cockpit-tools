@@ -3247,6 +3247,11 @@
         "models": "النماذج والقدرات",
         "logs": "الإحصاءات والسجلات"
       },
+      "statsRange": {
+        "today": "اليوم",
+        "thisWeek": "هذا الأسبوع",
+        "thisMonth": "هذا الشهر"
+      },
       "healthTitle": "صحة الخدمة",
       "compat": {
         "title": "توافق البروتوكولات",
@@ -3324,6 +3329,24 @@
       "keys": {
         "policyTitle": "سياسة النماذج",
         "advancedPolicyTitle": "ميزة متقدمة: سياسة النماذج",
+        "accountScope": "نطاق تدوير الحسابات",
+        "accountScopeInherit": "التحديث تلقائيًا وفق مجموعة حسابات الخدمة",
+        "accountScopeFixed": "هذا المفتاح مرتبط بحساب ثابت ولا يمكنه وراثة مجموعة الخدمة",
+        "accountScopeSelected": "تم تحديد {{count}} حسابًا",
+        "accountScopeInheritedCount": "مجموعة الحسابات: وراثة {{count}}",
+        "accountScopeUnavailable": "مجموعة الحسابات: لا حسابات متاحة",
+        "accountScopeCount": "مجموعة الحسابات: {{selected}}/{{total}}",
+        "accountScopeRequired": "اختر حسابًا واحدًا على الأقل للمجموعة المخصصة",
+        "accountScopeModeInherit": "وراثة مجموعة الخدمة",
+        "accountScopeModeCustom": "مجموعة حسابات مخصصة",
+        "accountPrioritySet": "تثبيت الحساب للتوجيه ذي الأولوية",
+        "accountPriorityPromote": "رفع الحساب إلى أعلى أولوية",
+        "accountPriorityClear": "إلغاء تثبيت حساب الأولوية",
+        "accountPrioritySaved": "تم تثبيت حساب الأولوية",
+        "accountPriorityCleared": "تم إلغاء تثبيت حساب الأولوية",
+        "usageRange": "فترة استخدام مفتاح API",
+        "unsaved": "غير محفوظ",
+        "resetPolicy": "تجاهل التغييرات",
         "modelPrefix": "بادئة النموذج",
         "modelPrefixPlaceholder": "مثال: codex",
         "allowedModels": "النماذج المسموحة",

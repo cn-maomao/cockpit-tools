@@ -80,6 +80,7 @@ export async function queryCodexLocalAccessRequestLogs(
     modelQuery: query.modelQuery ?? null,
     accountQuery: query.accountQuery ?? null,
     apiKeyQuery: query.apiKeyQuery ?? null,
+    instanceQuery: query.instanceQuery ?? null,
     gatewayMode: query.gatewayMode ?? null,
     requestKind: query.requestKind ?? null,
     success: query.success ?? null,

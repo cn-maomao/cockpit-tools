@@ -218,9 +218,10 @@ func (e *CodexWebsocketsExecutor) Execute(ctx context.Context, auth *cliproxyaut
 	body, _ = sjson.DeleteBytes(body, "prompt_cache_retention")
 	body, _ = sjson.DeleteBytes(body, "safety_identifier")
 	body = normalizeCodexInstructions(body)
-	if helps.ShouldInjectImageGenerationTool(e.cfg, requestPath, opts.Headers) {
+	if helps.ShouldInjectImageGenerationToolForModel(e.cfg, baseModel, requestPath, opts.Headers) {
 		body = ensureImageGenerationTool(body, baseModel, auth)
 	}
+	body, useFullResponses := normalizeCodexResponsesLiteRequest(body, opts.Headers, auth, true)
 	body = sanitizeOpenAIResponsesReasoningEncryptedContent(ctx, "codex websockets executor", body)
 
 	httpURL := strings.TrimSuffix(baseURL, "/") + "/responses"
@@ -235,6 +236,7 @@ func (e *CodexWebsocketsExecutor) Execute(ctx context.Context, auth *cliproxyaut
 	upstreamBody, identityState := applyCodexIdentityConfuseBody(e.cfg, auth, originalPayloadSource, body)
 	reporter.SetTranslatedReasoningEffort(clientBody, to.String())
 	wsHeaders = applyCodexWebsocketHeaders(ctx, wsHeaders, auth, apiKey, e.cfg)
+	removeCodexResponsesLiteHeaderForFullResponse(wsHeaders, useFullResponses)
 	applyCodexIdentityConfuseHeaders(wsHeaders, &identityState)
 
 	var authID, authLabel, authType, authValue string
@@ -436,9 +438,10 @@ func (e *CodexWebsocketsExecutor) ExecuteStream(ctx context.Context, auth *clipr
 	requestPath := helps.PayloadRequestPath(opts)
 	body = helps.ApplyPayloadConfigWithRequest(e.cfg, baseModel, to.String(), from.String(), "", body, body, requestedModel, requestPath, opts.Headers)
 	body = normalizeCodexInstructions(body)
-	if helps.ShouldInjectImageGenerationTool(e.cfg, requestPath, opts.Headers) {
+	if helps.ShouldInjectImageGenerationToolForModel(e.cfg, baseModel, requestPath, opts.Headers) {
 		body = ensureImageGenerationTool(body, baseModel, auth)
 	}
+	body, useFullResponses := normalizeCodexResponsesLiteRequest(body, opts.Headers, auth, true)
 	body = sanitizeOpenAIResponsesReasoningEncryptedContent(ctx, "codex websockets executor", body)
 
 	httpURL := strings.TrimSuffix(baseURL, "/") + "/responses"
@@ -453,6 +456,7 @@ func (e *CodexWebsocketsExecutor) ExecuteStream(ctx context.Context, auth *clipr
 	upstreamBody, identityState := applyCodexIdentityConfuseBody(e.cfg, auth, userPayload, body)
 	reporter.SetTranslatedReasoningEffort(clientBody, to.String())
 	wsHeaders = applyCodexWebsocketHeaders(ctx, wsHeaders, auth, apiKey, e.cfg)
+	removeCodexResponsesLiteHeaderForFullResponse(wsHeaders, useFullResponses)
 	applyCodexIdentityConfuseHeaders(wsHeaders, &identityState)
 
 	var authID, authLabel, authType, authValue string
@@ -892,6 +896,7 @@ func applyCodexWebsocketHeaders(ctx context.Context, headers http.Header, auth *
 	misc.EnsureHeader(headers, ginHeaders, "x-client-request-id", "")
 	misc.EnsureHeader(headers, ginHeaders, "x-responsesapi-include-timing-metrics", "")
 	misc.EnsureHeader(headers, ginHeaders, "Version", "")
+	copyCodexResponsesLiteHeader(headers, ginHeaders)
 	copyCodexAgtoolsDiagnosticHeaders(headers, ginHeaders)
 	if isAPIKey {
 		ensureHeaderWithPriority(headers, ginHeaders, "User-Agent", "", "")

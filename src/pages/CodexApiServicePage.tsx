@@ -59,7 +59,10 @@ import {
   type CodexAccountGroup,
 } from "../services/codexAccountGroupService";
 import type { CodexAccount } from "../types/codex";
-import { CODEX_API_SERVICE_BIND_ID } from "../types/instance";
+import {
+  CODEX_API_SERVICE_BIND_ID,
+  type InstanceProfile,
+} from "../types/instance";
 import type {
   CodexLocalAccessAddressKind,
   CodexLocalAccessAccountModelRule,
@@ -665,6 +668,44 @@ function gatewayModeLabel(
   return t("codex.apiService.logs.gatewayModeUnknown", "模式未知");
 }
 
+/** 与后端写入 x-cockpit-instance-id 一致：profile 目录 basename */
+function clientInstanceIdFromUserDataDir(userDataDir: string): string {
+  const normalized = userDataDir.trim().replace(/[/\\]+$/, "");
+  if (!normalized) return "";
+  const parts = normalized.split(/[/\\]/).filter(Boolean);
+  return parts[parts.length - 1] ?? "";
+}
+
+function instanceDisplayName(
+  instance: InstanceProfile,
+  t: ReturnType<typeof useTranslation>["t"],
+): string {
+  if (instance.isDefault) {
+    return t("instances.defaultName", "默认实例");
+  }
+  const name = instance.name?.trim();
+  return name || instance.id;
+}
+
+function resolveClientInstanceLabel(
+  clientInstanceId: string | null | undefined,
+  instances: InstanceProfile[],
+  t: ReturnType<typeof useTranslation>["t"],
+): string {
+  const id = clientInstanceId?.trim() ?? "";
+  if (!id) {
+    return t("codex.apiService.logs.instanceUnknown", "实例 -");
+  }
+  const matched = instances.find((instance) => {
+    const dirId = clientInstanceIdFromUserDataDir(instance.userDataDir || "");
+    return dirId === id || instance.id === id;
+  });
+  if (matched) {
+    return instanceDisplayName(matched, t);
+  }
+  return id;
+}
+
 export function CodexApiServicePage() {
   const { t } = useTranslation();
   const { platformGroups } = usePlatformLayoutStore();
@@ -763,7 +804,9 @@ export function CodexApiServicePage() {
   const [requestLogModelQuery, setRequestLogModelQuery] = useState("");
   const [requestLogAccountQuery, setRequestLogAccountQuery] = useState("");
   const [requestLogApiKeyQuery, setRequestLogApiKeyQuery] = useState("");
+  const [requestLogInstanceQuery, setRequestLogInstanceQuery] = useState("all");
   const [requestLogErrorQuery, setRequestLogErrorQuery] = useState("");
+  const [codexInstances, setCodexInstances] = useState<InstanceProfile[]>([]);
   const mountedRef = useRef(true);
   const stateRequestSeqRef = useRef(0);
   const statsRequestSeqRef = useRef(0);
@@ -1175,6 +1218,7 @@ export function CodexApiServicePage() {
       .then((instances) => {
         const defaultInstance = instances.find((instance) => instance.isDefault);
         if (mountedRef.current) {
+          setCodexInstances(instances);
           setApiServiceIsCurrent(
             defaultInstance?.bindAccountId === CODEX_API_SERVICE_BIND_ID,
           );
@@ -1182,6 +1226,7 @@ export function CodexApiServicePage() {
       })
       .catch(() => {
         if (mountedRef.current) {
+          setCodexInstances([]);
           setApiServiceIsCurrent(false);
         }
       });
@@ -1309,6 +1354,7 @@ export function CodexApiServicePage() {
     requestLogModelQuery,
     requestLogAccountQuery,
     requestLogApiKeyQuery,
+    requestLogInstanceQuery,
     requestLogErrorQuery,
   ]);
 
@@ -1333,6 +1379,8 @@ export function CodexApiServicePage() {
         modelQuery: requestLogModelQuery,
         accountQuery: requestLogAccountQuery,
         apiKeyQuery: requestLogApiKeyQuery,
+        instanceQuery:
+          requestLogInstanceQuery === "all" ? null : requestLogInstanceQuery,
         gatewayMode:
           requestLogGatewayModeFilter === "all"
             ? null
@@ -1376,6 +1424,7 @@ export function CodexApiServicePage() {
     requestLogModelQuery,
     requestLogAccountQuery,
     requestLogApiKeyQuery,
+    requestLogInstanceQuery,
     requestLogErrorQuery,
     stats?.updatedAt,
   ]);
@@ -2917,6 +2966,27 @@ export function CodexApiServicePage() {
     },
     { value: "failed", label: t("codex.localAccess.requestLogFailed", "失败") },
   ];
+  const requestLogInstanceOptions = useMemo(() => {
+    const options: Array<{ value: string; label: string }> = [
+      {
+        value: "all",
+        label: t("codex.apiService.logs.allInstances", "全部实例"),
+      },
+    ];
+    const seen = new Set<string>(["all"]);
+    for (const instance of codexInstances) {
+      const value =
+        clientInstanceIdFromUserDataDir(instance.userDataDir || "") ||
+        instance.id;
+      if (!value || seen.has(value)) continue;
+      seen.add(value);
+      options.push({
+        value,
+        label: instanceDisplayName(instance, t),
+      });
+    }
+    return options;
+  }, [codexInstances, t]);
   const requestLogGatewayModeOptions: Array<{
     value: RequestLogGatewayModeFilter;
     label: string;
@@ -3059,6 +3129,7 @@ export function CodexApiServicePage() {
     requestLogKindFilter !== "all" ||
     requestLogStatusFilter !== "all" ||
     requestLogGatewayModeFilter !== "all" ||
+    requestLogInstanceQuery !== "all" ||
     requestLogModelQuery.trim() ||
     requestLogAccountQuery.trim() ||
     requestLogApiKeyQuery.trim() ||
@@ -3071,6 +3142,7 @@ export function CodexApiServicePage() {
     setRequestLogModelQuery("");
     setRequestLogAccountQuery("");
     setRequestLogApiKeyQuery("");
+    setRequestLogInstanceQuery("all");
     setRequestLogErrorQuery("");
   };
 
@@ -4785,6 +4857,24 @@ export function CodexApiServicePage() {
                     />
                   </label>
                   <label>
+                    <span>
+                      {t("codex.apiService.logs.instanceFilter", "实例")}
+                    </span>
+                    <SingleSelectDropdown
+                      value={requestLogInstanceQuery}
+                      options={requestLogInstanceOptions}
+                      onChange={setRequestLogInstanceQuery}
+                      ariaLabel={t(
+                        "codex.apiService.logs.instanceFilter",
+                        "实例",
+                      )}
+                      placeholder={t(
+                        "codex.apiService.logs.allInstances",
+                        "全部实例",
+                      )}
+                    />
+                  </label>
+                  <label>
                     <span>{t("codex.apiService.logs.kindFilter", "类型")}</span>
                     <SingleSelectDropdown
                       value={requestLogKindFilter}
@@ -4910,6 +5000,23 @@ export function CodexApiServicePage() {
                           <span>{requestKindLabel(event.requestKind, t)}</span>
                           <span>
                             {event.apiKeyLabel || event.apiKeyId || "-"}
+                          </span>
+                          <span
+                            title={
+                              event.clientInstanceId
+                                ? `${resolveClientInstanceLabel(
+                                    event.clientInstanceId,
+                                    codexInstances,
+                                    t,
+                                  )} (${event.clientInstanceId})`
+                                : undefined
+                            }
+                          >
+                            {resolveClientInstanceLabel(
+                              event.clientInstanceId,
+                              codexInstances,
+                              t,
+                            )}
                           </span>
                           <span>
                             {maskAccountText(accountDisplayName)}

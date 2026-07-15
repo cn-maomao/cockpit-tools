@@ -606,6 +606,9 @@ pub struct CodexLocalAccessUsageEvent {
     pub api_key_id: String,
     #[serde(default)]
     pub api_key_label: String,
+    /// 来自客户端静态 header `x-cockpit-instance-id`（多开 profile 目录名）。
+    #[serde(default)]
+    pub client_instance_id: String,
     #[serde(default)]
     pub model_id: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
