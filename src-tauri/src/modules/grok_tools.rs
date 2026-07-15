@@ -302,10 +302,19 @@ fn process_running(slot: &Mutex<Option<Child>>) -> bool {
 fn pipe_logs(app: AppHandle, source: &'static str, reader: impl std::io::Read + Send + 'static) {
     std::thread::spawn(move || {
         for line in BufReader::new(reader).lines().map_while(Result::ok) {
-            if !line.trim().is_empty() {
-                logger::log_info(&format!("[GrokTools][{source}] {line}"));
-                emit_event(&app, source, "info", line, None);
+            let line = line.trim();
+            if line.is_empty() {
+                continue;
             }
+            if source == "api"
+                && line.contains("\"msg\":\"http_request\"")
+                && (line.contains("\"path\":\"/healthz\"") || line.contains("\"path\":\"/readyz\""))
+            {
+                continue;
+            }
+            logger::log_info(&format!("[GrokTools][{source}] {line}"));
+            let event_kind = if source == "api" { "api-log" } else { source };
+            emit_event(&app, event_kind, "info", line, None);
         }
     });
 }
@@ -503,83 +512,108 @@ fn import_web_account(settings: &GrokToolsSettings, email: &str, sso: &str) -> R
     Ok(())
 }
 
-fn handle_registration_stdout(
+fn handle_registration_event(app: &AppHandle, settings: &GrokToolsSettings, event: Value) {
+    match event.get("type").and_then(Value::as_str) {
+        Some("account") => {
+            let email = event
+                .get("email")
+                .and_then(Value::as_str)
+                .unwrap_or("未知账号");
+            let sso = event.get("sso").and_then(Value::as_str).unwrap_or("");
+            if sso.is_empty() {
+                emit_event(
+                    app,
+                    "register",
+                    "error",
+                    format!("账号 {email} 缺少 SSO，未导入"),
+                    None,
+                );
+            } else {
+                let mut import_result = Err("账号导入未执行".to_string());
+                for attempt in 1_u64..=3 {
+                    import_result = import_web_account(settings, email, sso);
+                    if import_result.is_ok() {
+                        break;
+                    }
+                    if attempt < 3 {
+                        std::thread::sleep(Duration::from_secs(attempt));
+                    }
+                }
+                match import_result {
+                    Ok(()) => emit_event(
+                        app,
+                        "account-imported",
+                        "success",
+                        format!("账号 {email} 已自动导入 Grok2API"),
+                        Some(json!({"email": email})),
+                    ),
+                    Err(error) => emit_event(
+                        app,
+                        "account-imported",
+                        "error",
+                        error,
+                        Some(json!({"email": email})),
+                    ),
+                }
+            }
+        }
+        Some("log") => {
+            let message = event
+                .get("message")
+                .and_then(Value::as_str)
+                .unwrap_or_default();
+            emit_event(app, "register", "info", message, None);
+        }
+        Some(kind @ ("progress" | "complete" | "state")) => {
+            emit_event(app, kind, "info", "", Some(event.clone()));
+        }
+        Some("error") => {
+            let message = event
+                .get("message")
+                .and_then(Value::as_str)
+                .unwrap_or("注册任务失败");
+            let detail = event
+                .get("detail")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .trim();
+            let display = if detail.is_empty() {
+                message.to_string()
+            } else {
+                format!("{message}\n{detail}")
+            };
+            logger::log_warn(&format!("[GrokTools][register] {display}"));
+            emit_event(app, "register", "error", display, None);
+        }
+        _ => {}
+    }
+}
+
+fn handle_registration_stream(
     app: AppHandle,
     settings: GrokToolsSettings,
     reader: impl std::io::Read + Send + 'static,
+    forward_plain_logs: bool,
 ) {
     std::thread::spawn(move || {
         for line in BufReader::new(reader).lines().map_while(Result::ok) {
-            let Ok(event) = serde_json::from_str::<Value>(&line) else {
-                logger::log_warn(&format!("[GrokTools][register] 非 JSON 输出: {line}"));
+            let line = line.trim();
+            if line.is_empty() {
                 continue;
-            };
-            match event.get("type").and_then(Value::as_str) {
-                Some("account") => {
-                    let email = event
-                        .get("email")
-                        .and_then(Value::as_str)
-                        .unwrap_or("未知账号");
-                    let sso = event.get("sso").and_then(Value::as_str).unwrap_or("");
-                    if sso.is_empty() {
-                        emit_event(
-                            &app,
-                            "register",
-                            "error",
-                            format!("账号 {email} 缺少 SSO，未导入"),
-                            None,
-                        );
-                    } else {
-                        let mut import_result = Err("账号导入未执行".to_string());
-                        for attempt in 1_u64..=3 {
-                            import_result = import_web_account(&settings, email, sso);
-                            if import_result.is_ok() {
-                                break;
-                            }
-                            if attempt < 3 {
-                                std::thread::sleep(Duration::from_secs(attempt));
-                            }
-                        }
-                        match import_result {
-                            Ok(()) => emit_event(
-                                &app,
-                                "account-imported",
-                                "success",
-                                format!("账号 {email} 已自动导入 Grok2API"),
-                                Some(json!({"email": email})),
-                            ),
-                            Err(error) => emit_event(
-                                &app,
-                                "account-imported",
-                                "error",
-                                error,
-                                Some(json!({"email": email})),
-                            ),
-                        }
-                    }
-                }
-                Some("log") => {
-                    let message = event
-                        .get("message")
-                        .and_then(Value::as_str)
-                        .unwrap_or_default();
-                    emit_event(&app, "register", "info", message, None);
-                }
-                Some(kind @ ("progress" | "complete" | "state")) => {
-                    emit_event(&app, kind, "info", "", Some(event.clone()));
-                }
-                Some("error") => {
-                    let message = event
-                        .get("message")
-                        .and_then(Value::as_str)
-                        .unwrap_or("注册任务失败");
-                    emit_event(&app, "register", "error", message, None);
-                }
-                _ => {}
+            }
+            if let Ok(event) = serde_json::from_str::<Value>(line) {
+                handle_registration_event(&app, &settings, event);
+            } else if forward_plain_logs {
+                logger::log_info(&format!("[GrokTools][register] {line}"));
+                emit_event(&app, "register", "info", line, None);
+            } else {
+                logger::log_warn(&format!("[GrokTools][register] 非 JSON 输出: {line}"));
             }
         }
-        std::thread::sleep(Duration::from_millis(100));
-        emit_event(&app, "registration-exited", "info", "注册任务已结束", None);
+        if !forward_plain_logs {
+            std::thread::sleep(Duration::from_millis(100));
+            emit_event(&app, "registration-exited", "info", "注册任务已结束", None);
+        }
     });
 }
 
@@ -670,10 +704,10 @@ pub fn start_registration(app: AppHandle) -> Result<GrokToolsStatus, String> {
         .spawn()
         .map_err(|error| format!("启动 Grok 注册器失败: {error}"))?;
     if let Some(stdout) = child.stdout.take() {
-        handle_registration_stdout(app.clone(), settings, stdout);
+        handle_registration_stream(app.clone(), settings.clone(), stdout, false);
     }
     if let Some(stderr) = child.stderr.take() {
-        pipe_logs(app.clone(), "register", stderr);
+        handle_registration_stream(app.clone(), settings, stderr, true);
     }
     *register_child()
         .lock()

@@ -9,12 +9,35 @@ import sys
 import traceback
 
 
+def configure_standard_streams():
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            try:
+                reconfigure(encoding="utf-8", errors="backslashreplace", line_buffering=True)
+            except (OSError, ValueError):
+                pass
+
+
 def emit(event_type, **payload):
     value = {"type": event_type, **payload}
-    print(json.dumps(value, ensure_ascii=False), flush=True)
+    line = json.dumps(value, ensure_ascii=False)
+    try:
+        sys.stdout.write(line + "\n")
+        sys.stdout.flush()
+    except (BrokenPipeError, OSError, ValueError):
+        # A PyInstaller console process launched without a visible Windows
+        # console can occasionally lose its stdout text wrapper. stderr is a
+        # separately piped machine-event fallback understood by Cockpit.
+        try:
+            sys.stderr.write(line + "\n")
+            sys.stderr.flush()
+        except (BrokenPipeError, OSError, ValueError):
+            pass
 
 
 def main():
+    configure_standard_streams()
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True)
     parser.add_argument("--output", required=True)

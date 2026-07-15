@@ -1,7 +1,9 @@
 package middleware
 
 import (
+	"bytes"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -61,5 +63,23 @@ func TestSecurityHeaders(t *testing.T) {
 		if value := response.Header().Get(name); value != expected {
 			t.Fatalf("%s = %q", name, value)
 		}
+	}
+}
+
+func TestAccessLogSkipsHealthChecks(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	var output bytes.Buffer
+	router := gin.New()
+	router.Use(AccessLog(slog.New(slog.NewTextHandler(&output, nil))))
+	router.GET("/healthz", func(c *gin.Context) { c.Status(http.StatusOK) })
+	router.GET("/api/status", func(c *gin.Context) { c.Status(http.StatusOK) })
+
+	router.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/healthz", nil))
+	if output.Len() != 0 {
+		t.Fatalf("health check should not be logged: %s", output.String())
+	}
+	router.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/api/status", nil))
+	if !strings.Contains(output.String(), "msg=http_request") {
+		t.Fatalf("regular request should be logged: %s", output.String())
 	}
 }

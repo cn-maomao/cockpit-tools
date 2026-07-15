@@ -86,7 +86,11 @@ func AccessLog(logger *slog.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		startedAt := time.Now()
 		c.Next()
+		path := c.FullPath()
+		if path == "/healthz" || path == "/readyz" {
+			return
+		}
 		requestID, _ := c.Get(RequestIDKey)
-		logger.Info("http_request", "request_id", requestID, "method", c.Request.Method, "path", c.FullPath(), "status", c.Writer.Status(), "duration_ms", time.Since(startedAt).Milliseconds())
+		logger.Info("http_request", "request_id", requestID, "method", c.Request.Method, "path", path, "status", c.Writer.Status(), "duration_ms", time.Since(startedAt).Milliseconds())
 	}
 }
