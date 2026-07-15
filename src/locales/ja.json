@@ -1914,6 +1914,7 @@
         "requestsDetail": "成功 {{success}} / 失敗 {{failed}} / 取消 {{canceled}} / 上流失敗 {{upstreamFailed}} / 未完了 {{incomplete}}",
         "tokens": "トークン",
         "tokensDetail": "入力 {{input}} / 出力 {{output}}",
+        "cached": "キャッシュ",
         "specialTokens": "キャッシュ / 思考",
         "specialTokensDetail": "キャッシュ {{cached}} / 思考 {{reasoning}}",
         "avgLatency": "平均遅延",

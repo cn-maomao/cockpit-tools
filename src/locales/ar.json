@@ -1961,6 +1961,7 @@
         "requestsDetail": "نجاح {{success}} / فشل {{failed}} / إلغاء {{canceled}} / فشل المصدر {{upstreamFailed}} / غير مكتمل {{incomplete}}",
         "tokens": "الرموز",
         "tokensDetail": "إدخال {{input}} / إخراج {{output}}",
+        "cached": "الذاكرة",
         "specialTokens": "الذاكرة / التفكير",
         "specialTokensDetail": "الذاكرة {{cached}} / التفكير {{reasoning}}",
         "avgLatency": "متوسط التأخير",

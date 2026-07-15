@@ -1914,6 +1914,7 @@
         "requestsDetail": "OK {{success}} / Échec {{failed}} / Annul. {{canceled}} / Amont {{upstreamFailed}} / Incomp. {{incomplete}}",
         "tokens": "Jetons",
         "tokensDetail": "Entrée {{input}} / Sortie {{output}}",
+        "cached": "Mémoire cache",
         "specialTokens": "Cache / Réflexion",
         "specialTokensDetail": "Cache {{cached}} / Réflexion {{reasoning}}",
         "avgLatency": "Latence moy.",

@@ -1964,6 +1964,7 @@
         "requestsDetail": "OK {{success}} / Gagal {{failed}} / Batal {{canceled}} / Hulu {{upstreamFailed}} / Belum lengkap {{incomplete}}",
         "tokens": "Token",
         "tokensDetail": "Masuk {{input}} / Keluar {{output}}",
+        "cached": "Tembolok",
         "specialTokens": "Cache / Penalaran",
         "specialTokensDetail": "Cache {{cached}} / Penalaran {{reasoning}}",
         "avgLatency": "Latensi rata-rata",

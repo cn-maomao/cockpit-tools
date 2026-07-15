@@ -1914,6 +1914,7 @@
         "requestsDetail": "OK {{success}} / Lỗi {{failed}} / Hủy {{canceled}} / Nguồn {{upstreamFailed}} / Chưa xong {{incomplete}}",
         "tokens": "Token",
         "tokensDetail": "Đầu vào {{input}} / Đầu ra {{output}}",
+        "cached": "Bộ đệm",
         "specialTokens": "Bộ đệm / Suy luận",
         "specialTokensDetail": "Bộ đệm {{cached}} / Suy luận {{reasoning}}",
         "avgLatency": "Độ trễ TB",

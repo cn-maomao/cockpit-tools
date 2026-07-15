@@ -1914,6 +1914,7 @@
         "requestsDetail": "成功 {{success}} / 失敗 {{failed}} / 取消 {{canceled}} / 上游失敗 {{upstreamFailed}} / 未完成 {{incomplete}}",
         "tokens": "總 Token 數",
         "tokensDetail": "輸入 {{input}} / 輸出 {{output}}",
+        "cached": "快取",
         "specialTokens": "快取 / 思考",
         "specialTokensDetail": "快取 {{cached}} / 思考 {{reasoning}}",
         "avgLatency": "平均延遲",

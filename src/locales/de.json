@@ -1914,6 +1914,7 @@
         "requestsDetail": "OK {{success}} / Fehler {{failed}} / Abbr. {{canceled}} / Quelle {{upstreamFailed}} / Unvollst. {{incomplete}}",
         "tokens": "Token",
         "tokensDetail": "Eingabe {{input}} / Ausgabe {{output}}",
+        "cached": "Zwischenspeicher",
         "specialTokens": "Cache / Denken",
         "specialTokensDetail": "Cache {{cached}} / Denken {{reasoning}}",
         "avgLatency": "Durchschn. Latenz",

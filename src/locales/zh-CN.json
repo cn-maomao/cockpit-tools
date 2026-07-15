@@ -2292,6 +2292,7 @@
         "requestsDetail": "成功 {{success}} / 失败 {{failed}} / 取消 {{canceled}} / 上游失败 {{upstreamFailed}} / 流未完成 {{incomplete}}",
         "tokens": "总 Token 数",
         "tokensDetail": "输入 {{input}} / 输出 {{output}}",
+        "cached": "缓存",
         "estimatedCost": "估算价值",
         "estimatedCostDetail": "按当前请求价格快照累计",
         "specialTokens": "缓存 / 思考",

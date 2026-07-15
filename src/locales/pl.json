@@ -1914,6 +1914,7 @@
         "requestsDetail": "OK {{success}} / Błąd {{failed}} / Anul. {{canceled}} / Źródło {{upstreamFailed}} / Niepeł. {{incomplete}}",
         "tokens": "Tokeny",
         "tokensDetail": "Wejście {{input}} / Wyjście {{output}}",
+        "cached": "Pamięć podręczna",
         "specialTokens": "Cache / Rozumowanie",
         "specialTokensDetail": "Cache {{cached}} / Rozumowanie {{reasoning}}",
         "avgLatency": "Śr. opóźnienie",
