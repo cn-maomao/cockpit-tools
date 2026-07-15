@@ -2163,7 +2163,10 @@
       "refreshFailedBadge": "Odświeżenie nieudane",
       "generic": "Odświeżenie limitu nie powiodło się, spróbuj ponownie później",
       "deactivatedWorkspace": "Obszar roboczy jest wyłączony, przełącz konto lub ponownie autoryzuj",
-      "requestFailedManualRetry": "Sprawdź sieć. Nie pobrano najnowszego limitu. Odśwież i spróbuj ponownie."
+      "requestFailedManualRetry": "Sprawdź sieć. Nie pobrano najnowszego limitu. Odśwież i spróbuj ponownie.",
+      "httpStatusSummary": "Błąd API {{status}}",
+      "viewDetails": "Szczegóły",
+      "detailTitle": "Szczegóły błędu"
     },
     "plan": {
       "free": "FREE​",
@@ -4762,7 +4765,12 @@
       "streakDays": "{{days}} dni",
       "streakRewardCountdown": "Do nagrody bonusowej pozostało {{days}} dni",
       "streakRewardToday": "Nagroda bonusowa dostępna dzisiaj!",
-      "recentDates": "Ostatnie: "
+      "recentDates": "Ostatnie: ",
+      "claimed": "Odebrano",
+      "queryFailed": "Zapytanie nieudane",
+      "retry": "Ponów",
+      "inactive": "Niedostępne",
+      "inactiveHint": "Check-in nieaktywny dla tego konta"
     }
   },
   "zcode": {
@@ -5212,13 +5220,13 @@
     },
     "import": {
       "pasteTab": "Wklej JSON",
-      "pasteDesc": "Wklej oficjalny plik auth.json z Grok CLI. Poświadczenia są przetwarzane wyłącznie przez lokalny backend. Cockpit eksportuje tylko ukryte metadane, które nie pozwalają odtworzyć logowania.",
+      "pasteDesc": "Wklej oficjalny auth.json Grok CLI lub pełny JSON konta wyeksportowany z tej aplikacji (możliwy reimport). Dane logowania tylko lokalnie.",
       "pastePlaceholder": "Wklej JSON konta Grok",
       "pasteAction": "Importuj JSON",
-      "localDesc": "Zaimportuj bieżące konto z domyślnego ~/.grok/auth.json. Przy wyborze pliku użyj oficjalnego auth.json z Grok CLI.",
+      "localDesc": "Import z ~/.grok/auth.json albo wybierz oficjalny auth.json / pełny JSON eksportu z tej aplikacji.",
       "localClient": "Importuj z lokalnego Grok CLI",
       "apiKeyTab": "Klucz API",
-      "apiKeyDesc": "Wklej klucz API xAI (oficjalny XAI_API_KEY). Wstrzykiwany przy starcie. Możesz też wkleić oficjalny auth.json (OAuth).",
+      "apiKeyDesc": "Wklej klucz API xAI (oficjalny XAI_API_KEY / xai-…). Wstrzykiwany jako zmienna środowiskowa przy starcie CLI; nie nadpisuje oficjalnego logowania OAuth.",
       "apiKeyPlaceholder": "wklej xai-…",
       "apiKeyAction": "Dodaj API Key"
     },

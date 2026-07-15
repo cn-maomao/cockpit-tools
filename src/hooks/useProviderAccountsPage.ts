@@ -1843,7 +1843,9 @@ export function useProviderAccountsPage<TAccount extends ProviderAccountBase>(
 
     try {
       let importedCount = 0;
-      if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+      // 「粘贴 JSON」页签只走 JSON 导入；Token/API Key 页签仍兼容 JSON 与纯 token
+      const preferJsonOnly = addTab === 'paste';
+      if (preferJsonOnly || trimmed.startsWith('{') || trimmed.startsWith('[')) {
         const imported = await dataService.importFromJson(trimmed);
         importedCount = imported.length;
       } else if (dataService.addWithToken) {
@@ -1882,7 +1884,7 @@ export function useProviderAccountsPage<TAccount extends ProviderAccountBase>(
       );
     }
     setImporting(false);
-  }, [dataService, fetchAccounts, platformId, resetAddModalState, t, tokenInput]);
+  }, [addTab, dataService, fetchAccounts, platformId, resetAddModalState, t, tokenInput]);
 
   useEffect(() => {
     if (

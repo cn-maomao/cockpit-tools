@@ -7,6 +7,26 @@ All notable changes to Cockpit Tools will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
+## [1.3.5] - 2026-07-16
+
+### Added
+
+- **Codex API Service proxies Responses Lite web search**: the local gateway adds `/v1/alpha/search` (plus a direct-compatible path), schedules an OAuth account, and forwards to ChatGPT Codex alpha search so Lite web.run search works again.
+- **Codex API Service supports Responses WebSocket**: the gateway exposes a `GET /v1/responses` upgrade route; local API Service profiles advertise WebSocket support so the client can use WS instead of always falling back to SSE.
+- **Grok CLI supports full account export and re-import**: export keeps credentials for recovery; add-account tabs match Codex (OAuth · Token / JSON · API Key · Local import) so you can paste official `auth.json` or Cockpit export JSON, or pick a JSON file.
+- **Codex quota error cards show a short summary with a details modal**: cards keep a compact summary (including HTTP status summaries); full error bodies (including HTML/body dumps) open via View Details so long failures no longer blow up the list layout.
+
+### Fixed
+
+- **Fixed model pricing settings that could not be saved**: non-long-context models (such as `gpt-5.4-mini`) may leave the long-context token threshold empty; save is blocked only when the value is invalid, or long-context price tiers are set without a valid threshold. Thanks @andrew05060414 for #1592.
+- **Fixed WorkBuddy daily check-in status not matching the official client**: status queries prefer the official Buddy fuel-station endpoint `checkin-activity-status` (with fallback to `checkin-status`); the UI state machine matches the official available / claimed / inactive flow; accounts with `today_checked_in` show as Claimed, and a successful claim updates local state first then refreshes in the background so success no longer stays Not Checked In or Unavailable.
+- **Fixed deleting a Grok account that was bound to an instance**: delete now clears default/multi-instance bindings automatically, so you no longer need to unbind first.
+- **Fixed legacy “disable image generation” settings that left image gen clickable while the gateway hid `gpt-image-2`**: collection-level `Disabled` / `ImagesOnly` now migrate to `Enabled`, matching the 1.3.4 removal of the disable UI.
+- **Fixed OAuth-backed local API Responses Lite requests that incorrectly injected hosted tools and failed or broke image generation**: HTTP, SSE, and WebSocket paths filter unsupported hosted tools while keeping client-executed tools. Thanks @kin001 for #1577.
+- **Fixed WorkBuddy multi-instance data directories not matching the official layout**: defaults resolve and create the official `~/.workbuddy` config root and `~/.workbuddy/app` Electron userData layout, and start instances with the correct `WORKBUDDY_CONFIG_DIR` / `WORKBUDDY_USER_DATA_DIR`.
+- **Fixed Windows app paths showing the `\\?\` extended prefix**: load, detect, save, and Settings display now strip `\\?\` / `\\?\UNC\` so users see normal drive-letter or UNC paths.
+
+---
 ## [1.3.4] - 2026-07-15
 
 ### Added

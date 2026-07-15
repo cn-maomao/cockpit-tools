@@ -2163,7 +2163,10 @@
       "refreshFailedBadge": "Làm mới thất bại",
       "generic": "Làm mới quota thất bại, vui lòng thử lại sau",
       "deactivatedWorkspace": "Workspace đã bị vô hiệu hoá, hãy đổi tài khoản hoặc cấp quyền lại",
-      "requestFailedManualRetry": "Kiểm tra mạng. Chưa lấy được quota mới nhất. Làm mới để thử lại."
+      "requestFailedManualRetry": "Kiểm tra mạng. Chưa lấy được quota mới nhất. Làm mới để thử lại.",
+      "httpStatusSummary": "Lỗi API {{status}}",
+      "viewDetails": "Chi tiết",
+      "detailTitle": "Chi tiết lỗi"
     },
     "plan": {
       "free": "FREE​",
@@ -4762,7 +4765,12 @@
       "streakDays": "{{days}} ngày",
       "streakRewardCountdown": "Còn {{days}} ngày nữa để nhận thưởng bonus",
       "streakRewardToday": "Hôm nay có thể nhận thưởng bonus!",
-      "recentDates": "Gần đây: "
+      "recentDates": "Gần đây: ",
+      "claimed": "Đã nhận",
+      "queryFailed": "Truy vấn thất bại",
+      "retry": "Thử lại",
+      "inactive": "Không khả dụng",
+      "inactiveHint": "Check-in không hoạt động với tài khoản này"
     }
   },
   "zcode": {
@@ -5212,13 +5220,13 @@
     },
     "import": {
       "pasteTab": "Dán JSON",
-      "pasteDesc": "Dán auth.json chính thức của Grok CLI. Thông tin xác thực chỉ được xử lý trong backend cục bộ. Cockpit chỉ xuất siêu dữ liệu đã che, không thể dùng để khôi phục đăng nhập.",
+      "pasteDesc": "Dán auth.json Grok CLI chính thức hoặc JSON tài khoản đầy đủ do ứng dụng này xuất (có thể nhập lại). Thông tin đăng nhập chỉ xử lý cục bộ.",
       "pastePlaceholder": "Dán JSON tài khoản Grok",
       "pasteAction": "Nhập JSON",
-      "localDesc": "Nhập tài khoản hiện tại từ ~/.grok/auth.json mặc định. Khi chọn tệp, hãy dùng auth.json chính thức của Grok CLI.",
+      "localDesc": "Nhập từ ~/.grok/auth.json, hoặc chọn auth.json chính thức / JSON xuất đầy đủ của ứng dụng này.",
       "localClient": "Nhập từ Grok CLI cục bộ",
       "apiKeyTab": "Khóa API",
-      "apiKeyDesc": "Dán xAI API Key (XAI_API_KEY chính thức). Được inject khi khởi chạy. Cũng có thể dán auth.json chính thức để OAuth.",
+      "apiKeyDesc": "Dán khóa API xAI (XAI_API_KEY / xai-… chính thức). Được inject thành biến môi trường khi khởi chạy CLI; không ghi đè đăng nhập OAuth chính thức.",
       "apiKeyPlaceholder": "dán xai-…",
       "apiKeyAction": "Thêm API Key"
     },

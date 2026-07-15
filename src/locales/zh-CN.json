@@ -2887,7 +2887,10 @@
       "refreshFailedBadge": "刷新失败",
       "generic": "配额刷新失败，请稍后重试",
       "deactivatedWorkspace": "工作区已停用，请切换账号或重新授权",
-      "requestFailedManualRetry": "请检查网络，未获取到最新额度。可刷新重试。"
+      "requestFailedManualRetry": "请检查网络，未获取到最新额度。可刷新重试。",
+      "httpStatusSummary": "API 返回错误 {{status}}",
+      "viewDetails": "查看详情",
+      "detailTitle": "错误详情"
     },
     "plan": {
       "free": "FREE",
@@ -4977,6 +4980,7 @@
       "button": "签到",
       "button.loading": "签到中...",
       "done": "已完成",
+      "claimed": "已领取",
       "success": "签到成功！连续签到 {{days}} 天",
       "failure": "签到失败：{{message}}",
       "failure.network": "网络异常，请稍后重试",
@@ -4987,6 +4991,10 @@
       "checkAll": "一键签到",
       "noAccounts": "暂无账号",
       "querying": "查询中...",
+      "queryFailed": "状态查询失败",
+      "retry": "重试",
+      "inactive": "不可用",
+      "inactiveHint": "签到活动未开启或不适用当前账号",
       "streakDays": "{{days}} 天",
       "streakRewardCountdown": "再签 {{days}} 天获大礼包",
       "streakRewardToday": "今日可获得大礼包!",
@@ -5235,13 +5243,13 @@
     },
     "import": {
       "pasteTab": "粘贴 JSON",
-      "pasteDesc": "粘贴 Grok CLI 官方 auth.json；凭据仅在本机后端处理。Cockpit 导出仅含脱敏元数据，不能用于恢复登录。",
+      "pasteDesc": "粘贴官方 Grok CLI auth.json，或本应用导出的完整账号 JSON（含凭据，可再导入恢复）。凭据仅在本机处理。",
       "pastePlaceholder": "粘贴 Grok 账号 JSON",
       "pasteAction": "导入 JSON",
-      "localDesc": "从默认 ~/.grok/auth.json 导入当前账号；选择文件时应使用 Grok CLI 官方 auth.json。",
+      "localDesc": "从默认 ~/.grok/auth.json 导入；也可选择官方 auth.json 或本应用导出的完整账号 JSON 文件。",
       "localClient": "从本机 Grok CLI 导入",
       "apiKeyTab": "API 密钥",
-      "apiKeyDesc": "粘贴 xAI API Key（官方 XAI_API_KEY）。启动时注入环境变量；也可粘贴官方 auth.json 按 OAuth 导入。",
+      "apiKeyDesc": "粘贴 xAI API Key（官方 XAI_API_KEY / xai-…）。启动 CLI 时注入为环境变量，不会覆盖官方 OAuth 登录。",
       "apiKeyPlaceholder": "粘贴 xai- 开头的密钥",
       "apiKeyAction": "添加 API Key"
     },

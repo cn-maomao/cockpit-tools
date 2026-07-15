@@ -34,6 +34,7 @@ import (
 	responsesconverter "github.com/router-for-me/CLIProxyAPI/v7/internal/translator/openai/openai/responses"
 	"github.com/router-for-me/CLIProxyAPI/v7/internal/util"
 	"github.com/router-for-me/CLIProxyAPI/v7/internal/watcher/synthesizer"
+	sdkhandlers "github.com/router-for-me/CLIProxyAPI/v7/sdk/api/handlers"
 	sdkopenai "github.com/router-for-me/CLIProxyAPI/v7/sdk/api/handlers/openai"
 	sdkauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/auth"
 	"github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy"
@@ -76,6 +77,11 @@ const ollamaShowPath = "/api/show"
 const ollamaChatPath = "/api/chat"
 const ollamaBridgeVersion = "0.18.3"
 const maxImageUploadBytes int64 = 64 * 1024 * 1024
+const codexAlphaSearchPath = "/v1/alpha/search"
+const codexDirectAlphaSearchPath = "/backend-api/codex/alpha/search"
+const defaultCodexAlphaSearchURL = "https://chatgpt.com/backend-api/codex/alpha/search"
+const maxCodexAlphaSearchRequestBytes = 16 << 20
+const maxCodexAlphaSearchResponseBytes = 32 << 20
 
 var (
 	streamOpenTimeout      = 10 * time.Second
@@ -1655,6 +1661,9 @@ func requestKindFromPath(path string) string {
 		return "image_generation"
 	case strings.Contains(path, "/images/edits"):
 		return "image_edit"
+	case strings.Contains(path, "/alpha/search"):
+		// Responses Lite web.run uses a standalone search endpoint.
+		return "text"
 	case strings.Contains(path, "/chat/completions"),
 		strings.Contains(path, "/responses"),
 		strings.Contains(path, "/v1/messages"),
@@ -2767,6 +2776,169 @@ type sidecarRuntime struct {
 	done    chan error
 }
 
+// CodexAlphaSearch selects a Codex OAuth credential and forwards the standalone
+// search payload to the ChatGPT Codex alpha search backend.
+func (r *sidecarRuntime) CodexAlphaSearch(ctx context.Context, model string, body []byte, headers http.Header) (int, http.Header, []byte, error) {
+	if r == nil || r.manager == nil {
+		return 0, nil, nil, errors.New("Codex auth manager is unavailable")
+	}
+	upstreamBody := sanitizeCodexAlphaSearchBody(body)
+	selectionHeaders := http.Header{}
+	if headers != nil {
+		selectionHeaders = headers.Clone()
+	}
+	opts := cliproxyexecutor.Options{
+		Headers:         selectionHeaders,
+		OriginalRequest: body,
+		Metadata: map[string]any{
+			cliproxyexecutor.RequestedModelMetadataKey: model,
+			cliproxyexecutor.RequestPathMetadataKey:    codexAlphaSearchPath,
+		},
+	}
+	selected, err := r.manager.SelectAuthByKind(ctx, "codex", model, coreauth.AuthKindOAuth, opts)
+	if err != nil {
+		return 0, nil, nil, err
+	}
+	if selected == nil {
+		return 0, nil, nil, errors.New("no Codex OAuth account available for alpha search")
+	}
+
+	upstreamHeaders := buildCodexAlphaSearchHeaders(selectionHeaders, selected)
+	upstreamURL := resolveCodexAlphaSearchURL(selected)
+	req, err := r.manager.NewHttpRequest(ctx, selected, http.MethodPost, upstreamURL, upstreamBody, upstreamHeaders)
+	if err != nil {
+		return 0, nil, nil, err
+	}
+	// Ensure ChatGPT account binding for OAuth (PrepareRequest only injects Bearer).
+	if accountID := codexAuthChatGPTAccountID(selected); accountID != "" {
+		req.Header.Set("Chatgpt-Account-Id", accountID)
+	}
+
+	resp, err := r.manager.HttpRequest(ctx, selected, req)
+	if err != nil {
+		return 0, nil, nil, err
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+	payload, err := io.ReadAll(io.LimitReader(resp.Body, maxCodexAlphaSearchResponseBytes))
+	if err != nil {
+		return 0, nil, nil, fmt.Errorf("failed to read Codex search response: %w", err)
+	}
+	return resp.StatusCode, resp.Header.Clone(), payload, nil
+}
+
+func sanitizeCodexAlphaSearchBody(body []byte) []byte {
+	var payload map[string]json.RawMessage
+	if err := json.Unmarshal(body, &payload); err != nil || payload == nil {
+		return body
+	}
+	removed := false
+	for _, field := range []string{"prompt_cache_key", "prompt_cache_retention"} {
+		if _, exists := payload[field]; exists {
+			delete(payload, field)
+			removed = true
+		}
+	}
+	if !removed {
+		return body
+	}
+	sanitized, err := json.Marshal(payload)
+	if err != nil {
+		return body
+	}
+	return sanitized
+}
+
+func resolveCodexAlphaSearchURL(auth *coreauth.Auth) string {
+	baseURL := ""
+	if auth != nil && auth.Attributes != nil {
+		baseURL = strings.TrimSpace(auth.Attributes["base_url"])
+	}
+	if baseURL == "" {
+		return defaultCodexAlphaSearchURL
+	}
+	baseURL = strings.TrimRight(baseURL, "/")
+	switch {
+	case strings.HasSuffix(strings.ToLower(baseURL), "/alpha/search"):
+		return baseURL
+	case strings.HasSuffix(strings.ToLower(baseURL), "/codex"):
+		return baseURL + "/alpha/search"
+	case strings.HasSuffix(strings.ToLower(baseURL), "/backend-api"):
+		return baseURL + "/codex/alpha/search"
+	default:
+		return baseURL + "/alpha/search"
+	}
+}
+
+func codexAuthChatGPTAccountID(auth *coreauth.Auth) string {
+	if auth == nil {
+		return ""
+	}
+	if auth.Metadata != nil {
+		if accountID, ok := auth.Metadata["account_id"].(string); ok {
+			if accountID = strings.TrimSpace(accountID); accountID != "" {
+				return accountID
+			}
+		}
+		if accountID, ok := auth.Metadata["chatgpt_account_id"].(string); ok {
+			if accountID = strings.TrimSpace(accountID); accountID != "" {
+				return accountID
+			}
+		}
+	}
+	if auth.Attributes != nil {
+		if accountID := strings.TrimSpace(auth.Attributes["chatgpt_account_id"]); accountID != "" {
+			return accountID
+		}
+	}
+	return ""
+}
+
+func buildCodexAlphaSearchHeaders(src http.Header, auth *coreauth.Auth) http.Header {
+	headers := make(http.Header)
+	headers.Set("Content-Type", "application/json")
+	headers.Set("Accept", "application/json")
+	headers.Set("Originator", "codex_cli_rs")
+	for _, name := range []string{
+		"Version",
+		"User-Agent",
+		"Session_id",
+		"X-Session-ID",
+		"X-Client-Request-Id",
+		"X-Openai-Actor-Authorization",
+		"x-openai-actor-authorization",
+	} {
+		if src == nil {
+			continue
+		}
+		if value := strings.TrimSpace(src.Get(name)); value != "" {
+			headers.Set(name, value)
+		}
+	}
+	// Preserve agtools diagnostic headers used by Cockpit.
+	if src != nil {
+		for key, values := range src {
+			trimmed := strings.TrimSpace(key)
+			if trimmed == "" || !strings.HasPrefix(strings.ToLower(trimmed), "x-agtools-") {
+				continue
+			}
+			canonical := http.CanonicalHeaderKey(trimmed)
+			headers.Del(canonical)
+			for _, value := range values {
+				value = strings.TrimSpace(value)
+				if value != "" {
+					headers.Add(canonical, value)
+				}
+			}
+		}
+	}
+	if accountID := codexAuthChatGPTAccountID(auth); accountID != "" {
+		headers.Set("Chatgpt-Account-Id", accountID)
+	}
+	return headers
+}
+
 func newSidecarRuntime(ctx context.Context, configPath string, cfg *config.Config, m *manifest, manager *coreauth.Manager) (*sidecarRuntime, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("config is nil")
@@ -2976,8 +3148,9 @@ func readManifestCodexTokenAuth(account *accountSpec, authDir, path string) (*co
 		Status:   status,
 		Disabled: disabled,
 		Attributes: map[string]string{
-			"path":      path,
-			"auth_kind": manifestAccountAuthKind(account),
+			"path":        path,
+			"auth_kind":   manifestAccountAuthKind(account),
+			"websockets":  "true",
 		},
 		Metadata:        metadata,
 		CreatedAt:       info.ModTime(),
@@ -3315,12 +3488,19 @@ type executorRuntime interface {
 	ExecuteStream(ctx context.Context, providers []string, req cliproxyexecutor.Request, opts cliproxyexecutor.Options) (*cliproxyexecutor.StreamResult, error)
 }
 
+// codexAlphaSearcher forwards Responses Lite web.run search requests using the
+// same OAuth account pool as /v1/responses.
+type codexAlphaSearcher interface {
+	CodexAlphaSearch(ctx context.Context, model string, body []byte, headers http.Header) (status int, respHeaders http.Header, payload []byte, err error)
+}
+
 type relayServer struct {
-	runtime  executorRuntime
-	cfg      *config.Config
-	manifest *manifest
-	emitter  *eventEmitter
-	policy   *requestPolicy
+	runtime            executorRuntime
+	cfg                *config.Config
+	manifest           *manifest
+	emitter            *eventEmitter
+	policy             *requestPolicy
+	responsesWebsocket gin.HandlerFunc
 }
 
 func (s *relayServer) router() *gin.Engine {
@@ -3329,12 +3509,17 @@ func (s *relayServer) router() *gin.Engine {
 	router.Use(corsMiddleware())
 	router.Use(s.policy.middleware())
 	router.GET("/v1/models", s.handleModels)
+	// Codex Responses WebSocket upgrade uses GET /v1/responses (not POST/SSE).
+	router.GET("/v1/responses", s.handleResponsesWebsocket)
 	router.POST("/v1/responses", s.handleResponses)
 	router.POST("/v1/responses/compact", s.handleResponsesCompact)
 	// Compatibility: some clients set chat-completions base and still append /v1/responses.
 	router.POST("/v1/chat/completions/v1/responses", s.handleResponses)
 	router.POST("/v1/chat/completions/v1/responses/compact", s.handleResponsesCompact)
 	router.POST("/v1/chat/completions", s.handleChatCompletions)
+	// Responses Lite web.run independent search endpoint.
+	router.POST(codexAlphaSearchPath, s.handleCodexAlphaSearch)
+	router.POST(codexDirectAlphaSearchPath, s.handleCodexAlphaSearch)
 	router.POST(anthropicMessagesPath, s.handleAnthropicMessages)
 	router.POST(anthropicCountTokensPath, s.handleAnthropicCountTokens)
 	router.GET(geminiModelsPath, s.handleGeminiModels)
@@ -3382,8 +3567,103 @@ func (s *relayServer) handleResponses(c *gin.Context) {
 	s.handleExecutorRequest(c, sdktranslator.FormatOpenAIResponse, "")
 }
 
+func (s *relayServer) handleResponsesWebsocket(c *gin.Context) {
+	if _, ok := s.requireAPIKey(c); !ok {
+		return
+	}
+	if s.responsesWebsocket == nil {
+		writeAPIError(
+			c,
+			http.StatusServiceUnavailable,
+			"responses websocket unavailable",
+			"service_unavailable",
+		)
+		return
+	}
+	s.responsesWebsocket(c)
+}
+
 func (s *relayServer) handleResponsesCompact(c *gin.Context) {
 	s.handleExecutorRequest(c, sdktranslator.FormatOpenAIResponse, "responses/compact")
+}
+
+// handleCodexAlphaSearch proxies Codex web.run search requests to the ChatGPT
+// Codex alpha search backend. Unlike /v1/responses, the body is already in
+// Codex search format and must not pass through protocol translation.
+func (s *relayServer) handleCodexAlphaSearch(c *gin.Context) {
+	spec, ok := s.requireAPIKey(c)
+	if !ok {
+		return
+	}
+	if spec.ProviderGateway != nil {
+		writeAPIError(c, http.StatusNotFound, "provider gateway does not support /v1/alpha/search", "not_found")
+		return
+	}
+	searcher, ok := s.runtime.(codexAlphaSearcher)
+	if !ok || searcher == nil {
+		writeAPIError(c, http.StatusServiceUnavailable, "Codex alpha search runtime is unavailable", "service_unavailable")
+		return
+	}
+
+	body, err := io.ReadAll(io.LimitReader(c.Request.Body, maxCodexAlphaSearchRequestBytes))
+	if err != nil {
+		writeAPIError(c, http.StatusBadRequest, "failed to read search request", "invalid_request")
+		return
+	}
+	if len(bytes.TrimSpace(body)) == 0 {
+		writeAPIError(c, http.StatusBadRequest, "request body is required", "invalid_request")
+		return
+	}
+
+	var routing struct {
+		ID    string `json:"id"`
+		Model string `json:"model"`
+	}
+	_ = json.Unmarshal(body, &routing)
+	model := strings.TrimSpace(routing.Model)
+	if model == "" {
+		if ctxModel, _ := c.Request.Context().Value(requestModelContextKey).(string); strings.TrimSpace(ctxModel) != "" {
+			model = strings.TrimSpace(ctxModel)
+		}
+	}
+	if model != "" {
+		canonical := canonicalModelForClientModel(s.manifest, spec, model)
+		if !validateClientModelVisible(s.manifest, spec, model, canonical) {
+			writeAPIError(c, http.StatusNotFound, fmt.Sprintf("模型 %s 不在当前 API Key 的可用模型范围内", model), "model_not_available")
+			return
+		}
+		model = canonical
+	}
+
+	headers := c.Request.Header.Clone()
+	if sessionID := strings.TrimSpace(routing.ID); sessionID != "" {
+		headers.Set("X-Session-ID", sessionID)
+		if headers.Get("Session_id") == "" {
+			headers.Set("Session_id", sessionID)
+		}
+	}
+
+	startedAt := time.Now()
+	s.emitExecutorDiagnostic(c, "executor_started", model, "alpha_search", startedAt, "")
+	status, respHeaders, payload, err := searcher.CodexAlphaSearch(relayContext(c), model, body, headers)
+	if err != nil {
+		s.emitExecutorDiagnostic(c, "executor_failed", model, "alpha_search", startedAt, err.Error())
+		s.writeExecutorError(c, err)
+		return
+	}
+	s.emitExecutorDiagnostic(c, "executor_completed", model, "alpha_search", startedAt, "")
+	writeUpstreamHeaders(c.Writer.Header(), respHeaders)
+	contentType := ""
+	if respHeaders != nil {
+		contentType = respHeaders.Get("Content-Type")
+	}
+	if contentType == "" {
+		contentType = "application/json"
+	}
+	if status <= 0 {
+		status = http.StatusOK
+	}
+	c.Data(status, contentType, payload)
 }
 
 func (s *relayServer) handleChatCompletions(c *gin.Context) {
@@ -6747,12 +7027,21 @@ func main() {
 	defer runtime.Stop()
 	emitter.emitStartupStage("start_http_server")
 
+	// Reuse the same coreManager so WS upgrades share OAuth pool, routing and
+	// session affinity with POST /v1/responses.
+	var sdkCfg *config.SDKConfig
+	if cfg != nil {
+		sdkCfg = &cfg.SDKConfig
+	}
+	baseHandlers := sdkhandlers.NewBaseAPIHandlers(sdkCfg, coreManager)
+	responsesHandler := sdkopenai.NewOpenAIResponsesAPIHandler(baseHandlers)
 	relay := &relayServer{
-		runtime:  runtime,
-		cfg:      cfg,
-		manifest: m,
-		emitter:  emitter,
-		policy:   policy,
+		runtime:            runtime,
+		cfg:                cfg,
+		manifest:           m,
+		emitter:            emitter,
+		policy:             policy,
+		responsesWebsocket: responsesHandler.ResponsesWebsocket,
 	}
 	if err := runRelayHTTPServer(ctx, cfg, relay.router(), emitter); err != nil && !errors.Is(err, context.Canceled) {
 		emitter.emit(map[string]any{"type": "error", "message": err.Error()})

@@ -2210,7 +2210,10 @@
       "refreshFailedBadge": "فشل التحديث",
       "generic": "فشل تحديث الحصة، يرجى المحاولة لاحقا",
       "deactivatedWorkspace": "تم تعطيل مساحة العمل، بدّل الحساب أو أعد التفويض",
-      "requestFailedManualRetry": "تحقّق من الشبكة. لم يتم جلب أحدث حصة. حدّث للمحاولة مجددًا."
+      "requestFailedManualRetry": "تحقّق من الشبكة. لم يتم جلب أحدث حصة. حدّث للمحاولة مجددًا.",
+      "httpStatusSummary": "أعاد API الخطأ {{status}}",
+      "viewDetails": "التفاصيل",
+      "detailTitle": "تفاصيل الخطأ"
     },
     "plan": {
       "free": "FREE​",
@@ -4809,7 +4812,12 @@
       "streakDays": "{{days}} يوم",
       "streakRewardCountdown": "يتبقى {{days}} يومًا للحصول على المكافأة الإضافية",
       "streakRewardToday": "المكافأة الإضافية متاحة اليوم!",
-      "recentDates": "الأيام الأخيرة: "
+      "recentDates": "الأيام الأخيرة: ",
+      "claimed": "تم الاستلام",
+      "queryFailed": "فشل الاستعلام",
+      "retry": "إعادة",
+      "inactive": "غير متاح",
+      "inactiveHint": "تسجيل الحضور غير مفعّل لهذا الحساب"
     }
   },
   "zcode": {
@@ -5212,13 +5220,13 @@
     },
     "import": {
       "pasteTab": "لصق JSON",
-      "pasteDesc": "ألصق ملف auth.json الرسمي من Grok CLI. تُعالج بيانات الاعتماد في الخلفية المحلية فقط. يصدّر Cockpit بيانات وصفية محجوبة لا يمكن استخدامها لاستعادة تسجيل الدخول.",
+      "pasteDesc": "الصق auth.json الرسمي لـ Grok CLI أو JSON الحساب الكامل الذي صدّره هذا التطبيق (يمكن استيراده مجددًا). تُعالَج بيانات الاعتماد محليًا فقط.",
       "pastePlaceholder": "لصق JSON لحساب Grok",
       "pasteAction": "استيراد JSON",
-      "localDesc": "استورد الحساب الحالي من ~/.grok/auth.json الافتراضي. عند اختيار ملف، استخدم ملف auth.json الرسمي من Grok CLI.",
+      "localDesc": "استورد من ~/.grok/auth.json أو اختر auth.json رسميًا / JSON التصدير الكامل من هذا التطبيق.",
       "localClient": "الاستيراد من Grok CLI المحلي",
       "apiKeyTab": "مفتاح API",
-      "apiKeyDesc": "الصق مفتاح xAI API (XAI_API_KEY الرسمي). يُحقن عند التشغيل. يمكن أيضًا لصق auth.json الرسمي لـ OAuth.",
+      "apiKeyDesc": "الصق مفتاح xAI API (XAI_API_KEY / xai-… الرسمي). يُحقن كمتغير بيئة عند تشغيل CLI ولا يستبدل تسجيل الدخول OAuth الرسمي.",
       "apiKeyPlaceholder": "الصق xai-…",
       "apiKeyAction": "إضافة API Key"
     },

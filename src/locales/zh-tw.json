@@ -1800,10 +1800,10 @@
       "reauthEmailLabel": "重新授權帳號"
     },
     "token": {
-      "desc": "貼上 auth.json、帳號 JSON 或 refresh_token。",
-      "placeholder": "範例：每行一個 refresh_token，或 {\"refresh_token\":\"rt_...\"}",
+      "desc": "貼上 auth.json、帳號 JSON、Sub2API JSON、accessToken、個人存取權杖 at-… 或 refresh_token。",
+      "placeholder": "範例：session JSON、accessToken、at-… 個人存取權杖、Sub2API JSON，或 {\"personal_access_token\":\"at-...\"}",
       "formatSummary": "必填欄位與範例（點擊展開）",
-      "formatRequired": "支援完整 tokens（id_token + access_token）、單個 refresh_token，或每行一個 refresh_token。僅 refresh_token 會先連線換取完整憑證。",
+      "formatRequired": "支援 session JSON、完整 tokens（id_token + access_token）、Sub2API 匯出 JSON、僅 accessToken、個人存取權杖 at-… / personal_access_token，或僅 refresh_token。僅 refresh_token 會先連線換取完整憑證；無 refresh 的 at-… 按 personal_access_token 形態落盤。",
       "formatSingleLabel": "完整 tokens 範例",
       "formatRefreshOnlyLabel": "僅 refresh_token 範例",
       "formatBatchLabel": "批次範例"
@@ -2294,7 +2294,10 @@
       "refreshFailedBadge": "重新整理失敗",
       "generic": "配額重新整理失敗，請稍後再試",
       "deactivatedWorkspace": "工作區已停用，請切換帳號或重新授權",
-      "requestFailedManualRetry": "請檢查網路，未取得最新配額。可重新整理重試。"
+      "requestFailedManualRetry": "請檢查網路，未取得最新配額。可重新整理重試。",
+      "httpStatusSummary": "API 傳回錯誤 {{status}}",
+      "viewDetails": "查看詳情",
+      "detailTitle": "錯誤詳情"
     },
     "plan": {
       "free": "FREE",
@@ -4762,7 +4765,12 @@
       "streakDays": "{{days}} 天",
       "streakRewardCountdown": "再簽 {{days}} 天可得大禮包",
       "streakRewardToday": "今日可獲得大禮包！",
-      "recentDates": "近期簽到："
+      "recentDates": "近期簽到：",
+      "claimed": "已領取",
+      "queryFailed": "狀態查詢失敗",
+      "retry": "重試",
+      "inactive": "不可用",
+      "inactiveHint": "簽到活動未開啟或不適用目前帳號"
     }
   },
   "zcode": {
@@ -5212,13 +5220,13 @@
     },
     "import": {
       "pasteTab": "貼上 JSON",
-      "pasteDesc": "貼上 Grok CLI 官方 auth.json；憑證只在本機後端處理。Cockpit 匯出僅含去識別化中繼資料，無法用來還原登入。",
+      "pasteDesc": "貼上官方 Grok CLI auth.json，或本應用匯出的完整帳號 JSON（含憑證，可再匯入還原）。憑證僅在本機處理。",
       "pastePlaceholder": "貼上 Grok 帳號 JSON",
       "pasteAction": "匯入 JSON",
-      "localDesc": "從預設 ~/.grok/auth.json 匯入目前帳號；選擇檔案時請使用 Grok CLI 官方 auth.json。",
+      "localDesc": "從預設 ~/.grok/auth.json 匯入；也可選擇官方 auth.json 或本應用匯出的完整帳號 JSON 檔案。",
       "localClient": "從本機 Grok CLI 匯入",
       "apiKeyTab": "API 金鑰",
-      "apiKeyDesc": "貼上 xAI API Key（官方 XAI_API_KEY）。啟動時注入環境變數；也可貼上官方 auth.json 以 OAuth 匯入。",
+      "apiKeyDesc": "貼上 xAI API Key（官方 XAI_API_KEY / xai-…）。啟動 CLI 時注入為環境變數，不會覆蓋官方 OAuth 登入。",
       "apiKeyPlaceholder": "貼上 xai- 開頭的金鑰",
       "apiKeyAction": "新增 API Key"
     },

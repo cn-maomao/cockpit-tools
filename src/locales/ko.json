@@ -2163,7 +2163,10 @@
       "refreshFailedBadge": "새로고침 실패",
       "generic": "할당량 새로고침에 실패했습니다. 나중에 다시 시도하세요",
       "deactivatedWorkspace": "워크스페이스가 비활성화되었습니다. 계정을 전환하거나 다시 인증하세요",
-      "requestFailedManualRetry": "네트워크를 확인하세요. 최신 할당량을 가져오지 못했습니다. 새로고침해 다시 시도하세요."
+      "requestFailedManualRetry": "네트워크를 확인하세요. 최신 할당량을 가져오지 못했습니다. 새로고침해 다시 시도하세요.",
+      "httpStatusSummary": "API 오류 {{status}}",
+      "viewDetails": "상세",
+      "detailTitle": "오류 상세"
     },
     "plan": {
       "free": "FREE​",
@@ -4762,7 +4765,12 @@
       "streakDays": "{{days}}일",
       "streakRewardCountdown": "보너스 보상까지 {{days}}일 남음",
       "streakRewardToday": "오늘 보너스 보상을 받을 수 있습니다!",
-      "recentDates": "최근: "
+      "recentDates": "최근: ",
+      "claimed": "수령 완료",
+      "queryFailed": "조회 실패",
+      "retry": "재시도",
+      "inactive": "사용 불가",
+      "inactiveHint": "이 계정에서는 출석체크를 사용할 수 없습니다"
     }
   },
   "zcode": {
@@ -5212,13 +5220,13 @@
     },
     "import": {
       "pasteTab": "JSON 붙여넣기",
-      "pasteDesc": "Grok CLI 공식 auth.json을 붙여넣으세요. 자격 증명은 로컬 백엔드에서만 처리됩니다. Cockpit 내보내기에는 마스킹된 메타데이터만 포함되며 로그인 복원에 사용할 수 없습니다.",
+      "pasteDesc": "공식 Grok CLI auth.json 또는 이 앱에서 내보낸 전체 계정 JSON(재가져오기 가능)을 붙여넣습니다. 자격 증명은 로컬에서만 처리됩니다.",
       "pastePlaceholder": "Grok 계정 JSON 붙여넣기",
       "pasteAction": "JSON 가져오기",
-      "localDesc": "기본 ~/.grok/auth.json에서 현재 계정을 가져옵니다. 파일을 선택할 때는 Grok CLI 공식 auth.json을 사용하세요.",
+      "localDesc": "기본 ~/.grok/auth.json에서 가져오거나, 공식 auth.json / 이 앱의 전체 내보내기 JSON 파일을 선택하세요.",
       "localClient": "로컬 Grok CLI에서 가져오기",
       "apiKeyTab": "API 키",
-      "apiKeyDesc": "xAI API 키(공식 XAI_API_KEY)를 붙여넣으세요. 실행 시 환경 변수로 주입됩니다. 공식 auth.json도 붙여넣을 수 있습니다.",
+      "apiKeyDesc": "xAI API 키(공식 XAI_API_KEY / xai-…)를 붙여넣으세요. CLI 실행 시 환경 변수로 주입되며 공식 OAuth 로그인을 덮어쓰지 않습니다.",
       "apiKeyPlaceholder": "xai-로 시작하는 키",
       "apiKeyAction": "API Key 추가"
     },

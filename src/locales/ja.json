@@ -2163,7 +2163,10 @@
       "refreshFailedBadge": "更新失敗",
       "generic": "クォータの更新に失敗しました。後でもう一度お試しください",
       "deactivatedWorkspace": "ワークスペースが無効です。アカウントを切り替えるか再認証してください",
-      "requestFailedManualRetry": "ネットワークを確認してください。最新のクォータを取得できませんでした。更新して再試行できます。"
+      "requestFailedManualRetry": "ネットワークを確認してください。最新のクォータを取得できませんでした。更新して再試行できます。",
+      "httpStatusSummary": "API エラー {{status}}",
+      "viewDetails": "詳細",
+      "detailTitle": "エラー詳細"
     },
     "plan": {
       "free": "FREE​",
@@ -4762,7 +4765,12 @@
       "streakDays": "{{days}}日",
       "streakRewardCountdown": "ボーナス報酬まであと{{days}}日",
       "streakRewardToday": "本日はボーナス報酬を受け取れます！",
-      "recentDates": "最近: "
+      "recentDates": "最近: ",
+      "claimed": "受取済み",
+      "queryFailed": "照会失敗",
+      "retry": "再試行",
+      "inactive": "利用不可",
+      "inactiveHint": "このアカウントではチェックインが無効です"
     }
   },
   "zcode": {
@@ -5212,13 +5220,13 @@
     },
     "import": {
       "pasteTab": "JSON を貼り付け",
-      "pasteDesc": "Grok CLI 公式の auth.json を貼り付けます。認証情報はローカルバックエンド内だけで処理されます。Cockpit のエクスポートはマスク済みメタデータのみで、ログインの復元には使えません。",
+      "pasteDesc": "公式 Grok CLI の auth.json、または本アプリが書き出した完全なアカウント JSON（再インポート可）を貼り付けます。資格情報はローカルのみ。",
       "pastePlaceholder": "Grok アカウントの JSON を貼り付け",
       "pasteAction": "JSON をインポート",
-      "localDesc": "既定の ~/.grok/auth.json から現在のアカウントをインポートします。ファイルを選ぶ場合は Grok CLI 公式の auth.json を使用してください。",
+      "localDesc": "既定の ~/.grok/auth.json から取り込みます。公式 auth.json または本アプリの完全エクスポート JSON も選択できます。",
       "localClient": "ローカルの Grok CLI からインポート",
       "apiKeyTab": "APIキー",
-      "apiKeyDesc": "xAI API キー（公式 XAI_API_KEY）を貼り付けます。起動時に環境変数へ注入します。公式 auth.json の貼り付けも可能です。",
+      "apiKeyDesc": "xAI API キー（公式 XAI_API_KEY / xai-…）を貼り付けます。CLI 起動時に環境変数へ注入し、公式 OAuth ログインは上書きしません。",
       "apiKeyPlaceholder": "xai- で始まるキー",
       "apiKeyAction": "API Key を追加"
     },

@@ -2163,7 +2163,10 @@
       "refreshFailedBadge": "Aggiornamento fallito",
       "generic": "Aggiornamento quota non riuscito, riprova più tardi",
       "deactivatedWorkspace": "Workspace disattivato, cambia account o riautorizza",
-      "requestFailedManualRetry": "Controlla la rete. La quota più recente non è stata recuperata. Aggiorna per riprovare."
+      "requestFailedManualRetry": "Controlla la rete. La quota più recente non è stata recuperata. Aggiorna per riprovare.",
+      "httpStatusSummary": "Errore API {{status}}",
+      "viewDetails": "Dettagli",
+      "detailTitle": "Dettaglio errore"
     },
     "plan": {
       "free": "FREE​",
@@ -4762,7 +4765,12 @@
       "streakDays": "{{days}} giorni",
       "streakRewardCountdown": "Mancano {{days}} giorni alla ricompensa bonus",
       "streakRewardToday": "Ricompensa bonus disponibile oggi!",
-      "recentDates": "Recenti: "
+      "recentDates": "Recenti: ",
+      "claimed": "Riscattato",
+      "queryFailed": "Query non riuscita",
+      "retry": "Riprova",
+      "inactive": "Non disponibile",
+      "inactiveHint": "Check-in non attivo per questo account"
     }
   },
   "zcode": {
@@ -5212,13 +5220,13 @@
     },
     "import": {
       "pasteTab": "Incolla JSON",
-      "pasteDesc": "Incolla il file auth.json ufficiale di Grok CLI. Le credenziali sono elaborate solo dal backend locale. Cockpit esporta esclusivamente metadati oscurati, che non possono ripristinare l'accesso.",
+      "pasteDesc": "Incolla l'auth.json ufficiale di Grok CLI o un JSON account completo esportato da questa app (reimportabile). Credenziali solo in locale.",
       "pastePlaceholder": "Incolla JSON account Grok",
       "pasteAction": "Importa JSON",
-      "localDesc": "Importa l'account corrente dal file ~/.grok/auth.json predefinito. Quando scegli un file, usa il file auth.json ufficiale di Grok CLI.",
+      "localDesc": "Importa da ~/.grok/auth.json oppure scegli auth.json ufficiale / JSON di export completo di questa app.",
       "localClient": "Importa da Grok CLI locale",
       "apiKeyTab": "Chiave API",
-      "apiKeyDesc": "Incolla una API key xAI (XAI_API_KEY ufficiale). Viene iniettata all’avvio. Puoi anche incollare auth.json ufficiale per OAuth.",
+      "apiKeyDesc": "Incolla una API key xAI (XAI_API_KEY / xai-… ufficiale). Iniettata come variabile d’ambiente all’avvio del CLI; non sovrascrive l’accesso OAuth ufficiale.",
       "apiKeyPlaceholder": "incolla xai-…",
       "apiKeyAction": "Aggiungi API Key"
     },

@@ -2163,7 +2163,10 @@
       "refreshFailedBadge": "Actualización fallida",
       "generic": "No se pudo actualizar la cuota, inténtalo más tarde",
       "deactivatedWorkspace": "El espacio de trabajo está desactivado, cambia de cuenta o vuelve a autorizar",
-      "requestFailedManualRetry": "Comprueba la red. No se obtuvo la cuota más reciente. Actualiza para reintentarlo."
+      "requestFailedManualRetry": "Comprueba la red. No se obtuvo la cuota más reciente. Actualiza para reintentarlo.",
+      "httpStatusSummary": "Error de la API {{status}}",
+      "viewDetails": "Detalles",
+      "detailTitle": "Detalle del error"
     },
     "plan": {
       "free": "FREE​",
@@ -4762,7 +4765,12 @@
       "streakDays": "{{days}} días",
       "streakRewardCountdown": "Faltan {{days}} días para la recompensa extra",
       "streakRewardToday": "¡Recompensa extra disponible hoy!",
-      "recentDates": "Reciente: "
+      "recentDates": "Reciente: ",
+      "claimed": "Reclamado",
+      "queryFailed": "Consulta fallida",
+      "retry": "Reintentar",
+      "inactive": "No disponible",
+      "inactiveHint": "El check-in no está activo en esta cuenta"
     }
   },
   "zcode": {
@@ -5212,13 +5220,13 @@
     },
     "import": {
       "pasteTab": "Pegar JSON",
-      "pasteDesc": "Pega el auth.json oficial de Grok CLI. Las credenciales solo se procesan en el backend local. Cockpit exporta únicamente metadatos ocultos que no permiten restaurar una sesión.",
+      "pasteDesc": "Pega el auth.json oficial de Grok CLI o un JSON completo exportado por esta app (reimportable). Las credenciales se tratan en local.",
       "pastePlaceholder": "Pegar JSON de cuenta Grok",
       "pasteAction": "Importar JSON",
-      "localDesc": "Importa la cuenta actual desde ~/.grok/auth.json. Al elegir un archivo, usa el auth.json oficial de Grok CLI.",
+      "localDesc": "Importa desde ~/.grok/auth.json o elige un auth.json oficial / JSON de exportación completa de esta app.",
       "localClient": "Importar desde Grok CLI local",
       "apiKeyTab": "Clave API",
-      "apiKeyDesc": "Pega una API key de xAI (XAI_API_KEY oficial). Se inyecta al iniciar. También puedes pegar auth.json oficial para OAuth.",
+      "apiKeyDesc": "Pega una API key de xAI (XAI_API_KEY / xai-… oficial). Se inyecta como variable de entorno al iniciar el CLI; no sobrescribe el inicio de sesión OAuth oficial.",
       "apiKeyPlaceholder": "pegar xai-…",
       "apiKeyAction": "Añadir API Key"
     },

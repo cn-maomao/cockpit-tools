@@ -2352,7 +2352,10 @@
       "refreshFailedBadge": "Gagal menyegarkan",
       "generic": "Penyegaran kuota gagal, silakan coba lagi nanti",
       "deactivatedWorkspace": "Workspace dinonaktifkan, ganti akun atau otorisasi ulang",
-      "requestFailedManualRetry": "Periksa jaringan. Kuota terbaru belum diambil. Segarkan untuk mencoba lagi."
+      "requestFailedManualRetry": "Periksa jaringan. Kuota terbaru belum diambil. Segarkan untuk mencoba lagi.",
+      "httpStatusSummary": "Kesalahan API {{status}}",
+      "viewDetails": "Detail",
+      "detailTitle": "Detail error"
     },
     "plan": {
       "free": "FREE​",
@@ -4937,7 +4940,12 @@
       "streakDays": "{{days}} hari",
       "streakRewardCountdown": "{{days}} hari lagi untuk hadiah bonus",
       "streakRewardToday": "Hadiah bonus tersedia hari ini!",
-      "recentDates": "Terbaru: "
+      "recentDates": "Terbaru: ",
+      "claimed": "Diklaim",
+      "queryFailed": "Kueri gagal",
+      "retry": "Coba lagi",
+      "inactive": "Tidak tersedia",
+      "inactiveHint": "Check-in tidak aktif untuk akun ini"
     }
   },
   "mfaVault": {
@@ -5212,13 +5220,13 @@
     },
     "import": {
       "pasteTab": "Tempel JSON",
-      "pasteDesc": "Tempel auth.json resmi dari Grok CLI. Kredensial hanya diproses oleh backend lokal. Cockpit hanya mengekspor metadata yang disamarkan dan tidak dapat memulihkan login.",
+      "pasteDesc": "Tempel auth.json Grok CLI resmi, atau JSON akun lengkap yang diekspor aplikasi ini (bisa diimpor ulang). Kredensial hanya diproses lokal.",
       "pastePlaceholder": "Tempel JSON akun Grok",
       "pasteAction": "Impor JSON",
-      "localDesc": "Impor akun saat ini dari ~/.grok/auth.json bawaan. Saat memilih berkas, gunakan auth.json resmi dari Grok CLI.",
+      "localDesc": "Impor dari ~/.grok/auth.json, atau pilih auth.json resmi / JSON ekspor lengkap aplikasi ini.",
       "localClient": "Impor dari Grok CLI lokal",
       "apiKeyTab": "Kunci API",
-      "apiKeyDesc": "Tempel xAI API Key (XAI_API_KEY resmi). Diinjeksikan saat peluncuran. Bisa juga tempel auth.json resmi untuk OAuth.",
+      "apiKeyDesc": "Tempel kunci API xAI (XAI_API_KEY / xai-… resmi). Diinjeksikan sebagai variabel lingkungan saat CLI diluncurkan; tidak menimpa login OAuth resmi.",
       "apiKeyPlaceholder": "tempel xai-…",
       "apiKeyAction": "Tambah API Key"
     },

@@ -2163,7 +2163,10 @@
       "refreshFailedBadge": "Yenileme başarısız",
       "generic": "Kota yenileme başarısız, lütfen daha sonra tekrar deneyin",
       "deactivatedWorkspace": "Çalışma alanı devre dışı, hesap değiştirin veya yeniden yetkilendirin",
-      "requestFailedManualRetry": "Ağı kontrol edin. En güncel kota alınamadı. Yenileyip tekrar deneyin."
+      "requestFailedManualRetry": "Ağı kontrol edin. En güncel kota alınamadı. Yenileyip tekrar deneyin.",
+      "httpStatusSummary": "API hatası {{status}}",
+      "viewDetails": "Ayrıntılar",
+      "detailTitle": "Hata ayrıntısı"
     },
     "plan": {
       "free": "FREE​",
@@ -4762,7 +4765,12 @@
       "streakDays": "{{days}} gün",
       "streakRewardCountdown": "Bonus ödüle {{days}} gün kaldı",
       "streakRewardToday": "Bonus ödül bugün kullanılabilir!",
-      "recentDates": "Son: "
+      "recentDates": "Son: ",
+      "claimed": "Alındı",
+      "queryFailed": "Sorgu başarısız",
+      "retry": "Yeniden dene",
+      "inactive": "Kullanılamaz",
+      "inactiveHint": "Bu hesap için check-in etkin değil"
     }
   },
   "zcode": {
@@ -5212,13 +5220,13 @@
     },
     "import": {
       "pasteTab": "JSON Yapıştır",
-      "pasteDesc": "Resmi Grok CLI auth.json dosyasını yapıştırın. Kimlik bilgileri yalnızca yerel arka uçta işlenir. Cockpit sadece oturumu geri yükleyemeyen gizlenmiş meta verileri dışa aktarır.",
+      "pasteDesc": "Resmi Grok CLI auth.json veya bu uygulamanın dışa aktardığı tam hesap JSON’unu (yeniden içe aktarılabilir) yapıştırın. Kimlik bilgileri yalnızca yerel.",
       "pastePlaceholder": "Grok hesap JSON'unu yapıştır",
       "pasteAction": "JSON'u İçe Aktar",
-      "localDesc": "Mevcut hesabı varsayılan ~/.grok/auth.json dosyasından içe aktarın. Dosya seçerken resmi Grok CLI auth.json dosyasını kullanın.",
+      "localDesc": "~/.grok/auth.json dosyasından içe aktarın veya resmi auth.json / bu uygulamanın tam dışa aktarma JSON’unu seçin.",
       "localClient": "Yerel Grok CLI'dan İçe Aktar",
       "apiKeyTab": "API Anahtarı",
-      "apiKeyDesc": "xAI API anahtarını yapıştırın (resmi XAI_API_KEY). Başlatmada enjekte edilir. OAuth için resmi auth.json da yapıştırılabilir.",
+      "apiKeyDesc": "xAI API anahtarını yapıştırın (resmi XAI_API_KEY / xai-…). CLI başlatılırken ortam değişkeni olarak enjekte edilir; resmi OAuth oturumunu üzerine yazmaz.",
       "apiKeyPlaceholder": "xai-… yapıştırın",
       "apiKeyAction": "API Key ekle"
     },

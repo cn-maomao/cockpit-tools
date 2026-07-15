@@ -9733,6 +9733,8 @@ fn sidecar_auth_json_for_account(
         "plan_type": account.plan_type.clone(),
         "excluded_models": excluded_models,
         "disable_cooling": collection.disable_cooling,
+        // Enable upstream Codex Responses WebSocket executor for OAuth accounts.
+        "websockets": true,
     });
     if account_is_access_token_only(account) {
         value["auth_mode"] = json!("personal_access_token");
@@ -11320,6 +11322,9 @@ fn build_runtime_account(
     runtime_account.bound_oauth_account_id = bound_oauth_account_id;
     runtime_account.api_model_catalog = supported_codex_model_ids();
     runtime_account.api_wire_api = Some("responses".to_string());
+    // Local relay now exposes GET /v1/responses WebSocket upgrade. Advertise
+    // the capability so Codex profiles use WS instead of always falling back.
+    runtime_account.api_supports_websockets = true;
     runtime_account
 }
 
@@ -13131,8 +13136,14 @@ fn sanitize_collection_structure(
 ) -> Result<bool, String> {
     let mut changed = false;
 
-    // 保留 ImagesOnly / Disabled：1.3.1 绑定 OAuth 本地网关会使用 ImagesOnly，
-    // 强制 Enabled 会破坏 chat 禁注入 /images 可生图 的兼容路径。
+    // v1.3.4 起已移除集合级 image_generation 禁用 UI。
+    // 遗留 Disabled / ImagesOnly 会继续从 sidecar manifest 过滤 gpt-image-2，
+    // 但静态 Codex catalog 仍包含该模型，造成 Codex 可点生图、网关却 model_not_available。
+    // 请求级控制仍保留：Responses Lite 头与 x-agtools-disable-image-generation。
+    if collection.image_generation_mode != CodexLocalAccessImageGenerationMode::Enabled {
+        collection.image_generation_mode = CodexLocalAccessImageGenerationMode::Enabled;
+        changed = true;
+    }
 
     if collection.port == 0 {
         collection.port = allocate_initial_local_port(bind_host_for_collection(collection))?;
@@ -23468,7 +23479,8 @@ mod tests {
         build_codex_client_models_response, build_collection_base_url, build_images_api_payload,
         build_local_access_api_key, build_local_models_response,
         build_model_provider_gateway_test_collection, build_ordered_account_ids,
-        build_request_routing_hint, build_upstream_websocket_url, calculate_usage_cost_usd,
+        build_request_routing_hint, build_runtime_account, build_upstream_websocket_url,
+        calculate_usage_cost_usd,
         calendar_stats_window_starts, canonical_model_for_client_model,
         classify_upstream_error_category, cleanup_profile_takeover_without_backup,
         cleanup_provider_gateway_profile_model_overrides, codex_price,
@@ -23505,6 +23517,7 @@ mod tests {
         resolve_sidecar_upstream_base_url_with, resolve_supported_model_alias,
         resolve_upstream_target, restore_config_toml_from_takeover_backup,
         sanitize_collection_with_accounts, scutil_proxy_map,
+        selected_account_ids_have_image_generation_capacity,
         should_retry_single_account_upstream_status, should_treat_response_as_stream,
         should_try_next_account, sidecar_account_manifest_value,
         sidecar_api_key_account_scope_values, sidecar_api_key_manifest_values,
@@ -25059,6 +25072,18 @@ wire_api = "responses"
             auth_json.get("expired").and_then(Value::as_i64),
             Some(4_102_444_800i64)
         );
+        assert_eq!(auth_json.get("websockets").and_then(Value::as_bool), Some(true));
+    }
+
+    #[test]
+    fn build_runtime_account_enables_websockets_for_local_api_service() {
+        let account = build_runtime_account(
+            "http://127.0.0.1:1455/v1".to_string(),
+            "agt_codex_test".to_string(),
+            None,
+        );
+        assert!(account.api_supports_websockets);
+        assert_eq!(account.api_wire_api.as_deref(), Some("responses"));
     }
 
     #[test]
@@ -29530,7 +29555,7 @@ data: {"error":{"code":"server_error","type":"upstream","message":"stream aborte
     }
 
     #[test]
-    fn sanitize_collection_preserves_saved_image_generation_mode() {
+    fn sanitize_collection_migrates_legacy_image_generation_mode_to_enabled() {
         for mode in [
             CodexLocalAccessImageGenerationMode::ImagesOnly,
             CodexLocalAccessImageGenerationMode::Disabled,
@@ -29538,11 +29563,55 @@ data: {"error":{"code":"server_error","type":"upstream","message":"stream aborte
             let mut collection = test_local_access_collection(Vec::new());
             collection.image_generation_mode = mode;
 
-            let _ = sanitize_collection_with_accounts(&mut collection, &[])
+            let (changed, _) = sanitize_collection_with_accounts(&mut collection, &[])
                 .expect("collection should sanitize");
 
-            assert_eq!(collection.image_generation_mode, mode);
+            assert!(
+                changed,
+                "legacy image generation mode {mode:?} should be migrated"
+            );
+            assert_eq!(
+                collection.image_generation_mode,
+                CodexLocalAccessImageGenerationMode::Enabled
+            );
         }
+    }
+
+    #[test]
+    fn legacy_disabled_image_mode_no_longer_blocks_image_capacity_after_sanitize() {
+        let mut paid = test_account_with_plan("plus");
+        paid.id = "oauth-plus".to_string();
+        let accounts = vec![paid.clone()];
+
+        let mut collection = test_local_access_collection(vec![paid.id.clone()]);
+        collection.image_generation_mode = CodexLocalAccessImageGenerationMode::Disabled;
+
+        assert!(
+            !selected_account_ids_have_image_generation_capacity(
+                &collection.account_ids,
+                collection.image_generation_mode,
+                Some(accounts.as_slice()),
+                None,
+            ),
+            "disabled mode should hide image capacity before migration"
+        );
+
+        let (changed, _) = sanitize_collection_with_accounts(&mut collection, &accounts)
+            .expect("collection should sanitize");
+        assert!(changed);
+        assert_eq!(
+            collection.image_generation_mode,
+            CodexLocalAccessImageGenerationMode::Enabled
+        );
+        assert!(
+            selected_account_ids_have_image_generation_capacity(
+                &collection.account_ids,
+                collection.image_generation_mode,
+                Some(accounts.as_slice()),
+                None,
+            ),
+            "plus OAuth pool should expose image capacity after migration"
+        );
     }
 
     #[test]

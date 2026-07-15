@@ -7,6 +7,26 @@
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
 ---
+## [1.3.5] - 2026-07-16
+
+### 新增
+
+- **Codex API 服务支持 Responses Lite 联网搜索转发**：本地网关新增 `/v1/alpha/search`（及直连兼容路径），按 OAuth 账号调度并转发至 ChatGPT Codex alpha search，恢复 Lite 场景下的 web.run 搜索能力。
+- **Codex API 服务支持 Responses WebSocket**：网关提供 `GET /v1/responses` 升级入口；本地 API 服务 profile 会声明 WebSocket 能力，便于客户端走 WS 而非始终回退 SSE。
+- **Grok CLI 支持完整账号导出与再导入**：导出保留可恢复凭据；添加账号页签与 Codex 对齐（授权登录 · Token / JSON · API Key · 本地导入），可粘贴官方 `auth.json` 或本应用导出 JSON，也可选择 JSON 文件导入。
+- **Codex 配额错误卡片支持摘要 + 详情**：卡片仅展示短摘要（含 HTTP 状态摘要）；完整错误正文（含 HTML/body 转储）可通过「查看详情」弹框阅读，避免列表被长错误撑乱。
+
+### 修复
+
+- **修复模型价格设置无法保存的问题**：非长上下文模型（如 `gpt-5.4-mini`）的「长上下文阶梯阈值」可为空；仅在填写了非法值，或已配置长上下文价格档却缺少合法阈值时拦截保存。感谢 @andrew05060414（#1592）。
+- **修复 WorkBuddy 每日签到状态与官方不一致的问题**：查询优先使用官方 Buddy 加油站接口 `checkin-activity-status`（失败再回退 `checkin-status`）；状态机与官方一致（可领 / 已领取 / 不可用）；今日已领（`today_checked_in`）显示为「已领取」，领取成功后先本地落态再后台刷新，避免签到成功后仍显示未签到或不可用。
+- **修复 Grok 账号已绑定实例时无法删除的问题**：删除时会自动解除默认实例与多开实例绑定，无需先手动解绑。
+- **修复升级后遗留「禁用生图」配置导致可点生图但网关无 `gpt-image-2` 的问题**：集合级 `Disabled` / `ImagesOnly` 会自动迁移为 `Enabled`，与 1.3.4 移除禁用 UI 后的行为一致。
+- **修复 OAuth 本地 API 在 Responses Lite 上误注入 hosted 工具导致请求失败或生图异常的问题**：HTTP / SSE / WebSocket 路径会过滤不支持的 hosted 工具并保留客户端工具能力。感谢 @kin001（#1577）。
+- **修复 WorkBuddy 多开实例数据目录与官方不一致的问题**：默认按官方 `~/.workbuddy` 配置根与 `~/.workbuddy/app` Electron userData 布局解析与创建，并在启动时正确设置 `WORKBUDDY_CONFIG_DIR` / `WORKBUDDY_USER_DATA_DIR`。
+- **修复 Windows 应用路径展示 `\\?\` 扩展前缀的问题**：读取、探测、保存与设置页展示会统一剥除 `\\?\` / `\\?\UNC\`，显示为常规盘符或 UNC 路径。
+
+---
 ## [1.3.4] - 2026-07-15
 
 ### 新增

@@ -2163,7 +2163,10 @@
       "refreshFailedBadge": "Aktualisierung fehlgeschlagen",
       "generic": "Kontingent-Aktualisierung fehlgeschlagen, bitte später erneut versuchen",
       "deactivatedWorkspace": "Workspace ist deaktiviert, bitte Konto wechseln oder neu autorisieren",
-      "requestFailedManualRetry": "Netzwerk prüfen. Das neueste Kontingent wurde nicht abgerufen. Zum Wiederholen aktualisieren."
+      "requestFailedManualRetry": "Netzwerk prüfen. Das neueste Kontingent wurde nicht abgerufen. Zum Wiederholen aktualisieren.",
+      "httpStatusSummary": "API-Fehler {{status}}",
+      "viewDetails": "Details",
+      "detailTitle": "Fehlerdetails"
     },
     "plan": {
       "free": "FREE​",
@@ -4762,7 +4765,12 @@
       "streakDays": "{{days}} Tage",
       "streakRewardCountdown": "Noch {{days}} Tage bis zur Bonusbelohnung",
       "streakRewardToday": "Bonusbelohnung heute verfügbar!",
-      "recentDates": "Kürzlich: "
+      "recentDates": "Kürzlich: ",
+      "claimed": "Abgeholt",
+      "queryFailed": "Abfrage fehlgeschlagen",
+      "retry": "Erneut",
+      "inactive": "Inaktiv",
+      "inactiveHint": "Check-in für dieses Konto nicht aktiv"
     }
   },
   "zcode": {
@@ -5212,13 +5220,13 @@
     },
     "import": {
       "pasteTab": "JSON einfügen",
-      "pasteDesc": "Die offizielle auth.json von Grok CLI einfügen. Anmeldedaten werden nur im lokalen Backend verarbeitet. Cockpit exportiert ausschließlich geschwärzte Metadaten, die keine Anmeldung wiederherstellen können.",
+      "pasteDesc": "Offizielles Grok-CLI-auth.json oder vollständiges, von dieser App exportiertes Konto-JSON (mit Anmeldedaten, reimportierbar) einfügen. Anmeldedaten bleiben lokal.",
       "pastePlaceholder": "Grok-Konto-JSON einfügen",
       "pasteAction": "JSON importieren",
-      "localDesc": "Das aktuelle Konto aus der standardmäßigen ~/.grok/auth.json importieren. Bei der Dateiauswahl die offizielle auth.json von Grok CLI verwenden.",
+      "localDesc": "Aus ~/.grok/auth.json importieren oder offizielles auth.json / vollständiges Export-JSON dieser App wählen.",
       "localClient": "Aus lokaler Grok CLI importieren",
       "apiKeyTab": "API-Schlüssel",
-      "apiKeyDesc": "xAI-API-Key einfügen (offiziell XAI_API_KEY). Wird beim Start als Umgebungsvariable gesetzt. Offizielle auth.json ist ebenfalls möglich.",
+      "apiKeyDesc": "xAI-API-Key einfügen (offiziell XAI_API_KEY / xai-…). Wird beim CLI-Start als Umgebungsvariable gesetzt und überschreibt die offizielle OAuth-Anmeldung nicht.",
       "apiKeyPlaceholder": "xai-… einfügen",
       "apiKeyAction": "API-Key hinzufügen"
     },

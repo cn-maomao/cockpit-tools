@@ -2361,9 +2361,18 @@ export function CodexApiServicePage() {
       if (unsetUnknown) {
         continue;
       }
-      const tokenInvalid =
-        longContextThresholdTokens === null ||
-        !Number.isFinite(longContextThresholdTokens ?? 1);
+      // 阈值可空：非长上下文模型（如 gpt-5.4-mini）不填是合法的。
+      // 仅当用户填写了内容但不是正整数（解析为 NaN）时才拦截。
+      // 若填写了任一长上下文价格档，则必须同时提供合法阈值。
+      const hasLongContextTier =
+        (standardLongInput != null && Number.isFinite(standardLongInput)) ||
+        (standardLongOutput != null && Number.isFinite(standardLongOutput)) ||
+        (standardLongCached != null && Number.isFinite(standardLongCached));
+      const tokenInvalid = hasLongContextTier
+        ? longContextThresholdTokens === null ||
+          !Number.isFinite(longContextThresholdTokens)
+        : longContextThresholdTokens != null &&
+          !Number.isFinite(longContextThresholdTokens);
       const inputInvalid = input === null || !Number.isFinite(input);
       const cachedInvalid = cached !== null && !Number.isFinite(cached);
       const outputInvalid = output === null || !Number.isFinite(output);

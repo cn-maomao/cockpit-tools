@@ -1227,14 +1227,96 @@ fn parse_auth_registry(value: &Value) -> Result<GrokAccount, String> {
         return account_from_auth_object(value);
     }
     if let Ok(account) = serde_json::from_value::<GrokAccount>(value.clone()) {
-        if normalize_text(Some(&account.access_token)).is_none() {
-            return Err(
-                "Grok 脱敏导出不含登录凭据，不能用于恢复账号；请导入官方 auth.json".to_string(),
-            );
-        }
+        validate_importable_account(&account)?;
         return Ok(account);
     }
-    Err("未识别 Grok auth.json 格式".to_string())
+    Err("未识别 Grok JSON 格式（支持官方 auth.json 或 Cockpit 导出账号数组）".to_string())
+}
+
+/// 是否具备可恢复的登录凭据（OAuth access/refresh 或 API Key）。
+fn account_has_importable_credentials(account: &GrokAccount) -> bool {
+    if account.is_api_key_auth() {
+        return account.resolved_api_key().is_some();
+    }
+    normalize_text(Some(&account.access_token)).is_some()
+        || account
+            .refresh_token
+            .as_deref()
+            .and_then(|value| normalize_text(Some(value)))
+            .is_some()
+}
+
+fn validate_importable_account(account: &GrokAccount) -> Result<(), String> {
+    if account_has_importable_credentials(account) {
+        return Ok(());
+    }
+    Err(
+        "Grok 导入 JSON 缺少登录凭据（access_token / refresh_token / api_key），不能用于恢复账号；请使用官方 auth.json 或本应用导出的完整 JSON"
+            .to_string(),
+    )
+}
+
+fn import_full_accounts(accounts: Vec<GrokAccount>) -> Result<Vec<GrokAccountView>, String> {
+    if accounts.is_empty() {
+        return Err("导入数组为空".to_string());
+    }
+    let mut result = Vec::new();
+    for (idx, account) in accounts.into_iter().enumerate() {
+        validate_importable_account(&account).map_err(|error| {
+            format!("第 {} 条记录解析失败: {}", idx + 1, error)
+        })?;
+        let saved = upsert_candidate(account, None).map_err(|error| {
+            format!("第 {} 条记录导入失败: {}", idx + 1, error)
+        })?;
+        result.push(GrokAccountView::from(&saved));
+    }
+    Ok(result)
+}
+
+/// 尝试按 Cockpit 完整账号结构解析（导出格式）。
+fn try_import_cockpit_export(value: &Value) -> Option<Result<Vec<GrokAccountView>, String>> {
+    // 数组：[GrokAccount, ...]
+    if let Ok(accounts) = serde_json::from_value::<Vec<GrokAccount>>(value.clone()) {
+        if !accounts.is_empty()
+            && accounts
+                .iter()
+                .any(|account| account_has_importable_credentials(account))
+        {
+            return Some(import_full_accounts(accounts));
+        }
+        // 可能是脱敏视图数组，交给后续路径给出明确错误
+        if !accounts.is_empty() {
+            return Some(Err(
+                "Grok 导入 JSON 缺少登录凭据（access_token / refresh_token / api_key），不能用于恢复账号；请使用官方 auth.json 或本应用导出的完整 JSON"
+                    .to_string(),
+            ));
+        }
+    }
+    // 单对象账号
+    if let Ok(account) = serde_json::from_value::<GrokAccount>(value.clone()) {
+        if account_has_importable_credentials(&account) {
+            return Some(import_full_accounts(vec![account]));
+        }
+        // 可能是脱敏视图：若字段像账号但无凭据，直接报错
+        if !account.id.trim().is_empty() || !account.email.trim().is_empty() {
+            return Some(Err(
+                "Grok 导入 JSON 缺少登录凭据（access_token / refresh_token / api_key），不能用于恢复账号；请使用官方 auth.json 或本应用导出的完整 JSON"
+                    .to_string(),
+            ));
+        }
+    }
+    // 包装：{ "accounts": [...] } / { "items": [...] }
+    if let Some(items) = value
+        .get("accounts")
+        .or_else(|| value.get("items"))
+        .and_then(Value::as_array)
+    {
+        if let Ok(accounts) = serde_json::from_value::<Vec<GrokAccount>>(Value::Array(items.clone()))
+        {
+            return Some(import_full_accounts(accounts));
+        }
+    }
+    None
 }
 
 pub fn import_from_local() -> Result<Vec<GrokAccountView>, String> {
@@ -1251,58 +1333,58 @@ pub fn import_from_local() -> Result<Vec<GrokAccountView>, String> {
 pub fn import_from_json(content: &str) -> Result<Vec<GrokAccountView>, String> {
     let value: Value =
         serde_json::from_str(content).map_err(|error| format!("解析 Grok JSON 失败: {}", error))?;
+
+    // 1) Cockpit 导出的完整账号（含凭据）— 与文件导入 / Token 粘贴共用
+    if let Some(result) = try_import_cockpit_export(&value) {
+        return result;
+    }
+
+    // 2) 官方 auth.json / 注册表对象 / 数组
     let values = if let Some(items) = value.as_array() {
         items.clone()
     } else {
         vec![value]
     };
+    if values.is_empty() {
+        return Err("导入数组为空".to_string());
+    }
     let mut accounts = Vec::new();
-    for value in values {
-        let candidate = parse_auth_registry(&value)?;
-        let account = upsert_candidate(candidate, None)?;
+    for (idx, value) in values.into_iter().enumerate() {
+        let candidate = parse_auth_registry(&value).map_err(|error| {
+            format!("第 {} 条记录解析失败: {}", idx + 1, error)
+        })?;
+        let account = upsert_candidate(candidate, None).map_err(|error| {
+            format!("第 {} 条记录导入失败: {}", idx + 1, error)
+        })?;
         accounts.push(GrokAccountView::from(&account));
     }
     Ok(accounts)
 }
 
+/// 导出完整账号 JSON（含凭据），可再导入恢复；与 Codex / WorkBuddy 等平台一致。
 pub fn export_accounts(account_ids: &[String]) -> Result<String, String> {
-    let values: Vec<Value> = account_ids
+    let accounts: Vec<GrokAccount> = account_ids
         .iter()
         .filter_map(|id| load_account(id))
-        .map(|account| {
-            serde_json::to_value(GrokAccountView::from(&account)).unwrap_or_else(|_| json!({}))
-        })
         .collect();
-    serde_json::to_string_pretty(&values)
-        .map_err(|error| format!("序列化 Grok 脱敏导出失败: {}", error))
-}
-
-fn ensure_account_not_bound(
-    account_id: &str,
-    instance_store: &crate::models::InstanceStore,
-) -> Result<(), String> {
-    let bound_default = !instance_store.default_settings.follow_local_account
-        && instance_store.default_settings.bind_account_id.as_deref() == Some(account_id);
-    let bound_instance = instance_store
-        .instances
-        .iter()
-        .find(|instance| instance.bind_account_id.as_deref() == Some(account_id));
-    if bound_default {
-        return Err("该 Grok 账号已绑定默认实例，请先解除绑定".to_string());
+    if accounts.is_empty() {
+        return Err("没有可导出的 Grok 账号".to_string());
     }
-    if let Some(instance) = bound_instance {
-        return Err(format!(
-            "该 Grok 账号已绑定实例“{}”，请先解除绑定",
-            instance.name
-        ));
-    }
-    Ok(())
+    serde_json::to_string_pretty(&accounts)
+        .map_err(|error| format!("序列化 Grok 导出失败: {}", error))
 }
 
 pub fn remove_account(account_id: &str) -> Result<(), String> {
     let id = normalize_id(account_id)?;
-    let instance_store = crate::modules::grok_instance::load_instance_store()?;
-    ensure_account_not_bound(&id, &instance_store)?;
+    // 删除时自动解绑默认/多开实例，无需用户先手动解绑
+    let unbound = crate::modules::grok_instance::unbind_account(&id)?;
+    if !unbound.is_empty() {
+        logger::log_info(&format!(
+            "删除 Grok 账号前已自动解绑实例: account_id={}, instances={}",
+            id,
+            unbound.join(", ")
+        ));
+    }
     let _guard = ACCOUNT_LOCK.lock().map_err(|_| "获取 Grok 账号锁失败")?;
     let _store_guard = acquire_store_lock()?;
     let path = account_path(&id)?;
@@ -1409,10 +1491,6 @@ fn remove_matching_auth_scope(
 }
 
 pub fn remove_accounts(account_ids: &[String]) -> Result<(), String> {
-    let instance_store = crate::modules::grok_instance::load_instance_store()?;
-    for account_id in account_ids {
-        ensure_account_not_bound(account_id, &instance_store)?;
-    }
     for account_id in account_ids {
         remove_account(account_id)?;
     }
@@ -2727,7 +2805,43 @@ mod tests {
             serde_json::to_value(crate::models::grok::GrokAccountView::from(&sample_account()))
                 .expect("serialize redacted account");
         let error = parse_auth_registry(&redacted).expect_err("redacted export must be rejected");
-        assert!(error.contains("脱敏导出不含登录凭据"));
+        assert!(
+            error.contains("缺少登录凭据") || error.contains("未识别"),
+            "unexpected error: {error}"
+        );
+        let import_error = super::import_from_json(
+            &serde_json::to_string(&vec![redacted]).expect("serialize redacted list"),
+        )
+        .expect_err("redacted list must be rejected");
+        assert!(
+            import_error.contains("缺少登录凭据"),
+            "unexpected import error: {import_error}"
+        );
+    }
+
+    #[test]
+    fn full_export_json_can_be_reimported() {
+        let account = sample_account();
+        let exported = serde_json::to_string_pretty(&vec![&account]).expect("serialize export");
+        let value: Value = serde_json::from_str(&exported).expect("parse export");
+        let accounts: Vec<GrokAccount> =
+            serde_json::from_value(value.clone()).expect("deserialize export as GrokAccount list");
+        assert_eq!(accounts.len(), 1);
+        assert_eq!(accounts[0].access_token, account.access_token);
+        assert_eq!(accounts[0].refresh_token, account.refresh_token);
+        super::validate_importable_account(&accounts[0])
+            .expect("export credentials must be importable");
+        // 导出数组应被识别为 Cockpit 完整导出格式
+        assert!(
+            matches!(
+                super::try_import_cockpit_export(&value),
+                Some(Err(_)) | Some(Ok(_))
+            ),
+            "export array should match cockpit export parser"
+        );
+        let via_registry = parse_auth_registry(&serde_json::to_value(&account).expect("to value"))
+            .expect("full account object should parse");
+        assert_eq!(via_registry.access_token, account.access_token);
     }
 
     #[test]
@@ -2866,6 +2980,55 @@ mod tests {
         assert!(super::load_account(&account.id).is_none());
         assert!(!profile.exists());
         assert!(default_home.join("auth.json").exists());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn removing_bound_account_auto_unbinds_instances() {
+        use crate::models::{
+            codex::CodexAppSpeed, DefaultInstanceSettings, InstanceLaunchMode, InstanceProfile,
+            InstanceStore,
+        };
+
+        let _env_lock = crate::modules::test_support::env_lock()
+            .lock()
+            .expect("lock test environment");
+        let temp = TestDir::new();
+        let _environment = EnvironmentGuard::new(&temp.0);
+        let account = sample_account();
+        save_account_locked(&account).expect("save account fixture");
+
+        let store = InstanceStore {
+            instances: vec![InstanceProfile {
+                id: "inst-333".to_string(),
+                name: "333".to_string(),
+                user_data_dir: temp.0.join("inst-333").to_string_lossy().to_string(),
+                working_dir: None,
+                extra_args: String::new(),
+                bind_account_id: Some(account.id.clone()),
+                launch_mode: InstanceLaunchMode::Cli,
+                app_speed: CodexAppSpeed::Standard,
+                created_at: 1,
+                last_launched_at: None,
+                last_pid: None,
+            }],
+            default_settings: DefaultInstanceSettings {
+                bind_account_id: Some(account.id.clone()),
+                follow_local_account: false,
+                ..DefaultInstanceSettings::default()
+            },
+        };
+        crate::modules::grok_instance::save_instance_store(&store).expect("save instance store");
+
+        remove_account(&account.id).expect("remove bound account should auto-unbind");
+
+        assert!(super::load_account(&account.id).is_none());
+        let next = crate::modules::grok_instance::load_instance_store().expect("reload store");
+        assert!(next.default_settings.bind_account_id.is_none());
+        assert!(next.default_settings.follow_local_account);
+        assert_eq!(next.instances.len(), 1);
+        assert!(next.instances[0].bind_account_id.is_none());
+        assert_eq!(next.instances[0].name, "333");
     }
 
     #[cfg(unix)]

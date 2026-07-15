@@ -2163,7 +2163,10 @@
       "refreshFailedBadge": "Obnovení selhalo",
       "generic": "Obnovení kvóty se nezdařilo, zkuste to prosím později",
       "deactivatedWorkspace": "Pracovní prostor je deaktivovaný, přepněte účet nebo znovu autorizujte",
-      "requestFailedManualRetry": "Zkontrolujte síť. Nejnovější kvóta nebyla načtena. Obnovte a zkuste to znovu."
+      "requestFailedManualRetry": "Zkontrolujte síť. Nejnovější kvóta nebyla načtena. Obnovte a zkuste to znovu.",
+      "httpStatusSummary": "API vrátilo chybu {{status}}",
+      "viewDetails": "Podrobnosti",
+      "detailTitle": "Podrobnosti chyby"
     },
     "plan": {
       "free": "FREE​",
@@ -4762,7 +4765,12 @@
       "streakDays": "{{days}} dní",
       "streakRewardCountdown": "Do bonusové odměny zbývá {{days}} dní",
       "streakRewardToday": "Bonusová odměna je dnes dostupná!",
-      "recentDates": "Nedávno: "
+      "recentDates": "Nedávno: ",
+      "claimed": "Vyzvednuto",
+      "queryFailed": "Dotaz selhal",
+      "retry": "Znovu",
+      "inactive": "Nedostupné",
+      "inactiveHint": "Check-in není pro tento účet aktivní"
     }
   },
   "zcode": {
@@ -5212,13 +5220,13 @@
     },
     "import": {
       "pasteTab": "Vložit JSON",
-      "pasteDesc": "Vložte oficiální soubor auth.json z Grok CLI. Přihlašovací údaje zpracovává pouze místní backend. Cockpit exportuje jen skrytá metadata, ze kterých nelze obnovit přihlášení.",
+      "pasteDesc": "Vložte oficiální auth.json Grok CLI nebo plný JSON účtu z této aplikace (znovu importovatelný). Přihlašovací údaje jen lokálně.",
       "pastePlaceholder": "Vložit JSON účtu Grok",
       "pasteAction": "Importovat JSON",
-      "localDesc": "Importujte aktuální účet z výchozího ~/.grok/auth.json. Při výběru souboru použijte oficiální auth.json z Grok CLI.",
+      "localDesc": "Import z ~/.grok/auth.json, nebo zvolte oficiální auth.json / plný export JSON z této aplikace.",
       "localClient": "Importovat z místního Grok CLI",
       "apiKeyTab": "Klíč API",
-      "apiKeyDesc": "Vložte xAI API klíč (oficiální XAI_API_KEY). Při spuštění se injektuje. Lze i oficiální auth.json pro OAuth.",
+      "apiKeyDesc": "Vložte xAI API klíč (oficiální XAI_API_KEY / xai-…). Při spuštění CLI se injektuje jako proměnná prostředí a nepřepisuje oficiální OAuth přihlášení.",
       "apiKeyPlaceholder": "vložte xai-…",
       "apiKeyAction": "Přidat API Key"
     },
