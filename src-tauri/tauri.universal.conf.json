@@ -1,0 +1,12 @@
+{
+  "bundle": {
+    "externalBin": [
+      "../sidecars/cockpit-cliproxy/bin/cockpit-cliproxy",
+      "../sidecars/grok2api/bin/cockpit-grok2api"
+    ],
+    "resources": {
+      "../sidecars/grok-register/bin/cockpit-grok-register-aarch64-apple-darwin": "cockpit-grok-register-aarch64-apple-darwin",
+      "../sidecars/grok-register/bin/cockpit-grok-register-x86_64-apple-darwin": "cockpit-grok-register-x86_64-apple-darwin"
+    }
+  }
+}

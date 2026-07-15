@@ -364,6 +364,14 @@ jobs:
           PIP_INDEX_URL: https://pypi.tuna.tsinghua.edu.cn/simple
         run: node scripts/build-grok-register-sidecar.cjs --target=aarch64-apple-darwin --install
 
+      - name: Upload Grok registration sidecar
+        uses: actions/upload-artifact@v4
+        with:
+          name: grok-register-macos-aarch64
+          path: sidecars/grok-register/bin/cockpit-grok-register-aarch64-apple-darwin
+          retention-days: 1
+          if-no-files-found: error
+
       - name: Build macOS Apple Silicon app
         shell: bash
         env:
@@ -435,7 +443,7 @@ jobs:
     # Parallel with Windows / macOS Apple Silicon after prepare.
     needs:
       - prepare-release
-    runs-on: macos-latest
+    runs-on: macos-15-intel
     permissions:
       contents: write
     env:
@@ -481,6 +489,14 @@ jobs:
           PYTHON: python
           PIP_INDEX_URL: https://pypi.tuna.tsinghua.edu.cn/simple
         run: node scripts/build-grok-register-sidecar.cjs --target=x86_64-apple-darwin --install
+
+      - name: Upload Grok registration sidecar
+        uses: actions/upload-artifact@v4
+        with:
+          name: grok-register-macos-x86_64
+          path: sidecars/grok-register/bin/cockpit-grok-register-x86_64-apple-darwin
+          retention-days: 1
+          if-no-files-found: error
 
       - name: Build macOS Intel app
         shell: bash
@@ -578,11 +594,6 @@ jobs:
             sidecars/cockpit-cliproxy/go.sum
             sidecars/grok2api/backend/go.sum
 
-      - name: Python setup
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
       - name: Node.js setup
         uses: actions/setup-node@v4
         with:
@@ -595,12 +606,16 @@ jobs:
       - name: Sync versions
         run: npm run sync-version
 
-      - name: Build Grok registration sidecar
+      - name: Download Grok registration sidecars
+        uses: actions/download-artifact@v4
+        with:
+          pattern: grok-register-macos-*
+          path: sidecars/grok-register/bin
+          merge-multiple: true
+
+      - name: Restore Grok registration sidecar permissions
         shell: bash
-        env:
-          PYTHON: python
-          PIP_INDEX_URL: https://pypi.tuna.tsinghua.edu.cn/simple
-        run: node scripts/build-grok-register-sidecar.cjs --target=universal-apple-darwin --install
+        run: chmod +x sidecars/grok-register/bin/cockpit-grok-register-*-apple-darwin
 
       - name: Build macOS Universal app
         shell: bash
@@ -610,7 +625,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          npx tauri build --ci --target universal-apple-darwin
+          npx tauri build --ci --target universal-apple-darwin --config src-tauri/tauri.universal.conf.json
 
       - name: Stage macOS Universal assets
         shell: bash

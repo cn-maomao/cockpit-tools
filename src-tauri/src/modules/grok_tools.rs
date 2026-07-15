@@ -235,7 +235,16 @@ fn sidecar_names(base: &str) -> Vec<String> {
     if cfg!(target_os = "windows") {
         vec![format!("{base}.exe"), format!("{base}-{target}.exe")]
     } else {
-        vec![base.to_string(), format!("{base}-{target}")]
+        let mut names = vec![base.to_string(), format!("{base}-{target}")];
+        if target == "universal-apple-darwin" {
+            let arch_target = if cfg!(target_arch = "aarch64") {
+                "aarch64-apple-darwin"
+            } else {
+                "x86_64-apple-darwin"
+            };
+            names.insert(1, format!("{base}-{arch_target}"));
+        }
+        names
     }
 }
 
