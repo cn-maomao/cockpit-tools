@@ -3200,6 +3200,11 @@
         "models": "Modelle & Fähigkeiten",
         "logs": "Statistik & Protokolle"
       },
+      "statsRange": {
+        "today": "Heute",
+        "thisWeek": "Diese Woche",
+        "thisMonth": "Diesen Monat"
+      },
       "healthTitle": "Dienstzustand",
       "compat": {
         "title": "Protokollkompat.",
@@ -3277,6 +3282,24 @@
       "keys": {
         "policyTitle": "Modellrichtlinie",
         "advancedPolicyTitle": "Erweitert: Modellrichtlinie",
+        "accountScope": "Konten-Rotationsbereich",
+        "accountScopeInherit": "Dem Dienst-Kontopool automatisch folgen",
+        "accountScopeFixed": "Dieser Key ist an sein Konto gebunden und kann den Dienst-Pool nicht erben",
+        "accountScopeSelected": "{{count}} Konten ausgewählt",
+        "accountScopeInheritedCount": "Kontopool: {{count}} geerbt",
+        "accountScopeUnavailable": "Kontopool: keine verfügbaren Konten",
+        "accountScopeCount": "Kontopool: {{selected}}/{{total}}",
+        "accountScopeRequired": "Wählen Sie mindestens ein Konto für einen benutzerdefinierten Pool",
+        "accountScopeModeInherit": "Dienst-Pool übernehmen",
+        "accountScopeModeCustom": "Benutzerdefinierter Kontopool",
+        "accountPrioritySet": "Konto für priorisiertes Routing anheften",
+        "accountPriorityPromote": "Konto an die höchste Priorität verschieben",
+        "accountPriorityClear": "Prioritätsmarkierung des Kontos entfernen",
+        "accountPrioritySaved": "Prioritätskonto angeheftet",
+        "accountPriorityCleared": "Prioritätsmarkierung des Kontos entfernt",
+        "usageRange": "API-Key-Nutzungszeitraum",
+        "unsaved": "Nicht gespeichert",
+        "resetPolicy": "Änderungen verwerfen",
         "modelPrefix": "Modellpräfix",
         "modelPrefixPlaceholder": "Beispiel: codex",
         "allowedModels": "Erlaubte Modelle",

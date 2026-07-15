@@ -3200,6 +3200,11 @@
         "models": "Modelos y capacidades",
         "logs": "Estadísticas y registros"
       },
+      "statsRange": {
+        "today": "Hoy",
+        "thisWeek": "Esta semana",
+        "thisMonth": "Este mes"
+      },
       "healthTitle": "Estado del servicio",
       "compat": {
         "title": "Compat. de protocolos",
@@ -3277,6 +3282,24 @@
       "keys": {
         "policyTitle": "Política de modelos",
         "advancedPolicyTitle": "Avanzado: política de modelos",
+        "accountScope": "Ámbito de rotación de cuentas",
+        "accountScopeInherit": "Seguir automáticamente el grupo de cuentas del servicio",
+        "accountScopeFixed": "Este Key está fijado a su cuenta vinculada y no puede heredar el grupo del servicio",
+        "accountScopeSelected": "{{count}} cuentas seleccionadas",
+        "accountScopeInheritedCount": "Grupo de cuentas: heredando {{count}}",
+        "accountScopeUnavailable": "Grupo de cuentas: no hay cuentas disponibles",
+        "accountScopeCount": "Grupo de cuentas: {{selected}}/{{total}}",
+        "accountScopeRequired": "Selecciona al menos una cuenta para un grupo personalizado",
+        "accountScopeModeInherit": "Usar grupo del servicio",
+        "accountScopeModeCustom": "Grupo de cuentas personalizado",
+        "accountPrioritySet": "Fijar cuenta para el enrutamiento prioritario",
+        "accountPriorityPromote": "Mover cuenta a la prioridad máxima",
+        "accountPriorityClear": "Quitar fijación de la cuenta prioritaria",
+        "accountPrioritySaved": "Cuenta prioritaria fijada",
+        "accountPriorityCleared": "Fijación de cuenta prioritaria quitada",
+        "usageRange": "Periodo de uso de la clave API",
+        "unsaved": "Sin guardar",
+        "resetPolicy": "Descartar cambios",
         "modelPrefix": "Prefijo de modelo",
         "modelPrefixPlaceholder": "Ejemplo: codex",
         "allowedModels": "Modelos permitidos",

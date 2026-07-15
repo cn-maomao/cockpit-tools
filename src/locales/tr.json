@@ -3200,6 +3200,11 @@
         "models": "Modeller ve yetenekler",
         "logs": "İstatistik ve günlükler"
       },
+      "statsRange": {
+        "today": "Bugün",
+        "thisWeek": "Bu hafta",
+        "thisMonth": "Bu ay"
+      },
       "healthTitle": "Hizmet durumu",
       "compat": {
         "title": "Protokol Uyumu",
@@ -3277,6 +3282,24 @@
       "keys": {
         "policyTitle": "Model ilkesi",
         "advancedPolicyTitle": "Gelişmiş: model ilkesi",
+        "accountScope": "Hesap döndürme kapsamı",
+        "accountScopeInherit": "Hizmet hesap havuzunu otomatik olarak izle",
+        "accountScopeFixed": "Bu Key bağlı hesabına sabitlenmiştir ve hizmet havuzunu devralamaz",
+        "accountScopeSelected": "{{count}} hesap seçildi",
+        "accountScopeInheritedCount": "Hesap havuzu: {{count}} devralınıyor",
+        "accountScopeUnavailable": "Hesap havuzu: kullanılabilir hesap yok",
+        "accountScopeCount": "Hesap havuzu: {{selected}}/{{total}}",
+        "accountScopeRequired": "Özel havuz için en az bir hesap seçin",
+        "accountScopeModeInherit": "Hizmet havuzunu devral",
+        "accountScopeModeCustom": "Özel hesap havuzu",
+        "accountPrioritySet": "Öncelikli yönlendirme için hesabı sabitle",
+        "accountPriorityPromote": "Hesabı en yüksek önceliğe taşı",
+        "accountPriorityClear": "Öncelikli hesap sabitlemesini kaldır",
+        "accountPrioritySaved": "Öncelikli hesap sabitlendi",
+        "accountPriorityCleared": "Öncelikli hesap sabitlemesi kaldırıldı",
+        "usageRange": "API anahtarı kullanım dönemi",
+        "unsaved": "Kaydedilmedi",
+        "resetPolicy": "Değişiklikleri at",
         "modelPrefix": "Model ön eki",
         "modelPrefixPlaceholder": "Örnek: codex",
         "allowedModels": "İzinli modeller",

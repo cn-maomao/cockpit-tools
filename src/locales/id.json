@@ -3247,6 +3247,11 @@
         "models": "Model dan kemampuan",
         "logs": "Statistik dan log"
       },
+      "statsRange": {
+        "today": "Hari ini",
+        "thisWeek": "Minggu ini",
+        "thisMonth": "Bulan ini"
+      },
       "healthTitle": "Kesehatan layanan",
       "compat": {
         "title": "Kompatibilitas Protokol",
@@ -3324,6 +3329,24 @@
       "keys": {
         "policyTitle": "Kebijakan Model",
         "advancedPolicyTitle": "Lanjutan: Kebijakan Model",
+        "accountScope": "Ruang rotasi akun",
+        "accountScopeInherit": "Ikuti kumpulan akun layanan secara otomatis",
+        "accountScopeFixed": "Key ini terikat pada akunnya dan tidak dapat mewarisi kumpulan layanan",
+        "accountScopeSelected": "{{count}} akun dipilih",
+        "accountScopeInheritedCount": "Kumpulan akun: mewarisi {{count}}",
+        "accountScopeUnavailable": "Kumpulan akun: tidak ada akun tersedia",
+        "accountScopeCount": "Kumpulan akun: {{selected}}/{{total}}",
+        "accountScopeRequired": "Pilih setidaknya satu akun untuk kumpulan khusus",
+        "accountScopeModeInherit": "Warisi Kumpulan Layanan",
+        "accountScopeModeCustom": "Kumpulan Akun Kustom",
+        "accountPrioritySet": "Sematkan akun untuk routing prioritas",
+        "accountPriorityPromote": "Pindahkan akun ke prioritas tertinggi",
+        "accountPriorityClear": "Hapus sematan akun prioritas",
+        "accountPrioritySaved": "Akun prioritas disematkan",
+        "accountPriorityCleared": "Sematan akun prioritas dihapus",
+        "usageRange": "Periode penggunaan kunci API",
+        "unsaved": "Belum disimpan",
+        "resetPolicy": "Buang perubahan",
         "modelPrefix": "Prefiks Model",
         "modelPrefixPlaceholder": "Contoh: codex",
         "allowedModels": "Model Diizinkan",

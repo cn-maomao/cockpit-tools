@@ -3200,6 +3200,11 @@
         "models": "Modely a schopnosti",
         "logs": "Statistiky a protokoly"
       },
+      "statsRange": {
+        "today": "Dnes",
+        "thisWeek": "Tento týden",
+        "thisMonth": "Tento měsíc"
+      },
       "healthTitle": "Stav služby",
       "compat": {
         "title": "Kompatibilita protokolů",
@@ -3277,6 +3282,24 @@
       "keys": {
         "policyTitle": "Zásady modelů",
         "advancedPolicyTitle": "Pokročilé: zásady modelů",
+        "accountScope": "Rozsah rotace účtů",
+        "accountScopeInherit": "Automaticky sledovat fond účtů služby",
+        "accountScopeFixed": "Tento Key je pevně spojen s účtem a nemůže dědit fond služby",
+        "accountScopeSelected": "Vybráno účtů: {{count}}",
+        "accountScopeInheritedCount": "Fond účtů: dědí se {{count}}",
+        "accountScopeUnavailable": "Fond účtů: nejsou dostupné žádné účty",
+        "accountScopeCount": "Fond účtů: {{selected}}/{{total}}",
+        "accountScopeRequired": "Pro vlastní fond vyberte alespoň jeden účet",
+        "accountScopeModeInherit": "Dědit fond služby",
+        "accountScopeModeCustom": "Vlastní fond účtů",
+        "accountPrioritySet": "Připnout účet pro směrování podle priority",
+        "accountPriorityPromote": "Přesunout účet na nejvyšší prioritu",
+        "accountPriorityClear": "Odepnout prioritní účet",
+        "accountPrioritySaved": "Prioritní účet připnut",
+        "accountPriorityCleared": "Připnutí prioritního účtu odstraněno",
+        "usageRange": "Období využití API klíče",
+        "unsaved": "Neuloženo",
+        "resetPolicy": "Zahodit změny",
         "modelPrefix": "Předpona modelu",
         "modelPrefixPlaceholder": "Příklad: codex",
         "allowedModels": "Povolené modely",

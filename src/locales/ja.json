@@ -3200,6 +3200,11 @@
         "models": "モデルと機能",
         "logs": "統計とログ"
       },
+      "statsRange": {
+        "today": "今日",
+        "thisWeek": "今週",
+        "thisMonth": "今月"
+      },
       "healthTitle": "サービス状態",
       "compat": {
         "title": "プロトコル互換",
@@ -3277,6 +3282,24 @@
       "keys": {
         "policyTitle": "モデルポリシー",
         "advancedPolicyTitle": "詳細機能：モデルポリシー",
+        "accountScope": "アカウントローテーション範囲",
+        "accountScopeInherit": "サービスのアカウントプールを自動的に継承",
+        "accountScopeFixed": "この Key は紐付けられたアカウントに固定され、サービスプールを継承できません",
+        "accountScopeSelected": "{{count}} 個のアカウントを選択中",
+        "accountScopeInheritedCount": "アカウントプール: {{count}} 個を継承",
+        "accountScopeUnavailable": "アカウントプール: 利用可能なアカウントなし",
+        "accountScopeCount": "アカウントプール: {{selected}}/{{total}}",
+        "accountScopeRequired": "カスタムプールには少なくとも 1 個のアカウントを選択してください",
+        "accountScopeModeInherit": "サービスプールを継承",
+        "accountScopeModeCustom": "カスタムアカウントプール",
+        "accountPrioritySet": "優先ルーティング用にアカウントを固定",
+        "accountPriorityPromote": "アカウントを最優先に移動",
+        "accountPriorityClear": "優先アカウントの固定を解除",
+        "accountPrioritySaved": "優先アカウントを固定しました",
+        "accountPriorityCleared": "優先アカウントの固定を解除しました",
+        "usageRange": "API キーの使用期間",
+        "unsaved": "未保存",
+        "resetPolicy": "変更を破棄",
         "modelPrefix": "モデル接頭辞",
         "modelPrefixPlaceholder": "例: codex",
         "allowedModels": "許可モデル",

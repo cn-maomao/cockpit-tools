@@ -3200,6 +3200,11 @@
         "models": "Modelos e capacidades",
         "logs": "Estatísticas e logs"
       },
+      "statsRange": {
+        "today": "Hoje",
+        "thisWeek": "Esta semana",
+        "thisMonth": "Este mês"
+      },
       "healthTitle": "Saúde do serviço",
       "compat": {
         "title": "Compat. de protocolos",
@@ -3277,6 +3282,24 @@
       "keys": {
         "policyTitle": "Política de modelos",
         "advancedPolicyTitle": "Avançado: política de modelos",
+        "accountScope": "Escopo de rotação de contas",
+        "accountScopeInherit": "Seguir automaticamente o pool de contas do serviço",
+        "accountScopeFixed": "Esta Key está vinculada à conta associada e não pode herdar o pool do serviço",
+        "accountScopeSelected": "{{count}} contas selecionadas",
+        "accountScopeInheritedCount": "Pool de contas: herdando {{count}}",
+        "accountScopeUnavailable": "Pool de contas: nenhuma conta disponível",
+        "accountScopeCount": "Pool de contas: {{selected}}/{{total}}",
+        "accountScopeRequired": "Selecione pelo menos uma conta para um pool personalizado",
+        "accountScopeModeInherit": "Herdar pool do serviço",
+        "accountScopeModeCustom": "Pool de contas personalizado",
+        "accountPrioritySet": "Fixar conta para roteamento prioritário",
+        "accountPriorityPromote": "Mover conta para a prioridade máxima",
+        "accountPriorityClear": "Remover fixação da conta prioritária",
+        "accountPrioritySaved": "Conta prioritária fixada",
+        "accountPriorityCleared": "Fixação da conta prioritária removida",
+        "usageRange": "Período de uso da chave API",
+        "unsaved": "Não salvo",
+        "resetPolicy": "Descartar alterações",
         "modelPrefix": "Prefixo do modelo",
         "modelPrefixPlaceholder": "Exemplo: codex",
         "allowedModels": "Modelos permitidos",
