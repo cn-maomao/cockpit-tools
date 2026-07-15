@@ -1,0 +1,81 @@
+name: Sync Upstream and Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  schedule:
+    # GitHub cron uses UTC. 18:00 UTC is 02:00 Asia/Shanghai.
+    - cron: "0 18 * * *"
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: sync-upstream-main
+  cancel-in-progress: false
+
+env:
+  UPSTREAM_REPOSITORY: jlcodes99/cockpit-tools
+
+jobs:
+  sync:
+    name: Sync upstream/main
+    runs-on: ubuntu-latest
+    outputs:
+      updated: ${{ steps.sync.outputs.updated }}
+      head_sha: ${{ steps.sync.outputs.head_sha }}
+    steps:
+      - name: Checkout fork main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Merge upstream changes
+        id: sync
+        shell: bash
+        env:
+          FORK_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add upstream-sync "https://github.com/${UPSTREAM_REPOSITORY}.git"
+          git fetch --no-tags upstream-sync main
+
+          if git merge-base --is-ancestor upstream-sync/main HEAD; then
+            echo "updated=false" >> "$GITHUB_OUTPUT"
+            echo "Upstream main is already contained in ${FORK_REPOSITORY}@main." >> "$GITHUB_STEP_SUMMARY"
+          else
+            if ! git merge --no-edit upstream-sync/main; then
+              git merge --abort || true
+              echo "::error::upstream/main conflicts with fork main; no changes were pushed"
+              exit 1
+            fi
+            git push origin HEAD:main
+            echo "updated=true" >> "$GITHUB_OUTPUT"
+            echo "Merged ${UPSTREAM_REPOSITORY}@main into ${FORK_REPOSITORY}@main." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          head_sha="$(git rev-parse HEAD)"
+          echo "head_sha=${head_sha}" >> "$GITHUB_OUTPUT"
+          echo "Final main commit: ${head_sha}" >> "$GITHUB_STEP_SUMMARY"
+
+  build:
+    name: Dispatch final build
+    needs: sync
+    if: needs.sync.outputs.updated == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run Build Matrix on main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ needs.sync.outputs.head_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh workflow run build-matrix.yml --repo "$GITHUB_REPOSITORY" --ref main
+          echo "Dispatched Build Matrix for main at ${HEAD_SHA}." >> "$GITHUB_STEP_SUMMARY"
