@@ -53,6 +53,11 @@
     "externalBin": [
       "../sidecars/cockpit-cliproxy/bin/cockpit-cliproxy"
     ],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    },
     "icon": [
       "icons/48x48.png",
       "icons/32x32.png",
