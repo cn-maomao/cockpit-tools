@@ -91,8 +91,12 @@ export type ViewMode = 'grid' | 'list';
 export type SortDirection = 'asc' | 'desc';
 
 /** 各平台需要提供的 OAuth 服务函数 */
+export interface OAuthStartOptions {
+  tabKey: string;
+}
+
 export interface OAuthService {
-  startLogin: () => Promise<OAuthStartResponse>;
+  startLogin: (options?: OAuthStartOptions) => Promise<OAuthStartResponse>;
   completeLogin: (loginId: string) => Promise<unknown>;
   cancelLogin: (loginId?: string) => Promise<void>;
   submitCallbackUrl?: (loginId: string, callbackUrl: string) => Promise<void>;
@@ -154,6 +158,8 @@ export interface ProviderPageConfig<TAccount extends ProviderAccountBase> {
   oauthService?: OAuthService;
   /** 触发 OAuth 流程的 addTab key，默认 ['oauth'] */
   oauthTabKeys?: string[];
+  /** 是否在进入 OAuth 标签后自动开始；可用于需要先填写登录参数的平台。 */
+  oauthAutoPrepare?: boolean | ((tabKey: string) => boolean);
   /** 数据服务 */
   dataService: ProviderDataService;
   /** 获取展示用 email/displayName */
@@ -727,6 +733,7 @@ export interface UseProviderAccountsPageReturn {
   oauthManualCallbackSubmitting: boolean;
   oauthManualCallbackError: string | null;
   oauthSupportsManualCallback: boolean;
+  prepareOauthUrl: () => void;
   handleCopyOauthUrl: () => Promise<void>;
   handleCopyOauthUserCode: () => Promise<void>;
   handleRetryOauth: () => void;
@@ -773,6 +780,7 @@ export function useProviderAccountsPage<TAccount extends ProviderAccountBase>(
     store,
     oauthService,
     oauthTabKeys: oauthTabKeysConfig,
+    oauthAutoPrepare: oauthAutoPrepareConfig,
     dataService,
     initialSearchQuery: initialSearchQueryConfig,
     defaultSortBy: defaultSortByConfig,
@@ -890,6 +898,10 @@ export function useProviderAccountsPage<TAccount extends ProviderAccountBase>(
 
   // ─── Sort ─────────────────────────────────────────────────────────────
   const [sortBy, setSortBy] = useState<string>(() => {
+    // Explicit default (e.g. Codex custom-sort active flag) wins over stale saved sort (#1123).
+    if (defaultSortBy === 'custom') {
+      return 'custom';
+    }
     if (!readAccountsOverviewFilterPersistenceEnabled(filterPersistenceScope)) {
       return defaultSortBy;
     }
@@ -1237,6 +1249,8 @@ export function useProviderAccountsPage<TAccount extends ProviderAccountBase>(
         return next;
       });
       setDeleteConfirm(null);
+      // 删除成功后清掉页顶红色报错，避免旧错误残留（#1160）
+      setMessage(null);
     } catch (error) {
       setDeleteConfirmError(
         t('messages.actionFailed', {
@@ -2038,7 +2052,7 @@ export function useProviderAccountsPage<TAccount extends ProviderAccountBase>(
 
     void (async () => {
       try {
-        const resp = await oauthService.startLogin();
+        const resp = await oauthService.startLogin({ tabKey: addTabRef.current });
         started = true;
 
         if (attemptSeq !== oauthAttemptSeqRef.current) {
@@ -2116,9 +2130,13 @@ export function useProviderAccountsPage<TAccount extends ProviderAccountBase>(
 
   // Auto-prepare OAuth when modal opens on oauth tab
   useEffect(() => {
-    if (!showAddModal || !oauthTabKeys.includes(addTab) || oauthUrl) return;
+    const shouldAutoPrepare =
+      typeof oauthAutoPrepareConfig === 'function'
+        ? oauthAutoPrepareConfig(addTab)
+        : oauthAutoPrepareConfig !== false;
+    if (!showAddModal || !oauthTabKeys.includes(addTab) || oauthUrl || !shouldAutoPrepare) return;
     prepareOauthUrl();
-  }, [showAddModal, addTab, oauthUrl, prepareOauthUrl, oauthTabKeys]);
+  }, [showAddModal, addTab, oauthUrl, prepareOauthUrl, oauthTabKeys, oauthAutoPrepareConfig]);
 
   // Cancel OAuth when modal closes or tab changes
   useEffect(() => {
@@ -2454,6 +2472,7 @@ export function useProviderAccountsPage<TAccount extends ProviderAccountBase>(
     (timestamp: number) => {
       const normalized = normalizeTimestamp(timestamp);
       const d = new Date((normalized ?? 0) * 1000);
+      // 固定 24 小时制，避免 en-US 等 locale 显示 12 小时制分不清上下午（#859）
       return (
         d.toLocaleDateString(locale, {
           year: 'numeric',
@@ -2461,7 +2480,11 @@ export function useProviderAccountsPage<TAccount extends ProviderAccountBase>(
           day: '2-digit',
         }) +
         ' ' +
-        d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
+        d.toLocaleTimeString(locale, {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        })
       );
     },
     [locale],
@@ -2585,6 +2608,7 @@ export function useProviderAccountsPage<TAccount extends ProviderAccountBase>(
     oauthManualCallbackSubmitting,
     oauthManualCallbackError,
     oauthSupportsManualCallback,
+    prepareOauthUrl,
     handleCopyOauthUrl,
     handleCopyOauthUserCode,
     handleRetryOauth,

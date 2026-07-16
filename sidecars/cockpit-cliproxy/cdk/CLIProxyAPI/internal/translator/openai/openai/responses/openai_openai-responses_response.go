@@ -77,6 +77,16 @@ func toolSpecsFromRequest(requestRawJSON []byte) map[string]responsesToolSpec {
 	}
 	root := gjson.ParseBytes(requestRawJSON)
 	addToolSpecs(root.Get("tools"), "", specs)
+	// Codex Desktop Responses Lite ships tool definitions via additional_tools
+	// input items when top-level tools is null.
+	if input := root.Get("input"); input.Exists() && input.IsArray() {
+		input.ForEach(func(_, item gjson.Result) bool {
+			if item.Get("type").String() == "additional_tools" {
+				addToolSpecs(item.Get("tools"), "", specs)
+			}
+			return true
+		})
+	}
 	collectToolSearchOutputSpecs(root.Get("input"), specs)
 	return specs
 }
@@ -609,7 +619,13 @@ func ConvertOpenAIChatCompletionsResponseToOpenAIResponses(ctx context.Context, 
 						existingCallID := st.FuncCallIDs[key]
 						effectiveCallID := existingCallID
 						shouldEmitItem := false
-						if existingCallID == "" && newCallID != "" {
+						if existingCallID == "" {
+							if newCallID == "" {
+								// Some OpenAI-compatible providers omit tool_call ids in
+								// streaming deltas; synthesize one so the Responses event
+								// chain (output_item.added/done) still fires for Codex.
+								newCallID = fmt.Sprintf("call_%s_%d_%d", st.ResponseID, idx, toolIndex)
+							}
 							effectiveCallID = newCallID
 							st.FuncCallIDs[key] = newCallID
 							st.FuncOutputIx[key] = allocOutputIndex()
@@ -923,8 +939,13 @@ func ConvertOpenAIChatCompletionsResponseToOpenAIResponsesNonStream(_ context.Co
 
 				// Function/tool calls
 				if tcs := msg.Get("tool_calls"); tcs.Exists() && tcs.IsArray() {
-					tcs.ForEach(func(_, tc gjson.Result) bool {
+					tcs.ForEach(func(tcIndex, tc gjson.Result) bool {
 						callID := tc.Get("id").String()
+						if callID == "" {
+							// Providers may omit tool_call ids; synthesize one so the
+							// function_call item stays usable for Codex round-trips.
+							callID = fmt.Sprintf("call_%s_%d_%d", id, choice.Get("index").Int(), tcIndex.Int())
+						}
 						name := tc.Get("function.name").String()
 						args := tc.Get("function.arguments").String()
 						item := responseToolCallItem(callID, name, args, "completed", toolSpecs[name])

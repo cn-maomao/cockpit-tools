@@ -11,7 +11,6 @@ import {
 import './App.css';
 import { getVersion } from '@tauri-apps/api/app';
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { getCurrentWebview } from '@tauri-apps/api/webview';
 import { listen, UnlistenFn } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
@@ -20,10 +19,9 @@ import { FileText, FolderOpen, RefreshCw, X } from 'lucide-react';
 import { SideNav } from './components/layout/SideNav';
 import { GlobalModal } from './components/GlobalModal';
 import { AnnouncementHost } from './components/AnnouncementCenter';
-import { CodexBatchImportGlobalTask } from './components/CodexBatchImportGlobalTask';
 import { TopCenterPromoBanner } from './components/TopCenterPromoBanner';
 import type { QuickSettingsType } from './components/QuickSettingsPopover';
-import type { Page } from './types/navigation';
+import { isMainWindowNavigablePage, type Page } from './types/navigation';
 import type { TopRightAd } from './types/topRightAd';
 import { useAutoRefresh } from './hooks/useAutoRefresh';
 import { useEasterEggTrigger } from './hooks/useEasterEggTrigger';
@@ -75,6 +73,15 @@ import {
 import { runAutoBackupCycle } from './services/scheduledBackupService';
 import { prepareCodexLocalAccessForRestart } from './services/codexLocalAccessService';
 import { applyReducedMotion } from './utils/reducedMotion';
+import {
+  applyWebviewUiScale,
+  isUiScaleResetKey,
+  isUiScaleZoomInKey,
+  isUiScaleZoomOutKey,
+  normalizeUiScale,
+  stepUiScale,
+  UI_SCALE_DEFAULT,
+} from './utils/uiScale';
 import {
   emitActivePlatformFocus,
   resolvePlatformIdFromPage,
@@ -217,7 +224,7 @@ const TOP_PROMO_PAGE_PLATFORM_TARGETS: Partial<Record<Page, readonly string[]>> 
   wakeup: ['antigravity', 'antigravity-ide'],
   verification: ['antigravity', 'antigravity-ide'],
   codex: ['codex'],
-  'codex-api-service': ['codex'],
+  'codex-api-service': ['codex_api_service', 'codex'],
   'codex-instances': ['codex'],
   claude: ['claude', 'claude-manager'],
   'claude-cli': ['claude', 'claude-manager'],
@@ -738,6 +745,23 @@ function MainApp() {
     } catch {}
     return 'dashboard';
   });
+  const isCodexSuitePage = page === 'codex' || page === 'codex-api-service';
+  const [codexSuiteKeepAlive, setCodexSuiteKeepAlive] = useState(isCodexSuitePage);
+  const shouldMountCodexSuite = isCodexSuitePage || codexSuiteKeepAlive;
+
+  useEffect(() => {
+    if (isCodexSuitePage) {
+      setCodexSuiteKeepAlive(true);
+    }
+  }, [isCodexSuitePage]);
+
+  useEffect(() => {
+    const ensureMounted = () => setCodexSuiteKeepAlive(true);
+    window.addEventListener('codex-suite-ensure-mounted', ensureMounted);
+    return () => {
+      window.removeEventListener('codex-suite-ensure-mounted', ensureMounted);
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -1033,6 +1057,96 @@ function MainApp() {
     window.addEventListener('keydown', handleRefreshShortcut, true);
     return () => {
       window.removeEventListener('keydown', handleRefreshShortcut, true);
+    };
+  }, []);
+
+  // ⌘+/⌘-（Windows/Linux: Ctrl+/Ctrl-）步进界面缩放；⌘0 / Ctrl+0 重置。
+  useEffect(() => {
+    let disposed = false;
+    let currentScale = UI_SCALE_DEFAULT;
+    let saveTimer: number | null = null;
+    let pendingScale: number | null = null;
+    let saveQueue: Promise<void> = Promise.resolve();
+
+    const loadCurrentScale = async () => {
+      try {
+        const config = await invoke<{ ui_scale?: number }>('get_general_config');
+        if (disposed) return;
+        currentScale = normalizeUiScale(config.ui_scale);
+      } catch (error) {
+        console.error('Failed to load UI scale for shortcuts:', error);
+      }
+    };
+
+    const persistScale = (scale: number) => {
+      pendingScale = scale;
+      if (saveTimer !== null) {
+        window.clearTimeout(saveTimer);
+      }
+      saveTimer = window.setTimeout(() => {
+        saveTimer = null;
+        const toSave = pendingScale;
+        pendingScale = null;
+        if (toSave == null) return;
+        saveQueue = saveQueue
+          .catch(() => undefined)
+          .then(async () => {
+            if (disposed) return;
+            try {
+              await invoke('patch_general_config', {
+                updates: { ui_scale: toSave },
+              });
+              window.dispatchEvent(new Event('config-updated'));
+            } catch (error) {
+              console.error('Failed to save UI scale:', error);
+            }
+          });
+      }, 250);
+    };
+
+    const handleZoomShortcut = (event: KeyboardEvent) => {
+      const hasMainModifier = event.metaKey || event.ctrlKey;
+      if (!hasMainModifier || event.altKey) {
+        return;
+      }
+
+      const zoomIn = isUiScaleZoomInKey(event);
+      const zoomOut = isUiScaleZoomOutKey(event);
+      const reset = isUiScaleResetKey(event);
+      if (!zoomIn && !zoomOut && !reset) {
+        return;
+      }
+      // 重置不需要连发；放大缩小允许按住连按。
+      if (reset && event.repeat) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const nextScale = reset
+        ? UI_SCALE_DEFAULT
+        : stepUiScale(currentScale, zoomIn ? 1 : -1);
+      if (nextScale === currentScale) {
+        return;
+      }
+      currentScale = nextScale;
+      void applyWebviewUiScale(nextScale).catch((error) => {
+        console.error('Failed to apply UI scale shortcut:', error);
+      });
+      persistScale(nextScale);
+    };
+
+    void loadCurrentScale();
+    window.addEventListener('keydown', handleZoomShortcut, true);
+    window.addEventListener('config-updated', loadCurrentScale);
+    return () => {
+      disposed = true;
+      window.removeEventListener('keydown', handleZoomShortcut, true);
+      window.removeEventListener('config-updated', loadCurrentScale);
+      if (saveTimer !== null) {
+        window.clearTimeout(saveTimer);
+      }
     };
   }, []);
 
@@ -2002,10 +2116,8 @@ function MainApp() {
     };
 
     const applyUiScale = async (rawScale?: number) => {
-      const scale = typeof rawScale === 'number' && Number.isFinite(rawScale) ? rawScale : 1;
-      const normalizedScale = Math.min(2, Math.max(0.8, scale));
       try {
-        await getCurrentWebview().setZoom(normalizedScale);
+        await applyWebviewUiScale(rawScale);
       } catch (error) {
         console.error('Failed to apply UI scale:', error);
       }
@@ -3377,15 +3489,8 @@ function MainApp() {
       .then((target) => {
         if (!target) return;
         const page = String(target);
-        if (
-          page === 'overview' ||
-          page === 'codex' ||
-          page === 'codex-api-service' ||
-          page === 'settings' ||
-          page === 'dashboard' ||
-          page === 'manual'
-        ) {
-          setPage(page as Page);
+        if (isMainWindowNavigablePage(page)) {
+          setPage(page);
         }
       })
       .catch(() => {
@@ -3398,33 +3503,8 @@ function MainApp() {
 
         listen<string>('tray:navigate', (event) => {
           const target = String(event.payload || '');
-          switch (target) {
-            case 'overview':
-            case 'api-relay':
-            case 'codex':
-            case 'codex-api-service':
-            case 'claude':
-            case 'claude-cli':
-            case 'github-copilot':
-            case 'windsurf':
-            case 'kiro':
-            case 'cursor':
-            case 'grok':
-            case 'codebuddy':
-            case 'codebuddy-cn':
-            case 'qoder':
-            case 'trae':
-            case 'trae-solo':
-            case 'trae-cn':
-            case 'trae-solo-cn':
-            case 'workbuddy':
-            case 'zed':
-            case 'manual':
-            case 'settings':
-              setPage(target as Page);
-              break;
-            default:
-              break;
+          if (isMainWindowNavigablePage(target)) {
+            setPage(target);
           }
         }).then((fn) => { unlisten = fn; });
 
@@ -3858,7 +3938,6 @@ function MainApp() {
       />
 
       <AnnouncementHost onNavigate={setPage} />
-      <CodexBatchImportGlobalTask onOpenCodex={() => setPage('codex')} />
 
       {sideNavLayoutMode !== 'classic' && (
         <button
@@ -3903,10 +3982,31 @@ function MainApp() {
           )}
           {page === 'api-relay' && <ApiKeyFunPage />}
           {page === 'overview' && <AccountsPage onNavigate={setPage} />}
-          {page === 'codex' && <CodexAccountsPage />}
+          {/* Codex suite: keep both pages mounted after first visit to avoid empty flash when switching. */}
+          {shouldMountCodexSuite && (
+            <Suspense fallback={page === 'codex' ? suspenseFallback : null}>
+              <div
+                className="app-page-keep-alive"
+                hidden={page !== 'codex'}
+                aria-hidden={page !== 'codex'}
+              >
+                <CodexAccountsPage />
+              </div>
+            </Suspense>
+          )}
+          {shouldMountCodexSuite && (
+            <Suspense fallback={page === 'codex-api-service' ? suspenseFallback : null}>
+              <div
+                className="app-page-keep-alive"
+                hidden={page !== 'codex-api-service'}
+                aria-hidden={page !== 'codex-api-service'}
+              >
+                <CodexApiServicePage />
+              </div>
+            </Suspense>
+          )}
           {page === 'claude' && <ClaudeAccountsPage subPlatform="desktop" />}
           {page === 'claude-cli' && <ClaudeAccountsPage subPlatform="cli" />}
-          {page === 'codex-api-service' && <CodexApiServicePage />}
           {page === 'github-copilot' && <GitHubCopilotAccountsPage />}
           {page === 'windsurf' && <WindsurfAccountsPage />}
           {page === 'kiro' && <KiroAccountsPage />}

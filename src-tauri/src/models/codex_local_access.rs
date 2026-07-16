@@ -183,6 +183,10 @@ fn default_max_retry_interval_ms() -> u64 {
     3 * 1000
 }
 
+fn default_max_concurrent_image_requests() -> u16 {
+    1
+}
+
 fn default_legacy_request_read_timeout_ms() -> u64 {
     60 * 1000
 }
@@ -474,6 +478,8 @@ pub struct CodexLocalAccessCollection {
     #[serde(default)]
     pub session_affinity_default_enabled_migrated: bool,
     #[serde(default)]
+    pub responses_websockets_enabled: bool,
+    #[serde(default)]
     pub max_retry_credentials: u16,
     #[serde(default = "default_max_retry_interval_ms")]
     pub max_retry_interval_ms: u64,
@@ -491,6 +497,8 @@ pub struct CodexLocalAccessCollection {
     pub debug_logs: bool,
     #[serde(default)]
     pub immediate_sse_response: bool,
+    #[serde(default = "default_max_concurrent_image_requests")]
+    pub max_concurrent_image_requests: u16,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub bound_oauth_account_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -707,6 +715,9 @@ pub struct CodexLocalAccessAccountHealth {
     pub last_failure_message: Option<String>,
     pub image_generation_status: CodexLocalAccessImageGenerationStatus,
     pub image_generation_checked_at: Option<i64>,
+    pub scheduler_available: Option<bool>,
+    pub scheduler_reason: Option<String>,
+    pub scheduler_next_retry_at: Option<i64>,
     pub cooldowns: Vec<CodexLocalAccessAccountCooldown>,
 }
 

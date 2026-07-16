@@ -279,6 +279,7 @@ const ACCOUNT_LOADERS: Record<PlatformId, AccountLoader> = {
   antigravity_ide: async () =>
     (await accountService.listAccounts()) as unknown as TransferAccountRecord[],
   codex: async () => (await codexService.listCodexAccounts()) as unknown as TransferAccountRecord[],
+  codex_api_service: async () => [],
   claude_manager: listClaudeManagerTransferAccounts,
   zed: async () => (await zedService.listZedAccounts()) as unknown as TransferAccountRecord[],
   'github-copilot': async () =>
@@ -303,6 +304,7 @@ const LEGACY_IMPORTERS: Record<PlatformId, ((jsonContent: string) => Promise<unk
   antigravity: accountService.importFromJson,
   antigravity_ide: accountService.importFromJson,
   codex: codexService.importCodexFromJson,
+  codex_api_service: undefined,
   claude_manager: claudeService.importClaudeFromJson,
   zed: zedService.importZedFromJson,
   'github-copilot': githubCopilotService.importGitHubCopilotFromJson,
@@ -757,6 +759,7 @@ function exportCodexAccountGroups(
     name: group.name,
     sortOrder: group.sortOrder,
     createdAt: group.createdAt,
+    quotaAutoRefreshMinutes: group.quotaAutoRefreshMinutes ?? null,
     accountRefs: mapAccountIdsToRefs('codex', group.accountIds, registry),
   }));
 }
@@ -774,6 +777,13 @@ function importCodexAccountGroups(
       name: group.name,
       sortOrder: group.sortOrder,
       createdAt: group.createdAt,
+      // 兼容旧导出里的 boolean；新字段优先
+      quotaAutoRefreshMinutes:
+        (group as { quotaAutoRefreshMinutes?: number | null }).quotaAutoRefreshMinutes !== undefined
+          ? (group as { quotaAutoRefreshMinutes?: number | null }).quotaAutoRefreshMinutes ?? null
+          : (group as { quotaRefreshEnabled?: boolean }).quotaRefreshEnabled === false
+            ? -1
+            : null,
       accountIds: resolved.ids,
     };
   });

@@ -404,34 +404,31 @@ pub fn run() {
 
             {
                 let app_handle = app.handle().clone();
-                std::thread::spawn(move || {
-                    match app_handle.deep_link().get_current() {
-                        Ok(Some(urls)) => {
-                            let args: Vec<String> =
-                                urls.iter().map(|url| url.to_string()).collect();
-                            logger::log_info(&format!(
-                                "[DeepLink] 启动时 get_current 命中: url_count={}, urls={:?}",
-                                args.len(),
-                                summarize_deep_link_args(&args)
-                            ));
-                            let zcode_oauth_handled = handle_zcode_oauth_deep_links(&args);
-                            let handled = zcode_oauth_handled
-                                || modules::external_import::handle_external_import_args(
-                                    &app_handle,
-                                    &args,
-                                    "deep-link-current",
-                                );
-                            logger::log_info(&format!(
-                                "[DeepLink] get_current 外部导入处理结果: handled={}",
-                                handled
-                            ));
-                        }
-                        Ok(None) => {
-                            logger::log_info("[DeepLink] 启动时 get_current: empty");
-                        }
-                        Err(err) => {
-                            logger::log_warn(&format!("[DeepLink] get_current 失败: {}", err));
-                        }
+                std::thread::spawn(move || match app_handle.deep_link().get_current() {
+                    Ok(Some(urls)) => {
+                        let args: Vec<String> = urls.iter().map(|url| url.to_string()).collect();
+                        logger::log_info(&format!(
+                            "[DeepLink] 启动时 get_current 命中: url_count={}, urls={:?}",
+                            args.len(),
+                            summarize_deep_link_args(&args)
+                        ));
+                        let zcode_oauth_handled = handle_zcode_oauth_deep_links(&args);
+                        let handled = zcode_oauth_handled
+                            || modules::external_import::handle_external_import_args(
+                                &app_handle,
+                                &args,
+                                "deep-link-current",
+                            );
+                        logger::log_info(&format!(
+                            "[DeepLink] get_current 外部导入处理结果: handled={}",
+                            handled
+                        ));
+                    }
+                    Ok(None) => {
+                        logger::log_info("[DeepLink] 启动时 get_current: empty");
+                    }
+                    Err(err) => {
+                        logger::log_warn(&format!("[DeepLink] get_current 失败: {}", err));
                     }
                 });
             }
@@ -482,6 +479,11 @@ pub fn run() {
                 startup_external_import_handled
             ));
 
+            // Restore last main-window size/position before optional startup minimize (#948 / #1132).
+            if let Some(main) = app.get_webview_window("main") {
+                modules::main_window_state::restore_to_window(&main);
+            }
+
             apply_startup_minimized(&app.handle());
 
             Ok(())
@@ -491,6 +493,8 @@ pub fn run() {
                 if window.label() != "main" {
                     return;
                 }
+                // Always snapshot geometry before close / tray-destroy / quit.
+                modules::main_window_state::capture_and_save_from_window_handle(window);
                 let config = modules::config::get_user_config();
 
                 match config.close_behavior {
@@ -519,6 +523,13 @@ pub fn run() {
                         let _ = window.emit("window:close_requested", ());
                         info!("[Window] 等待用户选择关闭行为");
                     }
+                }
+            }
+            WindowEvent::Resized(_) | WindowEvent::Moved(_) => {
+                if window.label() == "main" {
+                    modules::main_window_state::capture_and_save_from_window_handle_debounced(
+                        window,
+                    );
                 }
             }
             _ => {}
@@ -772,6 +783,7 @@ pub fn run() {
             commands::codex::add_codex_account_with_api_key,
             commands::codex::update_codex_account_name,
             commands::codex::update_codex_api_key_credentials,
+            commands::codex::sync_codex_api_key_provider_accounts,
             commands::codex::update_codex_api_key_bound_oauth_account,
             commands::codex::is_codex_oauth_port_in_use,
             commands::codex::close_codex_oauth_port,
@@ -804,6 +816,7 @@ pub fn run() {
             commands::codex::codex_local_access_save_accounts,
             commands::codex::codex_local_access_append_accounts,
             commands::codex::codex_local_access_remove_account,
+            commands::codex::codex_local_access_recover_accounts,
             commands::codex::codex_local_access_rotate_api_key,
             commands::codex::codex_local_access_update_bound_oauth_account,
             commands::codex::codex_local_access_clear_stats,

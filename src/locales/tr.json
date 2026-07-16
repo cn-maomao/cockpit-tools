@@ -497,6 +497,7 @@
       "noneRunning": "Çalışan oturum bulunamadı",
       "syncThreadsNeedTwo": "İş parçacıklarını eşitlemek için en az iki örnek gerekir",
       "launchPrepared": "Başlatma komutu hazır",
+      "codexManagedStoreLaunchUnsafe": "Windows Store örnek dizinini güvenilir biçimde aktaramadığı için varsayılan hesabın açılması engellendi. Bu örneği CLI başlatma moduna geçirip yeniden deneyin. Ayrıntılar: {{detail}}",
       "speedUpdated": "Hız güncellendi"
     },
     "runningDialog": {
@@ -591,7 +592,7 @@
       "themeDark": "Koyu",
       "themeSystem": "Sistem",
       "uiScale": "Arayüz ölçeği",
-      "uiScaleDesc": "Arayüz ölçeğini ayarlayın",
+      "uiScaleDesc": "Arayüz ölçeğini ayarla (⌘+/⌘- veya Ctrl+/Ctrl-, ⌘0/Ctrl+0 sıfırla)",
       "accountManagement": "Hesap Yönetimi",
       "autoRefresh": "Antigravity IDE kota otomatik yenileme",
       "codexAutoRefresh": "Codex kota otomatik yenileme",
@@ -611,6 +612,8 @@
       "closeBehaviorQuit": "Uygulamadan Çık",
       "startupMinimized": "Simge durumunda başlat",
       "startupMinimizedDesc": "Uygulama açıldıktan sonra ana pencereyi otomatik küçültür; Dock, görev çubuğu veya tepsiden geri getirebilirsiniz",
+      "rememberMainWindowState": "Ana pencere konumunu ve boyutunu hatırla",
+      "rememberMainWindowStateDesc": "Yeniden başlatmada veya tepsiden açmada konumu ve boyutu geri yükler; varsayılan olarak kapalıdır",
       "minimizeBehavior": "Pencere küçültme davranışı (yalnızca macOS)",
       "minimizeBehaviorDesc": "Pencere küçültüldüğünde Dock ve menü çubuğunda mı, yoksa yalnızca menü çubuğunda mı kalacağını seçin",
       "minimizeBehaviorDockAndTray": "Dock + menü çubuğu (önerilen)",
@@ -1195,7 +1198,11 @@
         "tooMany": "En fazla {{max}} etiket ekleyebilirsiniz"
       },
       "notesLabel": "Not",
-      "notesPlaceholder": "Not girin. Temizlemek için boş bırakın"
+      "notesPlaceholder": "Not girin. Temizlemek için boş bırakın",
+      "confirmGlobalDelete": "\"{{targetTag}}\" etiketi tüm hesaplardan kaldırılsın mı? Bu işlem geri alınamaz.",
+      "globalDeleteHint": "Bu etiketi genel olarak sil",
+      "globalDeleteFailed": "Etiket genel olarak silinemedi",
+      "globalRenameHint": "Bu etiketi genel olarak yeniden adlandır"
     },
     "groupByTag": "Etikete göre grupla",
     "untagged": "Etiketsiz",
@@ -1266,7 +1273,9 @@
         "renameFailed": "Grup yeniden adlandırılamadı: {{error}}",
         "deleteFailed": "Grup silinemedi: {{error}}",
         "addFailed": "Gruba eklenemedi: {{error}}",
-        "createAndAddFailed": "Grup oluşturulamadı ve eklenemedi: {{error}}"
+        "createAndAddFailed": "Grup oluşturulamadı ve eklenemedi: {{error}}",
+        "quotaRefreshFailed": "Kota yenileme ayarı güncellenemedi: {{error}}",
+        "notFound": "Grup bulunamadı"
       },
       "addAccounts": "Hesap ekle",
       "editTitle": "Grubu düzenle",
@@ -1274,7 +1283,14 @@
       "currentGroupLabel": "Mevcut grup",
       "accountPickerEmpty": "Eşleşen hesap yok",
       "filterHint": "Filtreleme için {{count}} grup seçildi",
-      "filterToggle": "Bu gruba göre filtrelemek için işaretleyin"
+      "filterToggle": "Bu gruba göre filtrelemek için işaretleyin",
+      "quotaRefresh": "Kota yenileme",
+      "quotaRefreshOffBadge": "Yenileme yok",
+      "quotaRefreshOffHint": "Bu grup yenilenmez; otomatik ve tam yenileme grup hesaplarını atlar",
+      "refreshForceHint": "İlke devralma değilse bu grubu yine de elle yenileyebilirsiniz",
+      "quotaRefreshInherit": "Platform ayarını devral",
+      "quotaRefreshPolicyHint": "Grup kota yenileme ilkesi en yüksek önceliğe sahiptir: platformdan devral, özel aralık veya kapalı",
+      "quotaRefreshMinutesBadge": "{{count}} dk"
     },
     "switchHistory": {
       "title": "Geçiş geçmişi",
@@ -1863,6 +1879,7 @@
         "freeUnsupported": "Ücretsiz hesaplar henüz desteklenmiyor",
         "restrictFreeToggle": "Free hesapları sınırla",
         "chatApiKeyUnsupported": "Chat Completions desteklenmez",
+        "pendingOauthUnsupported": "Bekleyen eklenemez",
         "freeNoticeRestricted": "Free hesaplar sınırlıdır. Seçmek için bunu kapatın.",
         "freeNoticeUnstable": "Free hesap proxy'si kararsız olabilir. Dikkatli kullanın.",
         "restrictFreeDisableConfirmTitle": "Free hesaplara izin ver",
@@ -1890,6 +1907,7 @@
       "testConnectFailed": "{{url}} adresine bağlanılamıyor. API hizmetinin çalıştığını, portun değişmediğini ve engellenmediğini doğrulayın.",
       "testAuthFailed": "Hizmete erişiliyor ancak kimlik doğrulama başarısız: {{detail}}. API hizmeti anahtarını veya hesap oturum durumunu kontrol edin.",
       "testServiceUnavailable": "Hizmete erişiliyor ancak şu anda kullanılamıyor: {{detail}}. Hizmetin etkin olup olmadığını, hesap koleksiyonunun boş olup olmadığını veya hesapların kullanılabilirliğini kontrol edin.",
+      "gatewayErrors": {"authUnavailable": "Şu anda yönlendirilebilir hesap yok. Hesap beklemede, yetkisiz veya kota sınırlı olabilir. Cockpit Tools API hizmetinde durumunu kontrol edin.", "authNotFound": "Hesap havuzunda kullanılabilir hesap yapılandırılmamış. Cockpit Tools API hizmetinde hesap ekleyin veya etkinleştirin."},
       "testRateLimited": "Hizmete erişiliyor ancak upstream hız sınırında veya kota tükendi: {{detail}}.",
       "testHttpFailed": "Hizmete erişiliyor ancak istek HTTP {{status}} döndürdü: {{detail}}.",
       "activateAction": "API hizmetini başlat",
@@ -1914,6 +1932,7 @@
         "requestsDetail": "OK {{success}} / Hata {{failed}} / İptal {{canceled}} / Kaynak {{upstreamFailed}} / Eksik {{incomplete}}",
         "tokens": "Tokenlar",
         "tokensDetail": "Girdi {{input}} / Çıktı {{output}}",
+        "cached": "Önbellek",
         "specialTokens": "Önbellek / Akıl yürütme",
         "specialTokensDetail": "Önbellek {{cached}} / Akıl yürütme {{reasoning}}",
         "avgLatency": "Ort. gecikme",
@@ -2107,7 +2126,31 @@
         "allAvailable": "Tümü OK {{count}}",
         "availableRatio": "Sağlam {{available}}/{{total}}",
         "issueSummary": "Hata {{abnormal}} · Bekleme {{cooldown}}",
-        "detail": "OK {{available}}/{{total}}, hata {{abnormal}}, bekleme {{cooldown}}, eksik {{missing}}, auth {{authError}}, kota {{quotaLimited}}"
+        "detail": "OK {{available}}/{{total}}, hata {{abnormal}}, bekleme {{cooldown}}, eksik {{missing}}, auth {{authError}}, kota {{quotaLimited}}",
+        "openDetails": "Sorunlu hesapları göster",
+        "recover": "Hesap durumunu kurtar",
+        "recoverSuccess": "{{count}} hesap için kurtarma istendi",
+        "dialog": {
+          "title": "Sorunlu Hesaplar",
+          "description": "Bu durumlar Sidecar OAuth zamanlayıcısından gelir. Kurtarma beklemeyi temizler ve hesabı yeniden dener.",
+          "noIssues": "Sorunlu hesap yok",
+          "missing": "Hesap eksik",
+          "cooldown": "Beklemede",
+          "quota": "Kota sınırlı",
+          "missingDetail": "Hesap artık listede değil",
+          "cooldownModel": "{{model}} modeli beklemede",
+          "cooldownUntil": "{{model}} modeli {{time}} saatine kadar beklemede",
+          "authDetail": "OAuth yetkisi süresi dolmuş olabilir. Yeniden yetkilendirin.",
+          "quotaDetail": "Kota geçici olarak kullanılamıyor. Bekleyin veya planı kontrol edin.",
+          "paymentDetail": "Plan veya ödeme durumu kullanılamıyor. Aboneliği kontrol edin.",
+          "modelDetail": "Bu hesap istenen modeli desteklemiyor.",
+          "upstreamDetail": "Üst hizmet geçici olarak kullanılamıyor. Daha sonra yeniden denenecek.",
+          "disabledDetail": "Bu hesap devre dışı. Önce etkinleştirin.",
+          "unavailableDetail": "Sidecar şu anda bu hesabı zamanlanabilir görmüyor.",
+          "recover": "Kurtar",
+          "recovering": "Kurtarılıyor…",
+          "recoverAll": "Tümünü kurtar"
+        }
       },
       "testChatModel": "Model kimliği",
       "testChatClear": "Sohbeti temizle",
@@ -3232,7 +3275,9 @@
       },
       "accountHealth": {
         "failures": "Art arda {{count}} hata",
-        "image": "Görseller {{status}}"
+        "image": "Görseller {{status}}",
+        "unavailable": "Geçici olarak kullanılamıyor",
+        "authError": "Kimlik doğrulama hatası"
       },
       "models": {
         "availableTitle": "Kullanılabilir modeller",
@@ -3316,11 +3361,13 @@
         "optionsTitle": "Yönlendirme seçenekleri",
         "sessionAffinity": "Oturum bağı",
         "sessionAffinityTtl": "Bağ TTL",
+        "responsesWebsockets": "WebSocket üzerinden Responses",
         "maxRetryCredentials": "Retry hesapları",
         "maxRetryInterval": "Retry bekleme",
         "disableCooling": "Cooldown kapat",
         "saveOptions": "Seçenekleri kaydet",
         "immediateSseResponse": "Anında SSE 200",
+        "maxConcurrentImageRequests": "Hesap başına görsel isteği",
         "optionsSaved": "Yönlendirme seçenekleri kaydedildi"
       },
       "validation": {
@@ -3482,7 +3529,10 @@
       "checkAccounts": "Hesapları kontrol et",
       "importAndAddToApiService": "İçe Aktarma + API",
       "importAndAddToApiServiceSuccess": "İçe aktarıldı ve API hizmetine eklendi",
-      "addToApiServiceFailed": "İçe aktarıldı ancak API hizmetine ekleme işlemi başarısız oldu: {{error}}"
+      "addToApiServiceFailed": "İçe aktarıldı ancak API hizmetine ekleme işlemi başarısız oldu: {{error}}",
+      "cancelAndDismiss": "İptal et ve kapat",
+      "bulkTagsLabel": "İçe aktarma sonrası etiket",
+      "bulkTagsPlaceholder": "İsteğe bağlı; virgül veya boşlukla ayırın"
     },
     "autoRepairMode": {
       "label": "Otomatik onarım mantığı",
@@ -3528,7 +3578,10 @@
       "chipTags": "Etiket",
       "chipSearch": "Ara",
       "chipPlan": "Abonelik",
-      "chipFolder": "Klasör"
+      "chipFolder": "Klasör",
+      "authError": "Auth hatası",
+      "zeroQuota": "%0 kota",
+      "expired": "Süresi dolmuş"
     },
     "accessTokenImport": {
       "nameRequired": "Hesap adı girin",
@@ -3594,7 +3647,9 @@
       "serverListLead": "Senkronizasyon hedefi seçin",
       "serverCount": "{{count}} sunucu",
       "autoSyncBadge": "Otomatik"
-    }
+    },
+    "exportAuthFailed": "Hataları dışa aktar",
+    "exportAuthFailedTitle": "Tüm auth hatalı hesapları dışa aktar"
   },
   "githubCopilot": {
     "title": "GitHub Copilot Hesap Yönetimi",
@@ -4064,10 +4119,21 @@
       "description": "Kiro hesaplarınızı yönetmeye başlamak için \"Hesap Ekle\"ye tıklayın"
     },
     "addModal": {
-      "title": "Kiro Hesabı Ekle"
+      "title": "Kiro Hesabı Ekle",
+      "idc": "AWS SSO girişi"
     },
     "oauth": {
       "desc": "Aşağıdaki düğmeye tıklayın ve tarayıcınızda Kiro yetkilendirmesini tamamlayın."
+    },
+    "idc": {
+      "builderId": "AWS Builder ID hesabı",
+      "enterprise": "Kurumsal hesap",
+      "desc": "Tarayıcıda AWS IAM Identity Center yetkilendirmesini tamamlayın. Hesap otomatik olarak kaydedilir.",
+      "region": "AWS bölgesi",
+      "startUrl": "IAM Identity Center başlangıç URL'si",
+      "start": "Kurumsal girişi başlat",
+      "regionRequired": "Bir AWS bölgesi girin",
+      "startUrlRequired": "Bir IAM Identity Center başlangıç URL'si girin"
     },
     "token": {
       "desc": "Kiro erişim belirtecinizi veya dışa aktarılan JSON verilerinizi yapıştırın."

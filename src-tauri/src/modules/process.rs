@@ -1862,9 +1862,22 @@ fn spawn_open_app_with_options(
     args: &[String],
     force_new_instance: bool,
 ) -> Result<u32, String> {
+    spawn_open_app_with_options_and_env(app_root, args, force_new_instance, &[])
+}
+
+#[cfg(target_os = "macos")]
+fn spawn_open_app_with_options_and_env(
+    app_root: &str,
+    args: &[String],
+    force_new_instance: bool,
+    env_pairs: &[(&str, &str)],
+) -> Result<u32, String> {
     let mut cmd = Command::new("open");
     sanitize_macos_gui_launch_env(&mut cmd);
     append_managed_proxy_env_to_open_args(&mut cmd);
+    for (key, value) in env_pairs {
+        cmd.arg("--env").arg(format!("{}={}", key, value));
+    }
     if force_new_instance {
         cmd.arg("-n");
     }
@@ -3590,6 +3603,15 @@ Start-Process -FilePath $exe{argument_list} -ErrorAction Stop | Out-Null"#,
     Ok(())
 }
 
+const CODEX_MANAGED_STORE_LAUNCH_UNSAFE_PREFIX: &str = "CODEX_MANAGED_STORE_LAUNCH_UNSAFE:";
+
+fn codex_managed_store_launch_unsafe_error(direct_error: &str, powershell_error: &str) -> String {
+    format!(
+        "{}direct_error={}; powershell_error={}",
+        CODEX_MANAGED_STORE_LAUNCH_UNSAFE_PREFIX, direct_error, powershell_error
+    )
+}
+
 pub(crate) fn detect_codex_exec_path() -> Option<std::path::PathBuf> {
     #[cfg(target_os = "macos")]
     {
@@ -3640,16 +3662,54 @@ fn is_legacy_codex_store_launch_path(path: &Path) -> bool {
 }
 
 #[cfg(any(test, target_os = "windows"))]
-fn is_chatgpt_launch_path(path: &Path) -> bool {
+fn is_chatgpt_windows_launch_path(path: &Path) -> bool {
     normalized_windows_path_text(path).ends_with("\\chatgpt.exe")
 }
 
-#[cfg(any(test, target_os = "windows"))]
-fn should_migrate_legacy_codex_launch_path(current: &Path, detected: &Path) -> bool {
-    is_legacy_codex_store_launch_path(current) && is_chatgpt_launch_path(detected)
+#[cfg(any(test, target_os = "macos"))]
+fn normalized_macos_codex_path_text(path: &Path) -> String {
+    path.to_string_lossy()
+        .trim()
+        .trim_end_matches('/')
+        .to_ascii_lowercase()
 }
 
-#[cfg(target_os = "windows")]
+#[cfg(any(test, target_os = "macos"))]
+fn is_official_legacy_codex_macos_path(path: &Path) -> bool {
+    matches!(
+        normalized_macos_codex_path_text(path).as_str(),
+        "/applications/codex.app" | "/applications/codex.app/contents/macos/codex"
+    )
+}
+
+#[cfg(any(test, target_os = "macos"))]
+fn is_official_chatgpt_macos_path(path: &Path) -> bool {
+    matches!(
+        normalized_macos_codex_path_text(path).as_str(),
+        "/applications/chatgpt.app" | "/applications/chatgpt.app/contents/macos/chatgpt"
+    )
+}
+
+#[cfg(any(test, target_os = "macos", target_os = "windows"))]
+fn should_migrate_legacy_codex_launch_path(current: &Path, detected: &Path) -> bool {
+    let mut should_migrate = false;
+
+    #[cfg(any(test, target_os = "windows"))]
+    {
+        should_migrate |=
+            is_legacy_codex_store_launch_path(current) && is_chatgpt_windows_launch_path(detected);
+    }
+
+    #[cfg(any(test, target_os = "macos"))]
+    {
+        should_migrate |= is_official_legacy_codex_macos_path(current)
+            && is_official_chatgpt_macos_path(detected);
+    }
+
+    should_migrate
+}
+
+#[cfg(any(target_os = "macos", target_os = "windows"))]
 fn migrate_legacy_codex_launch_path(custom_path: &str) -> Option<std::path::PathBuf> {
     let current_path = std::path::PathBuf::from(custom_path);
     let detected = detect_codex_exec_path()?;
@@ -4108,6 +4168,9 @@ fn resolve_workbuddy_launch_path() -> Result<std::path::PathBuf, String> {
 #[cfg(target_os = "macos")]
 fn resolve_codex_launch_path() -> Result<std::path::PathBuf, String> {
     if let Some(custom) = normalize_custom_path(Some(&config::get_user_config().codex_app_path)) {
+        if let Some(migrated) = migrate_legacy_codex_launch_path(&custom) {
+            return Ok(migrated);
+        }
         if let Some(exec) = resolve_codex_macos_exec_path(&custom) {
             return Ok(exec);
         }
@@ -4177,6 +4240,10 @@ fn detect_and_save_app_path_raw(app: &str, force: bool) -> Option<String> {
         }
         "codex" => {
             if !force && !current.codex_app_path.trim().is_empty() {
+                #[cfg(any(target_os = "macos", target_os = "windows"))]
+                if migrate_legacy_codex_launch_path(&current.codex_app_path).is_some() {
+                    return Some(config::get_user_config().codex_app_path);
+                }
                 return Some(current.codex_app_path);
             }
             if let Some(detected) = detect_codex_exec_path() {
@@ -6032,6 +6099,40 @@ pub fn focus_current_process_main_window() -> Result<(), String> {
     focus_window_by_pid(std::process::id())
 }
 
+/// Focus a specific HWND (e.g. Tauri `main` window), not the process MainWindowHandle.
+/// After tray destroy, MainWindowHandle often points at the floating card.
+#[cfg(target_os = "windows")]
+pub fn focus_window_by_hwnd(hwnd: isize) -> Result<(), String> {
+    if hwnd == 0 {
+        return Err("HWND_EMPTY".to_string());
+    }
+    let command = format!(
+        r#"Add-Type @'
+using System;
+using System.Runtime.InteropServices;
+public class Win32FocusHwnd {{
+  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
+  [DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
+}}
+'@; $h = [IntPtr]{hwnd}; [Win32FocusHwnd]::ShowWindowAsync($h, 9) | Out-Null; [Win32FocusHwnd]::SetForegroundWindow($h) | Out-Null;"#
+    );
+    crate::modules::logger::log_info(&format!(
+        "[Focus] Windows PowerShell focus hwnd={}",
+        hwnd
+    ));
+    let output = powershell_output(&["-NoProfile", "-Command", &command])
+        .map_err(|e| format!("调用 PowerShell 失败: {}", e))?;
+    if output.status.success() {
+        crate::modules::logger::log_info(&format!(
+            "[Focus] Windows PowerShell hwnd success hwnd={}",
+            hwnd
+        ));
+        return Ok(());
+    }
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    Err(format!("窗口聚焦失败: {}", stderr.trim()))
+}
+
 #[cfg(target_os = "linux")]
 fn focus_window_by_pid(pid: u32) -> Result<(), String> {
     if let Ok(output) = Command::new("wmctrl").arg("-lp").output() {
@@ -6151,6 +6252,10 @@ pub fn resolve_codex_pid_from_entries(
             _ => {}
         }
     }
+
+    // `ps`/`pgrep` may briefly retain zombie entries after a GUI child exits. Never
+    // resolve those stale PIDs back into an instance's running state.
+    matches.retain(|pid| is_pid_running(*pid));
 
     if let Some(pid) = last_pid {
         if is_pid_running(pid) && matches.contains(&pid) {
@@ -9200,6 +9305,9 @@ pub fn collect_codex_process_entries() -> Vec<(u32, Option<String>)> {
         result.push((pid, codex_home));
     }
     filter_entries_by_expected_launch_path("Codex", result, expected_launch)
+        .into_iter()
+        .filter(|(pid, _)| is_pid_running(*pid))
+        .collect()
 }
 
 #[cfg(target_os = "windows")]
@@ -9555,21 +9663,21 @@ pub fn is_codex_running() -> bool {
 pub fn start_codex_with_args(codex_home: &str, extra_args: &[String]) -> Result<u32, String> {
     #[cfg(target_os = "macos")]
     {
-        let app_root = resolve_macos_app_root_from_config("codex").or_else(|| {
-            resolve_codex_launch_path()
-                .ok()
-                .and_then(|p| resolve_macos_app_root_from_launch_path(&p))
-        });
+        let app_root = resolve_codex_launch_path()
+            .ok()
+            .and_then(|p| resolve_macos_app_root_from_launch_path(&p))
+            .or_else(|| resolve_macos_app_root_from_config("codex"));
         let app_root = app_root.ok_or_else(|| app_path_missing_error("codex"))?;
 
         let codex_home_trimmed = codex_home.trim();
         let args = build_codex_app_launch_args(extra_args);
 
-        // 使用 open -a 启动，避免 macOS Responsible Process 归因
-        // 注意：CODEX_HOME 环境变量无法通过 open -a 传递，
-        // 如果指定了 codex_home 则需要回退到直接执行
+        // 通过 LaunchServices 启动 GUI 应用，避免直接执行 ChatGPT 主程序时
+        // 被 macOS 以 Cockpit Tools 为 responsible process，导致偶发长时间停在
+        // dyld/AppKit 初始化阶段。当前 macOS 的 `open` 支持 --env，因此
+        // CODEX_HOME 与独立 Electron user-data-dir 都可以随启动请求传入。
         if !codex_home_trimmed.is_empty() {
-            if let Ok(launch_path) = resolve_codex_launch_path() {
+            if resolve_codex_launch_path().is_ok() {
                 let app_user_data_dir =
                     crate::modules::codex_instance::get_macos_app_user_data_dir(Path::new(
                         codex_home_trimmed,
@@ -9582,25 +9690,25 @@ pub fn start_codex_with_args(codex_home: &str, extra_args: &[String]) -> Result<
                     )
                 })?;
 
-                let mut cmd = Command::new(&launch_path);
-                apply_managed_proxy_env_to_command(&mut cmd);
-                sanitize_macos_gui_launch_env(&mut cmd);
-                cmd.env("CODEX_HOME", codex_home_trimmed);
-                cmd.env("CODEX_ELECTRON_USER_DATA_PATH", &app_user_data_dir);
-                for arg in &args {
-                    cmd.arg(arg);
-                }
-                cmd.arg(format!(
-                    "--user-data-dir={}",
-                    app_user_data_dir.to_string_lossy()
-                ));
-                let child =
-                    spawn_detached_unix(&mut cmd).map_err(|e| format!("启动 Codex 失败: {}", e))?;
+                let app_user_data_dir_string = app_user_data_dir.to_string_lossy().to_string();
+                let mut launch_args = args.clone();
+                launch_args.push(format!("--user-data-dir={}", app_user_data_dir_string));
+                let open_pid = spawn_open_app_with_options_and_env(
+                    &app_root,
+                    &launch_args,
+                    true,
+                    &[
+                        ("CODEX_HOME", codex_home_trimmed),
+                        ("CODEX_ELECTRON_USER_DATA_PATH", &app_user_data_dir_string),
+                    ],
+                )
+                .map_err(|e| format!("启动 Codex 失败: {}", e))?;
                 crate::modules::logger::log_info(&format!(
-                    "[Codex Start] macOS managed instance using --user-data-dir and CODEX_ELECTRON_USER_DATA_PATH; codex_home={} electron_user_data={} launch_path={}",
+                    "[Codex Start] macOS managed instance using open -n -a with --env and --user-data-dir; launcher_pid={} codex_home={} electron_user_data={} app_root={}",
+                    open_pid,
                     summarize_text_for_process_log(codex_home_trimmed, 96),
-                    app_user_data_dir.to_string_lossy(),
-                    launch_path.to_string_lossy()
+                    app_user_data_dir_string,
+                    app_root
                 ));
                 // 轮询获取真实 PID
                 let probe_started = Instant::now();
@@ -9611,7 +9719,10 @@ pub fn start_codex_with_args(codex_home: &str, extra_args: &[String]) -> Result<
                     }
                     thread::sleep(Duration::from_millis(200));
                 }
-                return Ok(child.id());
+                return Err(format!(
+                    "Codex 实例启动超时，未找到真实主进程（open launcher pid={}）",
+                    open_pid
+                ));
             }
             return Err(app_path_missing_error("codex"));
         }
@@ -9682,8 +9793,8 @@ pub fn start_codex_with_args(codex_home: &str, extra_args: &[String]) -> Result<
                 if err.kind() == std::io::ErrorKind::PermissionDenied
                     && launch_path_text.contains("\\windowsapps\\")
                 {
-                    let mut store_args = build_codex_app_launch_args(extra_args);
-                    store_args.push(format!(
+                    let mut fallback_args = build_codex_app_launch_args(extra_args);
+                    fallback_args.push(format!(
                         "--user-data-dir={}",
                         app_user_data_dir.to_string_lossy()
                     ));
@@ -9691,7 +9802,7 @@ pub fn start_codex_with_args(codex_home: &str, extra_args: &[String]) -> Result<
                         &launch_path,
                         codex_home_trimmed,
                         &app_user_data_dir,
-                        &store_args,
+                        &fallback_args,
                     ) {
                         Ok(()) => {
                             crate::modules::logger::log_warn(&format!(
@@ -9701,26 +9812,16 @@ pub fn start_codex_with_args(codex_home: &str, extra_args: &[String]) -> Result<
                             ));
                         }
                         Err(ps_err) => {
-                            let app_user_model_id =
-                                detect_codex_store_app_user_model_id().ok_or_else(|| {
-                                    format!(
-                                        "启动 Codex 失败: {}; PowerShell fallback 失败: {}; 且未检测到 Codex Store AppUserModelID",
-                                        err, ps_err
-                                    )
-                                })?;
                             crate::modules::logger::log_warn(&format!(
-                                "[Codex Start] WindowsApps direct launch denied, PowerShell exec fallback failed, fallback to Store AppUserModelID: app_id={} launch_path={} error={} powershell_error={}",
-                                app_user_model_id,
+                                "[Codex Start] WindowsApps direct launch denied and PowerShell exec fallback failed; managed Store activation blocked to avoid losing CODEX_HOME: launch_path={} error={} powershell_error={}",
                                 launch_path.to_string_lossy(),
                                 err,
                                 ps_err
                             ));
-                            launch_codex_via_store_app_user_model_id(
-                                &app_user_model_id,
-                                Some(codex_home_trimmed),
-                                Some(app_user_data_dir.to_string_lossy().as_ref()),
-                                &store_args,
-                            )?;
+                            return Err(codex_managed_store_launch_unsafe_error(
+                                &err.to_string(),
+                                &ps_err,
+                            ));
                         }
                     }
                     None
@@ -9734,7 +9835,7 @@ pub fn start_codex_with_args(codex_home: &str, extra_args: &[String]) -> Result<
             launch_path.to_string_lossy(),
             summarize_text_for_process_log(codex_home_trimmed, 96),
             app_user_data_dir.to_string_lossy(),
-            child.as_ref().map(|item| item.id().to_string()).unwrap_or_else(|| "store-app".to_string())
+            child.as_ref().map(|item| item.id().to_string()).unwrap_or_else(|| "powershell-exec".to_string())
         ));
 
         let probe_started = Instant::now();
@@ -9751,14 +9852,16 @@ pub fn start_codex_with_args(codex_home: &str, extra_args: &[String]) -> Result<
                 child.id()
             ));
             Ok(child.id())
-        } else if let Some(pid) = resolve_codex_pid(None, None) {
-            crate::modules::logger::log_warn(&format!(
-                "[Codex Start] Windows Store fallback 启动后未匹配到 CODEX_HOME，回退 Codex pid={}",
-                pid
-            ));
-            Ok(pid)
         } else {
-            Err("启动 Codex 失败: Store fallback 已调用但 15s 内未检测到 Codex 进程".to_string())
+            let error = codex_managed_store_launch_unsafe_error(
+                "WindowsApps direct launch denied",
+                "PowerShell exec returned success but no managed instance matched within 15s",
+            );
+            crate::modules::logger::log_warn(&format!(
+                "[Codex Start] PowerShell exec did not produce a matching managed instance; default PID fallback blocked: codex_home={}",
+                summarize_text_for_process_log(codex_home_trimmed, 96)
+            ));
+            Err(error)
         }
     }
 
@@ -9800,11 +9903,10 @@ fn start_codex_default_internal(
 
     #[cfg(target_os = "macos")]
     {
-        let app_root = resolve_macos_app_root_from_config("codex").or_else(|| {
-            resolve_codex_launch_path()
-                .ok()
-                .and_then(|p| resolve_macos_app_root_from_launch_path(&p))
-        });
+        let app_root = resolve_codex_launch_path()
+            .ok()
+            .and_then(|p| resolve_macos_app_root_from_launch_path(&p))
+            .or_else(|| resolve_macos_app_root_from_config("codex"));
         let app_root = app_root.ok_or_else(|| app_path_missing_error("codex"))?;
 
         let args = build_codex_default_launch_args(extra_args);
@@ -9822,10 +9924,13 @@ fn start_codex_default_internal(
             thread::sleep(Duration::from_millis(200));
         }
         crate::modules::logger::log_warn(&format!(
-            "[Codex Start] 启动后 6s 内未匹配到默认实例 PID，回退 open pid={}",
+            "[Codex Start] 启动后 6s 内未匹配到默认实例真实 PID，open launcher pid={} 不会写入实例状态",
             open_pid
         ));
-        return Ok(open_pid);
+        return Err(format!(
+            "Codex 默认实例启动超时，未找到真实主进程（open launcher pid={}）",
+            open_pid
+        ));
     }
 
     #[cfg(target_os = "windows")]
@@ -12968,7 +13073,10 @@ mod codex_macos_launch_tests {
 
 #[cfg(test)]
 mod codex_launch_args_tests {
-    use super::build_codex_app_launch_args;
+    use super::{
+        build_codex_app_launch_args, codex_managed_store_launch_unsafe_error,
+        CODEX_MANAGED_STORE_LAUNCH_UNSAFE_PREFIX,
+    };
 
     #[test]
     fn keeps_user_launch_args_without_adding_remote_debugging() {
@@ -12985,10 +13093,18 @@ mod codex_launch_args_tests {
             ]
         );
     }
+
+    #[test]
+    fn managed_store_launch_error_is_machine_readable_and_keeps_causes() {
+        let error = codex_managed_store_launch_unsafe_error("denied", "fallback failed");
+        assert!(error.starts_with(CODEX_MANAGED_STORE_LAUNCH_UNSAFE_PREFIX));
+        assert!(error.contains("direct_error=denied"));
+        assert!(error.contains("powershell_error=fallback failed"));
+    }
 }
 
 #[cfg(test)]
-mod codex_windows_path_migration_tests {
+mod codex_path_migration_tests {
     use super::{
         is_codex_embedded_backend_executable, score_windows_candidate,
         should_migrate_legacy_codex_launch_path,
@@ -13027,6 +13143,34 @@ mod codex_windows_path_migration_tests {
             Path::new(
                 r"C:\Program Files\WindowsApps\OpenAI.ChatGPT_2.0.0.0_x64__8wekyb3d8bbwe\app\ChatGPT.exe"
             ),
+        ));
+    }
+
+    #[test]
+    fn migrates_official_macos_codex_path_when_chatgpt_exists() {
+        assert!(should_migrate_legacy_codex_launch_path(
+            Path::new("/Applications/Codex.app"),
+            Path::new("/Applications/ChatGPT.app/Contents/MacOS/ChatGPT"),
+        ));
+        assert!(should_migrate_legacy_codex_launch_path(
+            Path::new("/Applications/Codex.app/Contents/MacOS/Codex"),
+            Path::new("/Applications/ChatGPT.app"),
+        ));
+    }
+
+    #[test]
+    fn keeps_macos_legacy_path_when_chatgpt_is_not_detected() {
+        assert!(!should_migrate_legacy_codex_launch_path(
+            Path::new("/Applications/Codex.app"),
+            Path::new("/Applications/Codex.app/Contents/MacOS/Codex"),
+        ));
+    }
+
+    #[test]
+    fn does_not_replace_custom_macos_codex_path() {
+        assert!(!should_migrate_legacy_codex_launch_path(
+            Path::new("/Users/test/Applications/Codex.app"),
+            Path::new("/Applications/ChatGPT.app/Contents/MacOS/ChatGPT"),
         ));
     }
 
