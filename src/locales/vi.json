@@ -591,7 +591,7 @@
       "themeDark": "Tối (Dark)",
       "themeSystem": "Theo hệ thống",
       "uiScale": "Tỷ lệ giao diện",
-      "uiScaleDesc": "Điều chỉnh tỷ lệ giao diện",
+      "uiScaleDesc": "Điều chỉnh tỷ lệ giao diện (⌘+/⌘- hoặc Ctrl+/Ctrl-, ⌘0/Ctrl+0 đặt lại)",
       "accountManagement": "Quản lý tài khoản",
       "autoRefresh": "Tự động làm mới hạn mức Antigravity IDE",
       "codexAutoRefresh": "Tự động làm mới hạn mức Codex",
@@ -1195,7 +1195,11 @@
         "tooMany": "Bạn chỉ có thể thêm tối đa {{max}} thẻ"
       },
       "notesLabel": "Ghi chú",
-      "notesPlaceholder": "Nhập ghi chú. Để trống để xóa"
+      "notesPlaceholder": "Nhập ghi chú. Để trống để xóa",
+      "confirmGlobalDelete": "Xóa thẻ \"{{targetTag}}\" khỏi tất cả tài khoản? Thao tác này không thể hoàn tác.",
+      "globalDeleteHint": "Xóa thẻ này trên toàn cục",
+      "globalDeleteFailed": "Xóa thẻ toàn cục thất bại",
+      "globalRenameHint": "Đổi tên thẻ này trên toàn cục"
     },
     "groupByTag": "Nhóm theo thẻ",
     "untagged": "Chưa gắn thẻ",
@@ -3484,7 +3488,10 @@
       "checkAccounts": "Kiểm tra tài khoản",
       "importAndAddToApiService": "Nhập + API",
       "importAndAddToApiServiceSuccess": "Đã nhập và thêm vào dịch vụ API",
-      "addToApiServiceFailed": "Đã nhập nhưng việc thêm vào dịch vụ API không thành công: {{error}}"
+      "addToApiServiceFailed": "Đã nhập nhưng việc thêm vào dịch vụ API không thành công: {{error}}",
+      "cancelAndDismiss": "Hủy và bỏ",
+      "bulkTagsLabel": "Gắn thẻ sau nhập",
+      "bulkTagsPlaceholder": "Tuỳ chọn; cách nhau bằng dấu phẩy/khoảng trắng"
     },
     "autoRepairMode": {
       "label": "Logic tự sửa",
@@ -3530,7 +3537,10 @@
       "chipTags": "Thẻ",
       "chipSearch": "Tìm",
       "chipPlan": "Gói",
-      "chipFolder": "Thư mục"
+      "chipFolder": "Thư mục",
+      "authError": "Auth lỗi",
+      "zeroQuota": "Hạn mức 0%",
+      "expired": "Hết hạn"
     },
     "accessTokenImport": {
       "nameRequired": "Nhập tên tài khoản",
@@ -3596,7 +3606,9 @@
       "serverListLead": "Chọn mục tiêu đồng bộ hóa",
       "serverCount": "{{count}} máy chủ",
       "autoSyncBadge": "Tự động"
-    }
+    },
+    "exportAuthFailed": "Xuất lỗi",
+    "exportAuthFailedTitle": "Xuất tất cả tài khoản auth lỗi"
   },
   "githubCopilot": {
     "title": "Quản lý tài khoản GitHub Copilot",

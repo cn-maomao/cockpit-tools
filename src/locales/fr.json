@@ -588,7 +588,7 @@
       "themeDark": "Sombre",
       "themeSystem": "Système",
       "uiScale": "Échelle de l'interface",
-      "uiScaleDesc": "Ajuster l'échelle de l'interface",
+      "uiScaleDesc": "Ajuster l’échelle de l’interface (⌘+/⌘- ou Ctrl+/Ctrl-, ⌘0/Ctrl+0 réinitialiser)",
       "accountManagement": "Gestion des comptes",
       "autoRefresh": "Actualisation automatique du quota Antigravity IDE",
       "codexAutoRefresh": "Actualisation automatique du quota Codex",
@@ -1195,7 +1195,11 @@
         "tooMany": "Vous pouvez ajouter jusqu'à {{max}} tags"
       },
       "notesLabel": "Notes​",
-      "notesPlaceholder": "Saisissez une note. Laissez vide pour effacer"
+      "notesPlaceholder": "Saisissez une note. Laissez vide pour effacer",
+      "confirmGlobalDelete": "Supprimer le tag « {{targetTag}} » de tous les comptes ? Cette action est irréversible.",
+      "globalDeleteHint": "Supprimer ce tag globalement",
+      "globalDeleteFailed": "Échec de la suppression globale du tag",
+      "globalRenameHint": "Renommer ce tag globalement"
     },
     "groupByTag": "Grouper par tag",
     "untagged": "Sans tag",
@@ -3484,7 +3488,10 @@
       "checkAccounts": "Chèques comptes",
       "importAndAddToApiService": "Importation + API",
       "importAndAddToApiServiceSuccess": "Importé et ajouté au service API",
-      "addToApiServiceFailed": "Importé, mais l'ajout au service API a échoué : {{error}}"
+      "addToApiServiceFailed": "Importé, mais l'ajout au service API a échoué : {{error}}",
+      "cancelAndDismiss": "Annuler et ignorer",
+      "bulkTagsLabel": "Tags après import",
+      "bulkTagsPlaceholder": "Facultatif ; tags séparés par virgule/espace"
     },
     "autoRepairMode": {
       "label": "Logique auto",
@@ -3530,7 +3537,10 @@
       "chipTags": "Étiquettes",
       "chipSearch": "Recherche",
       "chipPlan": "Offre",
-      "chipFolder": "Dossier"
+      "chipFolder": "Dossier",
+      "authError": "Échec d’auth",
+      "zeroQuota": "Quota 0%",
+      "expired": "Expiré"
     },
     "accessTokenImport": {
       "nameRequired": "Saisir un nom de compte",
@@ -3596,7 +3606,9 @@
       "serverListLead": "Choisir la cible de synchronisation",
       "serverCount": "{{count}} serveurs",
       "autoSyncBadge": "Automatique"
-    }
+    },
+    "exportAuthFailed": "Exporter échecs",
+    "exportAuthFailedTitle": "Exporter tous les comptes en échec d’auth"
   },
   "githubCopilot": {
     "title": "Gestion des comptes GitHub Copilot",

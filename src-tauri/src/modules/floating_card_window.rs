@@ -8,7 +8,7 @@ use tauri::{
     Window,
 };
 
-use crate::modules::{config, i18n, logger, process_memory};
+use crate::modules::{config, i18n, logger, main_window_state, process_memory};
 
 pub const FLOATING_CARD_WINDOW_LABEL: &str = "floating-card";
 pub const INSTANCE_FLOATING_CARD_WINDOW_LABEL_PREFIX: &str = "instance-floating-card-";
@@ -458,6 +458,8 @@ fn clone_main_window_config(
     let mut config = main_window_config(app)?.clone();
     config.create = false;
     config.visible = false;
+    // Restore last size/position when recreating after tray destroy (#948 / #1132).
+    main_window_state::apply_state_to_window_config(&mut config);
     Ok(config)
 }
 
@@ -511,6 +513,9 @@ fn ensure_main_window<R: Runtime>(app: &AppHandle<R>) -> Result<(WebviewWindow<R
             )
         })?;
 
+    // Builder already got size from config; re-apply for maximized / DPI edge cases.
+    main_window_state::restore_to_window(&window);
+
     logger::log_info("[Window] WebView 主窗口已重新创建");
     Ok((window, true))
 }
@@ -542,6 +547,8 @@ pub fn should_keep_alive_after_main_window_destroyed() -> bool {
 /// Destroy the main WebView when minimizing to tray (community #686 full behavior).
 /// Backend, tray, and background services stay alive; reopen recreates the window.
 pub fn destroy_main_window_to_tray<R: Runtime>(window: &Window<R>) -> Result<(), String> {
+    // Persist size before destroy so tray reopen can restore geometry (#948 / #1132).
+    main_window_state::capture_and_save_from_window_handle(window);
     MAIN_WINDOW_DESTROYED_TO_TRAY.store(true, Ordering::SeqCst);
     if let Err(err) = window.destroy() {
         MAIN_WINDOW_DESTROYED_TO_TRAY.store(false, Ordering::SeqCst);

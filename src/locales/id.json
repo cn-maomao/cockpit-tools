@@ -639,7 +639,7 @@
       "themeDark": "Gelap",
       "themeSystem": "Sistem",
       "uiScale": "Skala Antarmuka",
-      "uiScaleDesc": "Sesuaikan skala antarmuka",
+      "uiScaleDesc": "Sesuaikan skala antarmuka (⌘+/⌘- atau Ctrl+/Ctrl-, ⌘0/Ctrl+0 reset)",
       "accountManagement": "Akun",
       "autoRefresh": "Penyegaran Otomatis Kuota Antigravity IDE",
       "codexAutoRefresh": "Penyegaran Otomatis Kuota Codex",
@@ -1242,7 +1242,11 @@
         "tooMany": "Anda dapat menambahkan maksimal {{max}} tag"
       },
       "notesLabel": "Catatan",
-      "notesPlaceholder": "Masukkan catatan. Kosongkan untuk menghapus"
+      "notesPlaceholder": "Masukkan catatan. Kosongkan untuk menghapus",
+      "confirmGlobalDelete": "Hapus tag \"{{targetTag}}\" dari semua akun? Tindakan ini tidak dapat dibatalkan.",
+      "globalDeleteHint": "Hapus tag ini secara global",
+      "globalDeleteFailed": "Gagal menghapus tag secara global",
+      "globalRenameHint": "Ganti nama tag ini secara global"
     },
     "groupByTag": "Kelompokkan berdasarkan tag",
     "untagged": "Tanpa Tag",
@@ -3531,7 +3535,10 @@
       "checkAccounts": "Periksa akun",
       "importAndAddToApiService": "Impor + API",
       "importAndAddToApiServiceSuccess": "Diimpor dan ditambahkan ke layanan API",
-      "addToApiServiceFailed": "Diimpor, tetapi penambahan ke layanan API gagal: {{error}}"
+      "addToApiServiceFailed": "Diimpor, tetapi penambahan ke layanan API gagal: {{error}}",
+      "cancelAndDismiss": "Batalkan dan buang",
+      "bulkTagsLabel": "Tag setelah impor",
+      "bulkTagsPlaceholder": "Opsional; pisahkan dengan koma atau spasi"
     },
     "autoRepairMode": {
       "label": "Logika perbaikan otomatis",
@@ -3577,7 +3584,10 @@
       "chipTags": "Tag",
       "chipSearch": "Cari",
       "chipPlan": "Paket",
-      "chipFolder": "Direktori"
+      "chipFolder": "Direktori",
+      "authError": "Auth gagal",
+      "zeroQuota": "Kuota 0%",
+      "expired": "Kedaluwarsa"
     },
     "accessTokenImport": {
       "nameRequired": "Masukkan nama akun",
@@ -3643,7 +3653,9 @@
       "serverListLead": "Pilih target sinkronisasi",
       "serverCount": "{{count}} server",
       "autoSyncBadge": "Mobil"
-    }
+    },
+    "exportAuthFailed": "Ekspor gagal",
+    "exportAuthFailedTitle": "Ekspor semua akun auth gagal"
   },
   "codebuddy": {
     "title": "Akun CodeBuddy",

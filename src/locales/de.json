@@ -591,7 +591,7 @@
       "themeDark": "Dunkel",
       "themeSystem": "System​",
       "uiScale": "UI-Skalierung",
-      "uiScaleDesc": "UI-Skalierung anpassen",
+      "uiScaleDesc": "Oberflächenzoom anpassen (⌘+/⌘- oder Strg+/Strg-, ⌘0/Strg+0 zurücksetzen)",
       "accountManagement": "Kontoverwaltung",
       "autoRefresh": "Antigravity IDE-Quote automatisch aktualisieren",
       "codexAutoRefresh": "Codex-Quote automatisch aktualisieren",
@@ -1195,7 +1195,11 @@
         "tooMany": "Sie können bis zu {{max}} Tags hinzufügen"
       },
       "notesLabel": "Notiz",
-      "notesPlaceholder": "Notiz eingeben. Leer lassen, um sie zu löschen"
+      "notesPlaceholder": "Notiz eingeben. Leer lassen, um sie zu löschen",
+      "confirmGlobalDelete": "Tag \"{{targetTag}}\" von allen Konten entfernen? Dies kann nicht rückgängig gemacht werden.",
+      "globalDeleteHint": "Tag global löschen",
+      "globalDeleteFailed": "Globales Löschen des Tags fehlgeschlagen",
+      "globalRenameHint": "Tag global umbenennen"
     },
     "groupByTag": "Nach Tag gruppieren",
     "untagged": "Ohne Tag",
@@ -3484,7 +3488,10 @@
       "checkAccounts": "Konten prüfen",
       "importAndAddToApiService": "Importieren + API",
       "importAndAddToApiServiceSuccess": "Importiert und zum API-Dienst hinzugefügt",
-      "addToApiServiceFailed": "Importiert, aber das Hinzufügen zum API-Dienst ist fehlgeschlagen: {{error}}"
+      "addToApiServiceFailed": "Importiert, aber das Hinzufügen zum API-Dienst ist fehlgeschlagen: {{error}}",
+      "cancelAndDismiss": "Abbrechen und verwerfen",
+      "bulkTagsLabel": "Tags nach Import",
+      "bulkTagsPlaceholder": "Optional; Tags mit Komma oder Leerzeichen"
     },
     "autoRepairMode": {
       "label": "Auto-Reparaturlogik",
@@ -3530,7 +3537,10 @@
       "chipTags": "Schlagworte",
       "chipSearch": "Suche",
       "chipPlan": "Tarif",
-      "chipFolder": "Ordner"
+      "chipFolder": "Ordner",
+      "authError": "Auth fehlgeschlagen",
+      "zeroQuota": "0% Kontingent",
+      "expired": "Abgelaufen"
     },
     "accessTokenImport": {
       "nameRequired": "Kontonamen eingeben",
@@ -3596,7 +3606,9 @@
       "serverListLead": "Wählen Sie das Synchronisierungsziel aus",
       "serverCount": "{{count}} Server",
       "autoSyncBadge": "Automatisch"
-    }
+    },
+    "exportAuthFailed": "Fehler export.",
+    "exportAuthFailedTitle": "Alle Auth-Fehler-Konten exportieren"
   },
   "githubCopilot": {
     "title": "GitHub Copilot-Konten verwalten",

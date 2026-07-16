@@ -591,7 +591,7 @@
       "themeDark": "ダーク",
       "themeSystem": "システム設定に従う",
       "uiScale": "UIスケール",
-      "uiScaleDesc": "インターフェースの表示倍率を調整",
+      "uiScaleDesc": "画面の拡大率を調整（⌘+/⌘- または Ctrl+/Ctrl-、⌘0/Ctrl+0 でリセット）",
       "accountManagement": "アカウント管理",
       "autoRefresh": "Antigravity IDE 自動更新クォータ",
       "codexAutoRefresh": "Codex 自動更新クォータ",
@@ -1195,7 +1195,11 @@
         "tooMany": "タグは最大{{max}}件まで追加できます"
       },
       "notesLabel": "メモ",
-      "notesPlaceholder": "メモを入力。空欄でクリア"
+      "notesPlaceholder": "メモを入力。空欄でクリア",
+      "confirmGlobalDelete": "タグ「{{targetTag}}」をすべてのアカウントから削除しますか？この操作は元に戻せません。",
+      "globalDeleteHint": "このタグを全体削除",
+      "globalDeleteFailed": "タグの全体削除に失敗しました",
+      "globalRenameHint": "このタグを全体で名前変更"
     },
     "groupByTag": "タグでグループ化",
     "untagged": "タグなし",
@@ -3484,7 +3488,10 @@
       "checkAccounts": "小切手口座",
       "importAndAddToApiService": "インポート + API",
       "importAndAddToApiServiceSuccess": "インポートされ、API サービスに追加されました",
-      "addToApiServiceFailed": "インポートされましたが、API サービスへの追加に失敗しました: {{error}}"
+      "addToApiServiceFailed": "インポートされましたが、API サービスへの追加に失敗しました: {{error}}",
+      "cancelAndDismiss": "キャンセルして破棄",
+      "bulkTagsLabel": "取込後にタグ",
+      "bulkTagsPlaceholder": "任意。タグはカンマまたはスペース区切り"
     },
     "autoRepairMode": {
       "label": "自動修復ロジック",
@@ -3530,7 +3537,10 @@
       "chipTags": "タグ",
       "chipSearch": "検索",
       "chipPlan": "プラン",
-      "chipFolder": "フォルダ"
+      "chipFolder": "フォルダ",
+      "authError": "認証失敗",
+      "zeroQuota": "0% 枠",
+      "expired": "期限切れ"
     },
     "accessTokenImport": {
       "nameRequired": "アカウント名を入力",
@@ -3596,7 +3606,9 @@
       "serverListLead": "同期ターゲットを選択",
       "serverCount": "{{count}} 台",
       "autoSyncBadge": "自動"
-    }
+    },
+    "exportAuthFailed": "失敗を書き出し",
+    "exportAuthFailedTitle": "認証失敗アカウントをすべて書き出す"
   },
   "githubCopilot": {
     "title": "GitHub Copilot アカウント管理",

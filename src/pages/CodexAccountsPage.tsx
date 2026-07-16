@@ -139,16 +139,6 @@ import {
 } from "../components/CodexOverviewTabsHeader";
 import { CodexInstancesContent } from "./CodexInstancesPage";
 import { CodexSessionManager } from "../components/codex/CodexSessionManager";
-import { useCodexBatchImportTaskStore } from "../stores/useCodexBatchImportTaskStore";
-import {
-  buildCodexBatchImportApiServiceAccountIds,
-  findNextCodexBatchImportTaskId,
-  getCodexBatchImportProgressPercent,
-  getCodexBatchImportProgressTone,
-  mergeCodexBatchImportDefaultSelection,
-  recoverCodexBatchImportStartedTaskFromPreview,
-  type CodexBatchImportQueueTaskStatus,
-} from "../utils/codexBatchImportQueue";
 import {
   CodexWakeupContent,
   type CodexWakeupTestOpenRequest,
@@ -204,6 +194,8 @@ import {
   filterAndSortCodexOverviewAccounts,
   incrementCodexPlanFilterCount,
   isCodexOverviewAccountAbnormal,
+  isCodexOverviewAccountSubscriptionExpired,
+  isCodexOverviewAccountZeroQuota,
   readCodexCustomSortActive,
   readCodexCustomSortOrder,
   writeCodexCustomSortActive,
@@ -477,6 +469,7 @@ function formatCodexAccountNoteMailPreviewTime(timestamp: number): string {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
+    hour12: false,
   }).format(date);
 }
 
@@ -596,20 +589,6 @@ const CODEX_BATCH_IMPORT_SESSION_STORAGE_KEY =
   "cockpit.codex.batchImport.sessionId";
 
 type CodexBatchImportFilter = "all" | "ready";
-
-type CodexBatchImportTask = {
-  id: string;
-  filePaths: string[];
-  sessionId: string | null;
-  status: CodexBatchImportQueueTaskStatus;
-  checkQuota: boolean;
-  progress: codexService.CodexBatchImportProgress | null;
-  preview: codexService.CodexBatchImportPreview | null;
-  selectedIds: string[];
-  filter: CodexBatchImportFilter;
-  error: string | null;
-  result: codexService.CodexBatchImportConfirmResult | null;
-};
 
 function shouldAutoHideBatchDeleteJob(
   job: CodexBatchDeleteJobStatus | null,
@@ -1337,6 +1316,7 @@ export function CodexAccountsPage() {
           "",
         )
       : "",
+    // Prefer custom sort whenever the dedicated flag is set (#1123).
     defaultSortBy: readCodexCustomSortActive() ? "custom" : undefined,
     onExternalImportCompleted: handleExternalImportedAccounts,
   });
@@ -1459,20 +1439,36 @@ export function CodexAccountsPage() {
   const pendingOAuthHasNoteDetails =
     hasCodexAccountNoteFormDetails(pendingOAuthNoteForm);
   const [batchImportOpen, setBatchImportOpen] = useState(false);
-  const [activeBatchImportTaskId, setActiveBatchImportTaskId] = useState<
+  const [batchImportSessionId, setBatchImportSessionId] = useState<
     string | null
   >(null);
-  const [batchImportTasks, setBatchImportTasks] = useState<
-    CodexBatchImportTask[]
+  const [batchImportProgress, setBatchImportProgress] =
+    useState<codexService.CodexBatchImportProgress | null>(null);
+  const [batchImportPreview, setBatchImportPreview] =
+    useState<codexService.CodexBatchImportPreview | null>(null);
+  const [batchImportSelectedIds, setBatchImportSelectedIds] = useState<
+    string[]
   >([]);
-  const batchImportTaskCounterRef = useRef(0);
-  const batchImportStartingTaskIdRef = useRef<string | null>(null);
+  const [batchImportFilter, setBatchImportFilter] = useState<
+    CodexBatchImportFilter
+  >("all");
+  const [batchImportBusy, setBatchImportBusy] = useState(false);
+  const [batchImportError, setBatchImportError] = useState<string | null>(null);
+  const [batchImportResult, setBatchImportResult] =
+    useState<codexService.CodexBatchImportConfirmResult | null>(null);
+  const [batchImportFilePaths, setBatchImportFilePaths] = useState<string[]>(
+    [],
+  );
+  const [batchImportCheckQuota, setBatchImportCheckQuota] = useState(false);
+  const [batchImportTagsInput, setBatchImportTagsInput] = useState("");
   const [batchDeleteJob, setBatchDeleteJob] =
     useState<CodexBatchDeleteJobStatus | null>(null);
   const [batchDeleteBusy, setBatchDeleteBusy] = useState(false);
   const [batchDeleteModalError, setBatchDeleteModalError] = useState<
     string | null
   >(null);
+  const batchImportUnlistenersRef = useRef<UnlistenFn[]>([]);
+  const batchImportSessionIdRef = useRef<string | null>(null);
   const batchDeleteRemoveIdsRef = useRef<Set<string>>(new Set());
   const codexAccountsRef = useRef<CodexAccount[]>(store.accounts);
   const codexCurrentAccountRef = useRef<CodexAccount | null>(
@@ -1513,88 +1509,20 @@ export function CodexAccountsPage() {
   ]);
 
   useEffect(() => {
-    if (!deleteConfirm) {
-      setBatchDeleteModalError(null);
-    }
-  }, [deleteConfirm]);
-
-  useEffect(() => {
-    if (!batchDeleteJob || batchDeleteJob.status !== "running") {
-      return;
-    }
-    let disposed = false;
-    const refreshJob = async () => {
-      try {
-        const next = await codexService.getCodexBatchDelete(
-          batchDeleteJob.jobId,
-        );
-        if (disposed) return;
-        if (next.status !== "running") {
-          await refreshAccountsAfterBatchDelete();
-          if (disposed) return;
-          if (shouldAutoHideBatchDeleteJob(next)) {
-            try {
-              await codexService.clearCodexBatchDelete(next.jobId);
-            } catch (clearError) {
-              console.warn(
-                "[Codex Batch Delete] 自动清理已完成任务失败:",
-                clearError,
-              );
-            }
-            if (!disposed) {
-              setBatchDeleteJob(null);
-            }
-            return;
-          }
-        }
-        setBatchDeleteJob(next);
-      } catch (error) {
-        if (disposed) return;
-        setMessage({
-          text: t("codex.batchDelete.pollFailed", {
-            error: String(error),
-          }),
-          tone: "error",
-        });
-      }
-    };
-    const timer = window.setInterval(() => {
-      void refreshJob();
-    }, 1000);
-    void refreshJob();
-    return () => {
-      disposed = true;
-      window.clearInterval(timer);
-    };
-  }, [
-    batchDeleteJob?.jobId,
-    batchDeleteJob?.status,
-    refreshAccountsAfterBatchDelete,
-    setMessage,
-    t,
-  ]);
-
-  useEffect(() => {
-    if (!shouldAutoHideBatchDeleteJob(batchDeleteJob)) {
-      return;
-    }
-    const completedJob = batchDeleteJob;
+    if (!shouldAutoHideBatchDeleteJob(batchDeleteJob)) return;
     let disposed = false;
     const clearCompletedJob = async () => {
       try {
-        await refreshAccountsAfterBatchDelete();
-        if (disposed) return;
-        await codexService.clearCodexBatchDelete(completedJob.jobId);
-      } catch (error) {
-        console.warn(
-          "[Codex Batch Delete] 自动清理已完成任务失败:",
-          error,
-        );
-      } finally {
-        if (!disposed) {
-          setBatchDeleteJob(null);
-        }
+        await invoke("clear_codex_batch_delete_job", {
+          jobId: batchDeleteJob.jobId,
+        });
+      } catch {
+        // ignore cleanup failures
       }
+      if (disposed) return;
+      batchDeleteRemoveIdsRef.current = new Set();
+      setBatchDeleteJob(null);
+      await refreshAccountsAfterBatchDelete();
     };
     void clearCompletedJob();
     return () => {
@@ -1602,318 +1530,41 @@ export function CodexAccountsPage() {
     };
   }, [batchDeleteJob, refreshAccountsAfterBatchDelete]);
 
-  const activeBatchImportTask = useMemo(
-    () =>
-      batchImportTasks.find((task) => task.id === activeBatchImportTaskId) ??
-      null,
-    [activeBatchImportTaskId, batchImportTasks],
-  );
-  const batchImportSessionId = activeBatchImportTask?.sessionId ?? null;
-  const batchImportProgress = activeBatchImportTask?.progress ?? null;
-  const batchImportPreview = activeBatchImportTask?.preview ?? null;
-  const batchImportSelectedIds = activeBatchImportTask?.selectedIds ?? [];
-  const batchImportFilter = activeBatchImportTask?.filter ?? "all";
-  const batchImportError = activeBatchImportTask?.error ?? null;
-  const batchImportResult = activeBatchImportTask?.result ?? null;
-  const batchImportCheckQuota = activeBatchImportTask?.checkQuota ?? false;
-  const batchImportBusy =
-    activeBatchImportTask?.status === "queued" ||
-    activeBatchImportTask?.status === "running" ||
-    activeBatchImportTask?.status === "importing";
-  const activeBatchImportProgressPercent = activeBatchImportTask
-    ? getCodexBatchImportProgressPercent(activeBatchImportTask)
-    : 0;
-
-  const enqueueBatchImportTask = useCallback(
-    (paths: string[], checkQuota: boolean, openModal: boolean) => {
-      const id = `codex-batch-import-${Date.now()}-${++batchImportTaskCounterRef.current}`;
-      const task: CodexBatchImportTask = {
-        id,
-        filePaths: [...paths],
-        sessionId: null,
-        status: "queued",
-        checkQuota,
-        progress: null,
-        preview: null,
-        selectedIds: [],
-        filter: "all",
-        error: null,
-        result: null,
-      };
-      setBatchImportTasks((current) => [...current, task]);
-      setActiveBatchImportTaskId((current) => current ?? id);
-      if (openModal) {
-        setActiveBatchImportTaskId(id);
-        setBatchImportOpen(true);
+  const cleanupBatchImportListeners = useCallback(() => {
+    for (const unlisten of batchImportUnlistenersRef.current) {
+      try {
+        unlisten();
+      } catch {
+        // ignore listener cleanup failures
       }
-      return id;
-    },
-    [],
-  );
-
-  useEffect(() => {
-    if (
-      activeBatchImportTaskId &&
-      batchImportTasks.some((task) => task.id === activeBatchImportTaskId)
-    ) {
-      return;
     }
-    setActiveBatchImportTaskId(batchImportTasks[0]?.id ?? null);
-    if (batchImportTasks.length === 0) {
-      setBatchImportOpen(false);
-    }
-  }, [activeBatchImportTaskId, batchImportTasks]);
-
-  // Multi-session event listeners update tasks by sessionId (#1286).
-  useEffect(() => {
-    let mounted = true;
-    let unlisteners: UnlistenFn[] = [];
-
-    const register = async () => {
-      const progressUnlisten =
-        await listen<codexService.CodexBatchImportProgress>(
-          "codex:batch-import-progress",
-          (event) => {
-            setBatchImportTasks((current) =>
-              current.map((task) =>
-                task.sessionId === event.payload.sessionId
-                  ? {
-                      ...task,
-                      status:
-                        event.payload.phase === "importing"
-                          ? "importing"
-                          : "running",
-                      checkQuota: event.payload.checkQuota,
-                      progress: event.payload,
-                      error: null,
-                    }
-                  : task,
-              ),
-            );
-          },
-        );
-      const previewUnlisten =
-        await listen<codexService.CodexBatchImportPreview>(
-          "codex:batch-import-preview",
-          (event) => {
-            setBatchImportTasks((current) =>
-              current.map((task) =>
-                task.sessionId === event.payload.sessionId
-                  ? {
-                      ...task,
-                      checkQuota: event.payload.checkQuota,
-                      preview: event.payload,
-                      selectedIds: mergeCodexBatchImportDefaultSelection(
-                        task.selectedIds,
-                        event.payload.items,
-                      ),
-                    }
-                  : task,
-              ),
-            );
-          },
-        );
-      const completedUnlisten =
-        await listen<codexService.CodexBatchImportPreview>(
-          "codex:batch-import-completed",
-          (event) => {
-            setBatchImportTasks((current) =>
-              current.map((task) =>
-                task.sessionId === event.payload.sessionId
-                  ? {
-                      ...task,
-                      status:
-                        event.payload.status === "cancelled"
-                          ? "cancelled"
-                          : "ready",
-                      checkQuota: event.payload.checkQuota,
-                      preview: event.payload,
-                      progress: task.progress
-                        ? {
-                            ...task.progress,
-                            phase: event.payload.status,
-                            checkQuota: event.payload.checkQuota,
-                            current: event.payload.items.length,
-                            total: event.payload.total,
-                          }
-                        : task.progress,
-                      selectedIds: mergeCodexBatchImportDefaultSelection(
-                        task.selectedIds,
-                        event.payload.items,
-                      ),
-                    }
-                  : task,
-              ),
-            );
-          },
-        );
-
-      const nextUnlisteners = [
-        progressUnlisten,
-        previewUnlisten,
-        completedUnlisten,
-      ];
-      if (!mounted) {
-        nextUnlisteners.forEach((unlisten) => unlisten());
-        return;
-      }
-      unlisteners = nextUnlisteners;
-    };
-
-    void register();
-
-    return () => {
-      mounted = false;
-      unlisteners.forEach((unlisten) => unlisten());
-    };
+    batchImportUnlistenersRef.current = [];
   }, []);
 
-  // Auto-start next queued task when no scan/import is busy (#1286).
-  useEffect(() => {
-    const nextTaskId = findNextCodexBatchImportTaskId(batchImportTasks);
-    if (!nextTaskId || batchImportStartingTaskIdRef.current) {
-      return;
-    }
-    const task = batchImportTasks.find((item) => item.id === nextTaskId);
-    if (!task) return;
+  useEffect(() => cleanupBatchImportListeners, [cleanupBatchImportListeners]);
 
-    batchImportStartingTaskIdRef.current = nextTaskId;
-    setBatchImportTasks((current) =>
-      current.map((item) =>
-        item.id === nextTaskId
-          ? {
-              ...item,
-              status: "running",
-              sessionId: null,
-              progress: null,
-              preview: null,
-              selectedIds: [],
-              filter: "all",
-              error: null,
-              result: null,
-            }
-          : item,
-      ),
-    );
-
-    void codexService
-      .startCodexBatchImportFromFiles(task.filePaths, task.checkQuota)
-      .then(async (started) => {
-        setBatchImportTasks((current) =>
-          current.map((item) =>
-            item.id === nextTaskId
-              ? { ...item, sessionId: started.sessionId }
-              : item,
-          ),
-        );
-        try {
-          localStorage.setItem(
-            CODEX_BATCH_IMPORT_SESSION_STORAGE_KEY,
-            started.sessionId,
-          );
-        } catch {
-          // ignore storage failures
-        }
-        const preview = await codexService.getCodexBatchImportPreview(
-          started.sessionId,
-        );
-        setBatchImportTasks((current) =>
-          current.map((item) =>
-            item.id === nextTaskId
-              ? recoverCodexBatchImportStartedTaskFromPreview(
-                  item,
-                  started.sessionId,
-                  preview,
-                )
-              : item,
-          ),
-        );
-      })
-      .catch((error) => {
-        setBatchImportTasks((current) =>
-          current.map((item) =>
-            item.id === nextTaskId
-              ? {
-                  ...item,
-                  status: "error",
-                  error: String(error).replace(/^Error:\s*/, ""),
-                }
-              : item,
-          ),
-        );
-      })
-      .finally(() => {
-        if (batchImportStartingTaskIdRef.current === nextTaskId) {
-          batchImportStartingTaskIdRef.current = null;
-        }
-      });
-  }, [batchImportTasks]);
-
-  // Mirror all multi-session jobs to the global strip store (#1286).
-  useEffect(() => {
-    const store = useCodexBatchImportTaskStore.getState();
-    if (batchImportTasks.length === 0) {
-      store.clearAll();
-      return;
+  const resetBatchImportState = useCallback(() => {
+    cleanupBatchImportListeners();
+    batchImportSessionIdRef.current = null;
+    setBatchImportOpen(false);
+    setBatchImportSessionId(null);
+    setBatchImportProgress(null);
+    setBatchImportPreview(null);
+    setBatchImportSelectedIds([]);
+    setBatchImportFilter("all");
+    setBatchImportBusy(false);
+    setBatchImportError(null);
+    setBatchImportResult(null);
+    setBatchImportFilePaths([]);
+    setBatchImportCheckQuota(false);
+    setBatchImportTagsInput("");
+    setBatchImportTargetGroupId(null);
+    try {
+      localStorage.removeItem(CODEX_BATCH_IMPORT_SESSION_STORAGE_KEY);
+    } catch {
+      // ignore storage failures
     }
-    const knownTaskIds = new Set(batchImportTasks.map((task) => task.id));
-    for (const existing of Object.keys(store.jobs)) {
-      if (!knownTaskIds.has(existing)) {
-        store.clear(existing);
-      }
-    }
-    for (const task of batchImportTasks) {
-      const sessionId = task.sessionId?.trim() || null;
-      store.publish({
-        taskId: task.id,
-        sessionId,
-        busy:
-          task.status === "queued" ||
-          task.status === "running" ||
-          task.status === "importing",
-        current: task.progress?.current ?? task.preview?.items.length ?? 0,
-        total: task.progress?.total ?? task.preview?.total ?? 0,
-        phase: task.progress?.phase ?? task.status,
-        checkQuota: task.checkQuota,
-        hasPreview: Boolean(task.preview),
-        hasResult: Boolean(task.result) || task.status === "imported",
-        open: batchImportOpen && task.id === activeBatchImportTaskId,
-      });
-    }
-  }, [activeBatchImportTaskId, batchImportOpen, batchImportTasks]);
-
-  const batchImportReopenNonce = useCodexBatchImportTaskStore(
-    (s) => s.reopenNonce,
-  );
-  const batchImportReopenTaskId = useCodexBatchImportTaskStore(
-    (s) => s.reopenTaskId,
-  );
-  const consumeBatchImportReopen = useCodexBatchImportTaskStore(
-    (s) => s.consumeReopen,
-  );
-  const handledBatchImportReopenNonceRef = useRef(0);
-  useEffect(() => {
-    if (
-      batchImportReopenNonce <= 0 ||
-      batchImportReopenNonce === handledBatchImportReopenNonceRef.current
-    ) {
-      return;
-    }
-    handledBatchImportReopenNonceRef.current = batchImportReopenNonce;
-    if (!batchImportReopenTaskId) return;
-    consumeBatchImportReopen();
-    const matched = batchImportTasks.find(
-      (task) => task.id === batchImportReopenTaskId,
-    );
-    if (!matched) return;
-    setActiveBatchImportTaskId(matched.id);
-    setBatchImportOpen(true);
-  }, [
-    batchImportReopenNonce,
-    batchImportReopenTaskId,
-    batchImportTasks,
-    consumeBatchImportReopen,
-  ]);
+  }, [cleanupBatchImportListeners]);
 
   useEffect(() => {
     let disposed = false;
@@ -1926,39 +1577,46 @@ export function CodexAccountsPage() {
       } catch {
         savedSessionId = null;
       }
-      if (!savedSessionId) {
+      if (!savedSessionId || batchImportSessionIdRef.current) {
         return;
       }
       try {
         const preview =
           await codexService.getCodexBatchImportPreview(savedSessionId);
         if (disposed) return;
-        const id = `codex-batch-import-restored-${Date.now()}`;
-        const status: CodexBatchImportQueueTaskStatus =
-          preview.status === "cancelled"
-            ? "cancelled"
-            : preview.status === "ready"
-              ? "ready"
-              : "running";
-        const task: CodexBatchImportTask = {
-          id,
-          filePaths: [],
-          sessionId: savedSessionId,
-          status,
-          checkQuota: preview.checkQuota,
-          progress: null,
-          preview,
-          selectedIds: mergeCodexBatchImportDefaultSelection([], preview.items),
-          filter: "all",
-          error: null,
-          result: null,
-        };
-        setBatchImportTasks((current) =>
-          current.some((item) => item.sessionId === savedSessionId)
-            ? current
-            : [...current, task],
+        // 无可导入项时丢弃残留任务，避免黄色任务条一直挂着（#1445）
+        const selectableCount = (preview.items ?? []).filter(
+          (item) => item.selectable && item.status !== "invalid",
+        ).length;
+        if (selectableCount === 0) {
+          batchImportSessionIdRef.current = null;
+          try {
+            localStorage.removeItem(CODEX_BATCH_IMPORT_SESSION_STORAGE_KEY);
+          } catch {
+            // ignore storage failures
+          }
+          try {
+            await codexService.cancelCodexBatchImport(savedSessionId);
+          } catch {
+            // session may already be gone
+          }
+          return;
+        }
+        batchImportSessionIdRef.current = savedSessionId;
+        setBatchImportSessionId(savedSessionId);
+        setBatchImportPreview(preview);
+        setBatchImportCheckQuota(preview.checkQuota);
+        setBatchImportBusy(false);
+        setBatchImportSelectedIds(
+          preview.items
+            .filter(
+              (item) =>
+                item.defaultSelected &&
+                item.selectable &&
+                (item.status === "ready" || item.status === "existing"),
+            )
+            .map((item) => item.itemId),
         );
-        setActiveBatchImportTaskId((current) => current ?? id);
       } catch {
         try {
           localStorage.removeItem(CODEX_BATCH_IMPORT_SESSION_STORAGE_KEY);
@@ -2020,15 +1678,12 @@ export function CodexAccountsPage() {
     batchImportProgress?.current ?? batchImportPreview?.items.length ?? 0;
   const batchImportProgressTotal =
     batchImportProgress?.total ?? batchImportPreview?.total ?? 0;
-  const batchImportCanCancel =
-    activeBatchImportTask?.status === "queued" ||
-    activeBatchImportTask?.status === "running" ||
-    (activeBatchImportTask?.status === "importing" &&
-      batchImportProgress?.phase !== "finalizing");
-  const batchImportCancelling =
-    (activeBatchImportTask?.status === "running" ||
-      activeBatchImportTask?.status === "importing") &&
-    batchImportProgress?.phase === "cancelling";
+  const batchImportProgressPercent = batchImportProgressTotal
+    ? Math.min(
+        100,
+        Math.round((batchImportProgressCurrent / batchImportProgressTotal) * 100),
+      )
+    : 0;
 
   const openCodexAddModal = useCallback(
     (tab: string, targetAccount?: CodexAccount | null) => {
@@ -5592,41 +5247,122 @@ export function CodexAccountsPage() {
     }
   };
 
-  const updateActiveBatchImportTask = (
-    updater: (task: CodexBatchImportTask) => CodexBatchImportTask,
+  const startBatchImportFromPaths = async (
+    paths: string[],
+    checkQuota: boolean,
   ) => {
-    if (!activeBatchImportTaskId) return;
-    setBatchImportTasks((current) =>
-      current.map((task) =>
-        task.id === activeBatchImportTaskId ? updater(task) : task,
-      ),
-    );
-  };
+    cleanupBatchImportListeners();
+    setBatchImportOpen(true);
+    setBatchImportSessionId(null);
+    setBatchImportProgress(null);
+    setBatchImportPreview(null);
+    setBatchImportSelectedIds([]);
+    setBatchImportFilter("all");
+    setBatchImportResult(null);
+    setBatchImportError(null);
+    setBatchImportFilePaths(paths);
+    setBatchImportCheckQuota(checkQuota);
+    setBatchImportBusy(true);
+    batchImportSessionIdRef.current = "__pending__";
 
-  const removeBatchImportTask = (taskId: string) => {
-    setBatchImportTasks((current) => {
-      const removed = current.find((task) => task.id === taskId);
-      const next = current.filter((task) => task.id !== taskId);
-      if (removed) {
-        useCodexBatchImportTaskStore.getState().clear(removed.id);
+    try {
+      const progressUnlisten =
+        await listen<codexService.CodexBatchImportProgress>(
+          "codex:batch-import-progress",
+          (event) => {
+            if (event.payload.sessionId !== batchImportSessionIdRef.current) {
+              return;
+            }
+            setBatchImportProgress(event.payload);
+            setBatchImportCheckQuota(event.payload.checkQuota);
+          },
+        );
+      const completedUnlisten =
+        await listen<codexService.CodexBatchImportPreview>(
+          "codex:batch-import-completed",
+          (event) => {
+            if (event.payload.sessionId !== batchImportSessionIdRef.current) {
+              return;
+            }
+            setBatchImportPreview(event.payload);
+            setBatchImportCheckQuota(event.payload.checkQuota);
+            setBatchImportProgress((current) =>
+              current
+                ? {
+                    ...current,
+                    phase: event.payload.status,
+                    checkQuota: event.payload.checkQuota,
+                    current: event.payload.items.length,
+                    total: event.payload.total,
+                  }
+                : current,
+            );
+            setBatchImportSelectedIds((prev) => {
+              const next = new Set(prev);
+              for (const item of event.payload.items) {
+                if (
+                  item.defaultSelected &&
+                  item.selectable &&
+                  (item.status === "ready" || item.status === "existing")
+                ) {
+                  next.add(item.itemId);
+                }
+              }
+              return Array.from(next);
+            });
+            setBatchImportBusy(false);
+          },
+        );
+      const previewUnlisten =
+        await listen<codexService.CodexBatchImportPreview>(
+          "codex:batch-import-preview",
+          (event) => {
+            if (event.payload.sessionId !== batchImportSessionIdRef.current) {
+              return;
+            }
+            setBatchImportPreview(event.payload);
+            setBatchImportCheckQuota(event.payload.checkQuota);
+            setBatchImportSelectedIds((prev) => {
+              const next = new Set(prev);
+              for (const item of event.payload.items) {
+                if (
+                  item.defaultSelected &&
+                  item.selectable &&
+                  (item.status === "ready" || item.status === "existing")
+                ) {
+                  next.add(item.itemId);
+                }
+              }
+              return Array.from(next);
+            });
+          },
+        );
+      batchImportUnlistenersRef.current = [
+        progressUnlisten,
+        previewUnlisten,
+        completedUnlisten,
+      ];
+
+      const started = await codexService.startCodexBatchImportFromFiles(
+        paths,
+        checkQuota,
+      );
+      batchImportSessionIdRef.current = started.sessionId;
+      setBatchImportSessionId(started.sessionId);
+      try {
+        localStorage.setItem(
+          CODEX_BATCH_IMPORT_SESSION_STORAGE_KEY,
+          started.sessionId,
+        );
+      } catch {
+        // ignore storage failures
       }
-      if (removed?.sessionId) {
-        try {
-          const saved = localStorage.getItem(
-            CODEX_BATCH_IMPORT_SESSION_STORAGE_KEY,
-          );
-          if (saved && saved === removed.sessionId) {
-            localStorage.removeItem(CODEX_BATCH_IMPORT_SESSION_STORAGE_KEY);
-          }
-        } catch {
-          // ignore storage failures
-        }
-      }
-      if (next.length === 0) {
-        setBatchImportTargetGroupId(null);
-      }
-      return next;
-    });
+    } catch (e) {
+      cleanupBatchImportListeners();
+      batchImportSessionIdRef.current = null;
+      setBatchImportBusy(false);
+      setBatchImportError(String(e).replace(/^Error:\s*/, ""));
+    }
   };
 
   const handleImportFromFiles = async () => {
@@ -5635,122 +5371,98 @@ export function CodexAccountsPage() {
         multiple: true,
         filters: [{ name: "JSON", extensions: ["json"] }],
       });
-      if (!selected || (Array.isArray(selected) && selected.length === 0))
+      if (!selected || (Array.isArray(selected) && selected.length === 0)) {
         return;
+      }
       const paths = Array.isArray(selected) ? selected : [selected];
       setBatchImportTargetGroupId(
         resolveValidCodexGroupId(codexAddTargetGroupId),
       );
       closeAddModal();
-      // Every file selection opens one unified batch-import dialog. The queue only
-      // schedules work and never decides whether this task should check quota.
-      enqueueBatchImportTask(paths, false, true);
+      // 1.3.0 交互：打开批量导入弹框，默认不检测；可选开启导入前检测。
+      await startBatchImportFromPaths(paths, false);
     } catch (e) {
-      setMessage({
-        text: String(e).replace(/^Error:\s*/, ""),
-        tone: "error",
-      });
+      setBatchImportBusy(false);
+      setBatchImportError(String(e).replace(/^Error:\s*/, ""));
     }
   };
 
   const handleBatchImportCheckQuotaChange = async (checkQuota: boolean) => {
     if (
-      !activeBatchImportTask ||
       batchImportBusy ||
       batchImportResult ||
       checkQuota === batchImportCheckQuota
     ) {
       return;
     }
-    // Restored sessions may lack original file paths; only re-queue when we can restart.
-    if (activeBatchImportTask.filePaths.length === 0) {
-      updateActiveBatchImportTask((task) => ({
-        ...task,
-        checkQuota,
-      }));
+    setBatchImportCheckQuota(checkQuota);
+    if (batchImportFilePaths.length === 0) {
       return;
     }
-    // Re-parse in the selected mode so turning detection off cannot retain stale
-    // quota results from a previous checked preview.
-    updateActiveBatchImportTask((task) => ({
-      ...task,
-      sessionId: null,
-      status: "queued",
-      checkQuota,
-      progress: null,
-      preview: null,
-      selectedIds: [],
-      filter: "all",
-      error: null,
-      result: null,
-    }));
+    // 切换检测开关后按新模式重新解析，避免残留旧检测结果。
+    await startBatchImportFromPaths(batchImportFilePaths, checkQuota);
   };
 
   const handleCancelBatchImport = async () => {
-    if (!activeBatchImportTask) {
+    if (!batchImportSessionId) {
       return;
     }
-    if (activeBatchImportTask.status === "queued") {
-      removeBatchImportTask(activeBatchImportTask.id);
-      return;
-    }
-    if (
-      (activeBatchImportTask.status === "running" ||
-        activeBatchImportTask.status === "importing") &&
-      batchImportSessionId
-    ) {
+    if (batchImportBusy) {
       try {
         await codexService.cancelCodexBatchImport(batchImportSessionId);
-        updateActiveBatchImportTask((task) => ({
-          ...task,
-          progress: task.progress
-            ? { ...task.progress, phase: "cancelling" }
-            : task.progress,
-        }));
+        setBatchImportProgress((current) =>
+          current ? { ...current, phase: "cancelling" } : current,
+        );
       } catch (e) {
-        updateActiveBatchImportTask((task) => ({
-          ...task,
-          error: String(e).replace(/^Error:\s*/, ""),
-        }));
+        setBatchImportError(String(e).replace(/^Error:\s*/, ""));
       }
     }
   };
 
   const handleCloseBatchImport = async () => {
-    if (!activeBatchImportTask) {
+    if (batchImportResult) {
+      resetBatchImportState();
+      return;
+    }
+    // 扫描/解析中：最小化弹框，后台继续。
+    if (batchImportBusy) {
       setBatchImportOpen(false);
       return;
     }
-    if (activeBatchImportTask.status === "queued") {
-      removeBatchImportTask(activeBatchImportTask.id);
+    // 无可选账号时直接丢弃，避免任务条长期挂起。
+    const selectableCount = (batchImportPreview?.items ?? []).filter(
+      (item) => item.selectable && item.status !== "invalid",
+    ).length;
+    if (!batchImportPreview || selectableCount === 0) {
+      resetBatchImportState();
       return;
     }
-    if (
-      activeBatchImportTask.status === "imported" ||
-      activeBatchImportTask.status === "cancelled" ||
-      activeBatchImportTask.status === "error"
-    ) {
-      removeBatchImportTask(activeBatchImportTask.id);
-      return;
-    }
-    // A ready preview is idle: closing discards it. Background mode is reserved
-    // for queued, scanning, parsing, and importing work that can take time.
-    if (activeBatchImportTask.status === "ready") {
-      removeBatchImportTask(activeBatchImportTask.id);
-      return;
-    }
-    // Busy scan/import or ready-with-selection: minimize so progress continues.
     setBatchImportOpen(false);
+  };
+
+  const handleDismissBatchImportTask = () => {
+    // 进行中：先取消会话再清理；空闲/失败：直接丢弃，避免任务条无法关闭（#1445）
+    if (batchImportBusy && batchImportSessionId) {
+      void (async () => {
+        try {
+          await codexService.cancelCodexBatchImport(batchImportSessionId);
+        } catch {
+          // ignore cancel failures and still clear UI
+        }
+        resetBatchImportState();
+      })();
+      return;
+    }
+    resetBatchImportState();
   };
 
   const toggleBatchImportItem = (itemId: string) => {
     if (!batchImportSelectableIdSet.has(itemId)) return;
-    updateActiveBatchImportTask((task) => ({
-      ...task,
-      selectedIds: task.selectedIds.includes(itemId)
-        ? task.selectedIds.filter((id) => id !== itemId)
-        : [...task.selectedIds, itemId],
-    }));
+    setBatchImportSelectedIds((prev) =>
+      prev.includes(itemId)
+        ? prev.filter((id) => id !== itemId)
+        : [...prev, itemId],
+    );
   };
 
   const selectAllBatchImportAccounts = () => {
@@ -5758,11 +5470,8 @@ export function CodexAccountsPage() {
     const ids = items
       .filter((item) => item.selectable && item.status !== "invalid")
       .map((item) => item.itemId);
-    updateActiveBatchImportTask((task) => ({
-      ...task,
-      filter: "all",
-      selectedIds: ids,
-    }));
+    setBatchImportFilter("all");
+    setBatchImportSelectedIds(ids);
   };
 
   const selectReadyBatchImportAccounts = () => {
@@ -5774,19 +5483,13 @@ export function CodexAccountsPage() {
           (item.status === "ready" || item.status === "existing"),
       )
       .map((item) => item.itemId);
-    updateActiveBatchImportTask((task) => ({
-      ...task,
-      filter: "ready",
-      selectedIds: ids,
-    }));
+    setBatchImportFilter("ready");
+    setBatchImportSelectedIds(ids);
   };
 
   const clearBatchImportSelection = () => {
-    updateActiveBatchImportTask((task) => ({
-      ...task,
-      filter: "all",
-      selectedIds: [],
-    }));
+    setBatchImportFilter("all");
+    setBatchImportSelectedIds([]);
   };
 
   const handleConfirmBatchImport = async (
@@ -5796,51 +5499,58 @@ export function CodexAccountsPage() {
       batchImportSelectableIdSet.has(id),
     );
     if (!batchImportSessionId || selectedSelectableIds.length === 0) {
-      updateActiveBatchImportTask((task) => ({
-        ...task,
-        error: t("codex.batchImport.noSelection", "请先选择要导入的账号"),
-      }));
+      setBatchImportError(
+        t("codex.batchImport.noSelection", "请先选择要导入的账号"),
+      );
       return;
     }
-    updateActiveBatchImportTask((task) => ({
-      ...task,
-      status: "importing",
-      progress: {
-        sessionId: batchImportSessionId,
-        phase: "importing",
-        checkQuota: task.checkQuota,
-        current: 0,
-        total: selectedSelectableIds.length,
-        success: 0,
-        failed: 0,
-        quotaFailed: 0,
-        existing: 0,
-        currentLabel: null,
-      },
-      error: null,
-    }));
+    setBatchImportBusy(true);
+    setBatchImportError(null);
+    setBatchImportProgress({
+      sessionId: batchImportSessionId,
+      phase: "importing",
+      checkQuota: batchImportCheckQuota,
+      current: 0,
+      total: selectedSelectableIds.length,
+      success: 0,
+      failed: 0,
+      quotaFailed: 0,
+      existing: 0,
+      currentLabel: null,
+    });
     try {
       const result = await codexService.confirmCodexBatchImport(
         batchImportSessionId,
         selectedSelectableIds,
       );
-      updateActiveBatchImportTask((task) => ({
-        ...task,
-        progress: task.progress
-          ? {
-              ...task.progress,
-              phase: "finalizing",
-              current: result.processed,
-              total: result.total,
-            }
-          : task.progress,
-      }));
+      setBatchImportResult(result);
       let apiServiceError: string | null = null;
       await fetchAccounts();
       await assignCodexAccountsToTargetGroup(
         result.imported,
         batchImportTargetGroupId,
       );
+      // Optional bulk tags for this import batch (#1166)
+      const batchTags = Array.from(
+        new Set(
+          batchImportTagsInput
+            .split(/[,，\s]+/)
+            .map((tag) => tag.trim().toLowerCase())
+            .filter(Boolean),
+        ),
+      ).slice(0, 10);
+      if (batchTags.length > 0 && result.imported.length > 0) {
+        await Promise.allSettled(
+          result.imported.map(async (account) => {
+            const existing = (account.tags || [])
+              .map((tag) => tag.trim().toLowerCase())
+              .filter(Boolean);
+            const merged = Array.from(new Set([...existing, ...batchTags]));
+            await store.updateAccountTags(account.id, merged);
+          }),
+        );
+        await fetchAccounts();
+      }
       if (result.imported.length > 0) {
         await emitAccountsChanged({
           platformId: "codex",
@@ -5849,13 +5559,15 @@ export function CodexAccountsPage() {
       }
 
       if (options.addToApiService) {
-        const nextLocalAccessAccountIds =
-          buildCodexBatchImportApiServiceAccountIds(
-            localAccessCollection?.accountIds ?? [],
-            selectedSelectableIds,
-            batchImportPreview?.items ?? [],
-            result.imported,
-          );
+        const importedIds = result.imported
+          .map((account) => account.id)
+          .filter(Boolean);
+        const nextLocalAccessAccountIds = Array.from(
+          new Set([
+            ...(localAccessCollection?.accountIds ?? []),
+            ...importedIds,
+          ]),
+        );
         setLocalAccessSaving(true);
         try {
           const nextState =
@@ -5864,22 +5576,16 @@ export function CodexAccountsPage() {
               localAccessCollection?.restrictFreeAccounts ?? true,
             );
           setLocalAccessState(nextState);
-          if (nextLocalAccessAccountIds.length > 0) {
+          if (importedIds.length > 0) {
             await ensureLocalAccessEntryVisible();
-            setImportApiServiceGuideCount(
-              result.imported.map((account) => account.id).filter(Boolean)
-                .length,
-            );
+            setImportApiServiceGuideCount(importedIds.length);
           }
           window.dispatchEvent(new Event("codex-local-access-state-updated"));
         } catch (apiError) {
           apiServiceError = t(
             "codex.batchImport.addToApiServiceFailed",
             "账号已导入，但添加到 API 服务失败: {{error}}",
-          ).replace(
-            "{{error}}",
-            String(apiError).replace(/^Error:\s*/, ""),
-          );
+          ).replace("{{error}}", String(apiError).replace(/^Error:\s*/, ""));
         } finally {
           setLocalAccessSaving(false);
         }
@@ -5896,96 +5602,40 @@ export function CodexAccountsPage() {
         }
       }
 
-      updateActiveBatchImportTask((task) => ({
-        ...task,
-        status: result.cancelled ? "cancelled" : "imported",
-        progress: task.progress
-          ? {
-              ...task.progress,
-              phase: result.cancelled ? "cancelled" : "imported",
-              current: result.processed,
-              total: result.total,
-            }
-          : task.progress,
-        result,
-        error: apiServiceError,
-      }));
+      if (apiServiceError) {
+        setBatchImportError(apiServiceError);
+      }
+      cleanupBatchImportListeners();
       try {
         localStorage.removeItem(CODEX_BATCH_IMPORT_SESSION_STORAGE_KEY);
       } catch {
         // ignore storage failures
       }
     } catch (e) {
-      updateActiveBatchImportTask((task) => ({
-        ...task,
-        status: "ready",
-        error: String(e).replace(/^Error:\s*/, ""),
-      }));
+      setBatchImportError(String(e).replace(/^Error:\s*/, ""));
+    } finally {
+      setBatchImportBusy(false);
     }
   };
 
   const handleResumeBatchImport = async () => {
-    if (!activeBatchImportTask || !batchImportSessionId || batchImportBusy)
-      return;
-    updateActiveBatchImportTask((task) => ({
-      ...task,
-      status: "running",
-      error: null,
-      result: null,
-    }));
+    if (!batchImportSessionId || batchImportBusy) return;
+    setBatchImportBusy(true);
+    setBatchImportError(null);
+    setBatchImportResult(null);
     try {
       await codexService.resumeCodexBatchImport(batchImportSessionId);
-      updateActiveBatchImportTask((task) => ({
-        ...task,
-        progress: task.progress
-          ? { ...task.progress, phase: "scanning" }
-          : task.progress,
-        preview: task.preview
-          ? { ...task.preview, status: "scanning" }
-          : task.preview,
-      }));
+      setBatchImportProgress((current) =>
+        current ? { ...current, phase: "scanning" } : current,
+      );
+      setBatchImportPreview((current) =>
+        current ? { ...current, status: "scanning" } : current,
+      );
     } catch (e) {
-      updateActiveBatchImportTask((task) => ({
-        ...task,
-        status: "cancelled",
-        error: String(e).replace(/^Error:\s*/, ""),
-      }));
+      setBatchImportBusy(false);
+      setBatchImportError(String(e).replace(/^Error:\s*/, ""));
     }
   };
-
-  const getBatchImportTaskStatusLabel = (task: CodexBatchImportTask) => {
-    if (task.status === "queued") {
-      return t("codex.batchImport.queued", "排队中");
-    }
-    if (task.status === "running") {
-      return task.checkQuota
-        ? t("codex.batchImport.scanning", "扫描中")
-        : t("codex.batchImport.parsing", "解析中");
-    }
-    if (task.status === "cancelled") {
-      return t("codex.batchImport.cancelled", "已取消");
-    }
-    if (task.status === "error") {
-      return t("codex.batchImport.failed", "失败");
-    }
-    if (task.status === "importing") {
-      return task.progress?.phase === "finalizing"
-        ? t("codex.batchImport.finalizing", "正在完成导入")
-        : t("codex.batchImport.importing", "导入中");
-    }
-    if (task.status === "imported") {
-      return t("codex.batchImport.imported", "已导入");
-    }
-    return task.checkQuota
-      ? t("codex.batchImport.scanDone", "扫描完成")
-      : t("codex.batchImport.parseDone", "解析完成");
-  };
-
-  const batchImportStatusLabel = activeBatchImportTask
-    ? getBatchImportTaskStatusLabel(activeBatchImportTask)
-    : activeBatchImportCheckQuota
-      ? t("codex.batchImport.scanning", "扫描中")
-      : t("codex.batchImport.parsing", "解析中");
 
   const handleSelectApiProviderPreset = useCallback(
     (providerId: string) => {
@@ -8548,6 +8198,8 @@ export function CodexAccountsPage() {
       const tier = resolvePlanKey(a);
       incrementCodexPlanFilterCount(counts, tier);
       if (isAbnormalAccount(a)) counts.ERROR += 1;
+      if (isCodexOverviewAccountZeroQuota(a)) counts.ZERO_QUOTA += 1;
+      if (isCodexOverviewAccountSubscriptionExpired(a)) counts.EXPIRED += 1;
     });
     return counts;
   }, [isAbnormalAccount, overviewAccounts, resolvePlanKey]);
@@ -8556,7 +8208,12 @@ export function CodexAccountsPage() {
     () =>
       buildCodexPlanFilterOptions(tierCounts, {
         includeValid: true,
+        includeZeroQuota: true,
+        includeExpired: true,
         pendingLabel: t("codex.pendingAuth.badge", "待授权"),
+        errorLabel: t("codex.filters.authError", "授权失败"),
+        zeroQuotaLabel: t("codex.filters.zeroQuota", "0% 额度"),
+        expiredLabel: t("codex.filters.expired", "已过期"),
         validOption: buildValidAccountsFilterOption(t, tierCounts.VALID),
       }),
     [t, tierCounts],
@@ -8603,6 +8260,10 @@ export function CodexAccountsPage() {
       const tier = resolvePlanKey(account);
       incrementCodexPlanFilterCount(counts, tier);
       if (isAbnormalAccount(account)) counts.ERROR += 1;
+      if (isCodexOverviewAccountZeroQuota(account)) counts.ZERO_QUOTA += 1;
+      if (isCodexOverviewAccountSubscriptionExpired(account)) {
+        counts.EXPIRED += 1;
+      }
     });
     return counts;
   }, [isAbnormalAccount, oauthAccounts, resolvePlanKey]);
@@ -8611,7 +8272,12 @@ export function CodexAccountsPage() {
     () =>
       buildCodexPlanFilterOptions(oauthBindingTierCounts, {
         includeValid: true,
+        includeZeroQuota: true,
+        includeExpired: true,
         pendingLabel: t("codex.pendingAuth.badge", "待授权"),
+        errorLabel: t("codex.filters.authError", "授权失败"),
+        zeroQuotaLabel: t("codex.filters.zeroQuota", "0% 额度"),
+        expiredLabel: t("codex.filters.expired", "已过期"),
         validOption: buildValidAccountsFilterOption(
           t,
           oauthBindingTierCounts.VALID,
@@ -9415,6 +9081,21 @@ export function CodexAccountsPage() {
         .map((account) => account.id),
     [filteredAccounts, isAbnormalAccount],
   );
+  // Full overview set of auth-failed accounts for export (#992), not limited to current page filter.
+  const authFailedExportAccountIds = useMemo(
+    () =>
+      overviewAccounts
+        .filter(isAbnormalAccount)
+        .map((account) => account.id),
+    [isAbnormalAccount, overviewAccounts],
+  );
+  const handleExportAuthFailedAccounts = useCallback(() => {
+    if (authFailedExportAccountIds.length === 0) return;
+    void handleExportByIds(
+      authFailedExportAccountIds,
+      `codex_auth_failed_${authFailedExportAccountIds.length}`,
+    );
+  }, [authFailedExportAccountIds, handleExportByIds]);
   const hasDetectableFullQuotaWakeupAccounts = useMemo(
     () =>
       filteredAccounts.some(
@@ -9649,6 +9330,7 @@ export function CodexAccountsPage() {
       });
       setIsAllFilteredSelected(false);
       setDeleteConfirm(null);
+      // 用成功提示覆盖页顶旧错误，避免删除后红色报错仍挂着（#1160）
       setMessage({
         text: t("codex.batchDelete.started", {
           count: deleteConfirm.ids.length,
@@ -10185,7 +9867,8 @@ export function CodexAccountsPage() {
       const accountTags = (account.tags || [])
         .map((tag) => tag.trim())
         .filter(Boolean);
-      const visibleTags = accountTags.slice(0, 2);
+      // 充分利用卡片横向空间：最多展示 8 个，避免 3 个标签就被 +N 收起（#962）
+      const visibleTags = accountTags.slice(0, 8);
       const moreTagCount = Math.max(0, accountTags.length - visibleTags.length);
       const isInLocalAccess = localAccessAccountIdSet.has(account.id);
       const subscriptionInfo = resolveSubscriptionPresentation(account);
@@ -12793,9 +12476,7 @@ export function CodexAccountsPage() {
         ]}
       />
 
-      {batchImportOpen &&
-        activeBatchImportTask &&
-        createPortal(
+      {batchImportOpen && (
           <div className="modal-overlay codex-batch-import-overlay">
             <div
               className="modal-content codex-batch-import-modal"
@@ -12807,12 +12488,8 @@ export function CodexAccountsPage() {
                   <p className="codex-batch-import-subtitle">
                     {batchImportResult
                       ? t("codex.batchImport.resultSubtitle", "导入结果")
-                      : batchImportProgress?.phase === "finalizing"
-                        ? t(
-                            "codex.batchImport.finalizingSubtitle",
-                            "正在更新账号列表和关联设置",
-                          )
-                      : activeBatchImportTask.status === "importing"
+                      : batchImportProgress?.phase === "importing" ||
+                          batchImportProgress?.phase === "finalizing"
                         ? t(
                             "codex.batchImport.importSubtitle",
                             "正在写入选中的账号",
@@ -12875,9 +12552,24 @@ export function CodexAccountsPage() {
                   <div className="codex-batch-import-progress-panel">
                     <div className="codex-batch-import-progress-head">
                       <span>
-                        {batchImportCancelling
+                        {batchImportProgress?.phase === "cancelling"
                           ? t("codex.batchImport.cancelling", "正在取消...")
-                          : batchImportStatusLabel}
+                          : batchImportBusy
+                            ? batchImportProgress?.phase === "importing" ||
+                              batchImportProgress?.phase === "finalizing"
+                              ? t("codex.batchImport.importing", "导入中")
+                              : activeBatchImportCheckQuota
+                                ? t("codex.batchImport.scanning", "扫描中")
+                                : t("codex.batchImport.parsing", "解析中")
+                            : batchImportPreview?.status === "cancelled"
+                              ? t("codex.batchImport.cancelled", "已取消")
+                              : batchImportPreview
+                                ? activeBatchImportCheckQuota
+                                  ? t("codex.batchImport.scanDone", "扫描完成")
+                                  : t("codex.batchImport.parseDone", "解析完成")
+                                : activeBatchImportCheckQuota
+                                  ? t("codex.batchImport.scanning", "扫描中")
+                                  : t("codex.batchImport.parsing", "解析中")}
                       </span>
                       <strong>
                         {batchImportProgressCurrent}/{batchImportProgressTotal}
@@ -12885,9 +12577,9 @@ export function CodexAccountsPage() {
                     </div>
                     <div className="codex-batch-import-progress-track">
                       <div
-                        className={`codex-batch-import-progress-fill tone-${getCodexBatchImportProgressTone(activeBatchImportTask)}`}
+                        className="codex-batch-import-progress-fill"
                         style={{
-                          width: `${activeBatchImportProgressPercent}%`,
+                          width: `${batchImportProgressPercent}%`,
                         }}
                       />
                     </div>
@@ -13051,6 +12743,32 @@ export function CodexAccountsPage() {
                       </div>
                     </div>
 
+                    <div className="codex-batch-import-tags-row">
+                      <label
+                        className="codex-batch-import-tags-label"
+                        htmlFor="codex-batch-import-tags"
+                      >
+                        {t(
+                          "codex.batchImport.bulkTagsLabel",
+                          "导入后批量打标",
+                        )}
+                      </label>
+                      <input
+                        id="codex-batch-import-tags"
+                        type="text"
+                        className="codex-batch-import-tags-input"
+                        value={batchImportTagsInput}
+                        disabled={batchImportBusy}
+                        onChange={(event) =>
+                          setBatchImportTagsInput(event.target.value)
+                        }
+                        placeholder={t(
+                          "codex.batchImport.bulkTagsPlaceholder",
+                          "可选，多个标签用逗号或空格分隔",
+                        )}
+                      />
+                    </div>
+
                     <div className="codex-batch-import-list">
                       {[...batchImportVisibleItems].reverse().map((item) => {
                         const selectable = batchImportSelectableIdSet.has(
@@ -13145,17 +12863,16 @@ export function CodexAccountsPage() {
                     <button
                       className="btn btn-secondary"
                       onClick={() =>
-                        batchImportCanCancel
+                        batchImportBusy
                           ? void handleCancelBatchImport()
                           : void handleCloseBatchImport()
                       }
-                      disabled={batchImportCancelling}
+                      disabled={batchImportProgress?.phase === "cancelling"}
                     >
-                      {batchImportCanCancel
-                        ? activeBatchImportTask?.status === "queued"
-                          ? t("codex.batchImport.cancelQueued", "取消排队")
-                          : activeBatchImportTask?.status === "importing"
-                            ? t("codex.batchImport.cancelImport", "取消导入")
+                      {batchImportBusy
+                        ? batchImportProgress?.phase === "importing" ||
+                          batchImportProgress?.phase === "finalizing"
+                          ? t("codex.batchImport.cancelImport", "取消导入")
                           : activeBatchImportCheckQuota
                             ? t("codex.batchImport.cancelScan", "取消扫描")
                             : t("codex.batchImport.cancelParse", "取消解析")
@@ -13234,9 +12951,8 @@ export function CodexAccountsPage() {
                 )}
               </div>
             </div>
-          </div>,
-          document.body,
-        )}
+          </div>
+      )}
 
       {externalImportProgress.visible && (
         <div
@@ -13825,6 +13541,7 @@ export function CodexAccountsPage() {
                   </div>
                   {(selected.size > 0 ||
                     errorAccountIds.length > 0 ||
+                    authFailedExportAccountIds.length > 0 ||
                     hasDetectableFullQuotaWakeupAccounts) && (
                     <div className="codex-overview-selection-actions">
                       <button
@@ -13842,6 +13559,24 @@ export function CodexAccountsPage() {
                           {t("codex.wakeup.fullQuotaAction", "唤醒账号")}
                         </span>
                       </button>
+                      {authFailedExportAccountIds.length > 0 && (
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          onClick={handleExportAuthFailedAccounts}
+                          disabled={exporting}
+                          title={t(
+                            "codex.exportAuthFailedTitle",
+                            "导出全部授权失败账号",
+                          )}
+                        >
+                          <Download size={14} />
+                          <span>
+                            {t("codex.exportAuthFailed", "导出失败账号")}
+                            {` (${authFailedExportAccountIds.length})`}
+                          </span>
+                        </button>
+                      )}
                       {errorAccountIds.length > 0 && (
                         <button
                           className="btn btn-danger icon-only codex-overview-clear-error-btn"
@@ -13962,6 +13697,73 @@ export function CodexAccountsPage() {
                   </div>
                 </div>
               )}
+              {batchImportSessionId &&
+                !batchImportOpen &&
+                !batchImportResult && (
+                  <div className="codex-batch-import-task">
+                    <div className="codex-batch-import-task__copy">
+                      <strong>
+                        {t("codex.batchImport.hiddenTask", "Codex 批量导入进行中")}
+                      </strong>
+                      <span>
+                        {batchImportBusy
+                          ? t(
+                              "codex.batchImport.taskRunning",
+                              "进度 {{current}}/{{total}}",
+                            )
+                              .replace(
+                                "{{current}}",
+                                String(batchImportProgress?.current ?? 0),
+                              )
+                              .replace(
+                                "{{total}}",
+                                String(
+                                  batchImportProgress?.total ??
+                                    batchImportPreview?.total ??
+                                    0,
+                                ),
+                              )
+                          : batchImportPreview
+                            ? t(
+                                "codex.batchImport.taskPreview",
+                                "已解析 {{total}} 个账号，可继续导入",
+                              ).replace(
+                                "{{total}}",
+                                String(batchImportPreview.total),
+                              )
+                            : t("codex.batchImport.preparing", "正在准备导入任务...")}
+                      </span>
+                    </div>
+                    <div className="codex-batch-import-task__actions">
+                      <button
+                        className="btn btn-secondary"
+                        onClick={() => setBatchImportOpen(true)}
+                      >
+                        <FileText size={14} />
+                        <span>{t("codex.batchImport.reopen", "查看任务")}</span>
+                      </button>
+                      <button
+                        className="btn btn-secondary"
+                        onClick={handleDismissBatchImportTask}
+                        title={
+                          batchImportBusy
+                            ? t(
+                                "codex.batchImport.cancelAndDismiss",
+                                "取消并丢弃任务",
+                              )
+                            : t("codex.batchImport.dismissTask", "丢弃任务")
+                        }
+                      >
+                        <X size={14} />
+                        <span>
+                          {batchImportBusy
+                            ? t("common.cancel", "取消")
+                            : t("codex.batchImport.dismissTask", "丢弃")}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               {overviewLayoutMode === "compact" ? (
                 <>
                   {inlineFolderCards && (

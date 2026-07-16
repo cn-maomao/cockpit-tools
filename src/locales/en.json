@@ -952,7 +952,7 @@
       "themeDark": "Dark",
       "themeSystem": "System",
       "uiScale": "UI Scale",
-      "uiScaleDesc": "Adjust interface scale",
+      "uiScaleDesc": "Adjust interface scale (⌘+/⌘- or Ctrl+/Ctrl-, ⌘0/Ctrl+0 reset)",
       "accountManagement": "Account",
       "autoRefresh": "Antigravity IDE Auto Refresh Quota",
       "codexAutoRefresh": "Codex Auto Refresh Quota",
@@ -1394,7 +1394,11 @@
         "tooMany": "You can add up to {{max}} tags"
       },
       "notesLabel": "Notes",
-      "notesPlaceholder": "Enter notes. Leave empty to clear"
+      "notesPlaceholder": "Enter notes. Leave empty to clear",
+      "confirmGlobalDelete": "Remove tag \"{{targetTag}}\" from all accounts? This cannot be undone.",
+      "globalDeleteHint": "Delete this tag globally",
+      "globalDeleteFailed": "Failed to delete tag globally",
+      "globalRenameHint": "Rename this tag globally"
     },
     "groupByTag": "Group by tags",
     "untagged": "Untagged",
@@ -3686,6 +3690,7 @@
       "taskPreview": "{{total}} preview item(s) ready",
       "reopen": "View task",
       "dismissTask": "Dismiss",
+      "cancelAndDismiss": "Cancel and dismiss task",
       "queueCount": "{{count}} jobs in queue",
       "queued": "Queued",
       "batchLabel": "Batch {{index}}",
@@ -3695,7 +3700,9 @@
       "checkAccounts": "Check accounts",
       "importAndAddToApiService": "Import + API",
       "importAndAddToApiServiceSuccess": "Imported and added to API service",
-      "addToApiServiceFailed": "Imported, but adding to API service failed: {{error}}"
+      "addToApiServiceFailed": "Imported, but adding to API service failed: {{error}}",
+      "bulkTagsLabel": "Tags after import",
+      "bulkTagsPlaceholder": "Optional; separate tags with commas or spaces"
     },
     "autoRepairMode": {
       "label": "Auto Repair Logic",
@@ -3729,7 +3736,10 @@
       "chipTags": "Tags",
       "chipSearch": "Search",
       "chipPlan": "Plan",
-      "chipFolder": "Folder"
+      "chipFolder": "Folder",
+      "authError": "Auth failed",
+      "zeroQuota": "0% quota",
+      "expired": "Expired"
     },
     "accessTokenImport": {
       "nameRequired": "Enter an account name",
@@ -3795,7 +3805,9 @@
       "serverListLead": "Pick sync target",
       "serverCount": "{{count}}",
       "autoSyncBadge": "Auto"
-    }
+    },
+    "exportAuthFailed": "Export failed",
+    "exportAuthFailedTitle": "Export all auth-failed accounts"
   },
   "codebuddy": {
     "title": "CodeBuddy Account",

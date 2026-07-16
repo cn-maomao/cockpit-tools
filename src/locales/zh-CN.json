@@ -952,7 +952,7 @@
       "themeDark": "深色 (Dark)",
       "themeSystem": "跟随系统",
       "uiScale": "界面缩放",
-      "uiScaleDesc": "调整界面缩放比例",
+      "uiScaleDesc": "调整界面缩放比例（⌘+/⌘- 缩放，⌘0 重置）",
       "accountManagement": "账号管理",
       "autoRefresh": "Antigravity IDE 自动刷新配额",
       "codexAutoRefresh": "Codex 自动刷新配额",
@@ -1394,7 +1394,11 @@
         "tooMany": "标签数量不能超过 {{max}} 个"
       },
       "notesLabel": "备注",
-      "notesPlaceholder": "输入备注，留空表示不设置"
+      "notesPlaceholder": "输入备注，留空表示不设置",
+      "confirmGlobalDelete": "确定要从所有账号中全局删除标签 \"{{targetTag}}\" 吗？此操作不可逆。",
+      "globalDeleteHint": "全局删除此标签",
+      "globalDeleteFailed": "全局删除失败",
+      "globalRenameHint": "全局重命名此标签"
     },
     "groupByTag": "按标签分组展示",
     "untagged": "默认分组",
@@ -3686,6 +3690,7 @@
       "taskPreview": "已生成 {{total}} 条预览",
       "reopen": "查看任务",
       "dismissTask": "丢弃",
+      "cancelAndDismiss": "取消并丢弃任务",
       "queueCount": "队列中 {{count}} 个任务",
       "queued": "排队中",
       "batchLabel": "批次 {{index}}",
@@ -3695,7 +3700,9 @@
       "checkAccounts": "检测账号",
       "importAndAddToApiService": "导入并添加 API",
       "importAndAddToApiServiceSuccess": "已导入并添加到 API 服务",
-      "addToApiServiceFailed": "账号已导入，但添加到 API 服务失败: {{error}}"
+      "addToApiServiceFailed": "账号已导入，但添加到 API 服务失败: {{error}}",
+      "bulkTagsLabel": "导入后批量打标",
+      "bulkTagsPlaceholder": "可选，多个标签用逗号或空格分隔"
     },
     "autoRepairMode": {
       "label": "自动修复逻辑",
@@ -3729,7 +3736,10 @@
       "chipTags": "标签",
       "chipSearch": "搜索",
       "chipPlan": "套餐",
-      "chipFolder": "分组目录"
+      "chipFolder": "分组目录",
+      "authError": "授权失败",
+      "zeroQuota": "0% 额度",
+      "expired": "已过期"
     },
     "accessTokenImport": {
       "nameRequired": "请输入账户名",
@@ -3795,7 +3805,9 @@
       "serverListLead": "选择同步目标",
       "serverCount": "{{count}} 台",
       "autoSyncBadge": "自动同步"
-    }
+    },
+    "exportAuthFailed": "导出失败账号",
+    "exportAuthFailedTitle": "导出全部授权失败账号"
   },
   "codebuddy": {
     "title": "CodeBuddy 账号管理",

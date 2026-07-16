@@ -588,7 +588,7 @@
       "themeDark": "深色 (Dark)",
       "themeSystem": "跟隨系統",
       "uiScale": "介面縮放",
-      "uiScaleDesc": "調整介面縮放比例",
+      "uiScaleDesc": "調整介面縮放比例（⌘+/⌘- 縮放，⌘0 重設）",
       "accountManagement": "帳號管理",
       "autoRefresh": "Antigravity IDE 自動刷新配額",
       "codexAutoRefresh": "Codex 自動刷新配額",
@@ -1195,7 +1195,11 @@
         "tooMany": "最多只能新增 {{max}} 個標籤"
       },
       "notesLabel": "備註",
-      "notesPlaceholder": "輸入備註，留空表示不設定"
+      "notesPlaceholder": "輸入備註，留空表示不設定",
+      "confirmGlobalDelete": "確定要從所有帳號中全域刪除標籤 \"{{targetTag}}\" 嗎？此操作無法復原。",
+      "globalDeleteHint": "全域刪除此標籤",
+      "globalDeleteFailed": "全域刪除失敗",
+      "globalRenameHint": "全域重新命名此標籤"
     },
     "groupByTag": "依標籤分組",
     "untagged": "未標記",
@@ -3484,7 +3488,10 @@
       "checkAccounts": "檢查帳戶",
       "importAndAddToApiService": "導入+API",
       "importAndAddToApiServiceSuccess": "導入並新增至API服務",
-      "addToApiServiceFailed": "已匯入，但新增 API 服務失敗：{{error}}"
+      "addToApiServiceFailed": "已匯入，但新增 API 服務失敗：{{error}}",
+      "cancelAndDismiss": "取消並捨棄任務",
+      "bulkTagsLabel": "匯入後批量打標",
+      "bulkTagsPlaceholder": "可選，多個標籤用逗號或空格分隔"
     },
     "autoRepairMode": {
       "label": "自動修復邏輯",
@@ -3530,7 +3537,10 @@
       "chipTags": "標籤",
       "chipSearch": "搜尋",
       "chipPlan": "方案",
-      "chipFolder": "分組目錄"
+      "chipFolder": "分組目錄",
+      "authError": "授權失敗",
+      "zeroQuota": "0% 額度",
+      "expired": "已過期"
     },
     "accessTokenImport": {
       "nameRequired": "請輸入帳戶名",
@@ -3596,7 +3606,9 @@
       "serverListLead": "選擇同步目標",
       "serverCount": "{{count}} 台",
       "autoSyncBadge": "汽車"
-    }
+    },
+    "exportAuthFailed": "匯出失敗帳號",
+    "exportAuthFailedTitle": "匯出全部授權失敗帳號"
   },
   "githubCopilot": {
     "title": "GitHub Copilot 帳號管理",

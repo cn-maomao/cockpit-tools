@@ -1133,7 +1133,9 @@ pub fn export_codex_accounts(account_ids: Vec<String>) -> Result<String, String>
     codex_account::export_accounts(&account_ids)
 }
 
-/// 从本地文件导入 Codex 账号
+/// 从本地文件导入 Codex 账号。
+///
+/// 直导路径：只落盘账号，不做导入前/导入后额度检测，避免单账号也因网络刷新变慢。
 #[tauri::command]
 pub async fn import_codex_from_files(
     app: AppHandle,
@@ -1141,11 +1143,10 @@ pub async fn import_codex_from_files(
 ) -> Result<codex_account::CodexFileImportResult, String> {
     let result = codex_account::import_from_files(file_paths).await?;
     reactivate_imported_current_if_needed(&result.imported).await;
-    let imported = refresh_imported_codex_accounts(&app, result.imported).await;
-    Ok(codex_account::CodexFileImportResult {
-        imported,
-        failed: result.failed,
-    })
+    if !result.imported.is_empty() {
+        let _ = crate::modules::tray::update_tray_menu(&app);
+    }
+    Ok(result)
 }
 
 #[tauri::command]

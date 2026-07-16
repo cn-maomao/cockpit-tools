@@ -588,7 +588,7 @@
       "themeDark": "다크",
       "themeSystem": "시스템 설정",
       "uiScale": "UI 배율",
-      "uiScaleDesc": "인터페이스 배율 조정",
+      "uiScaleDesc": "인터페이스 배율 조정(⌘+/⌘- 또는 Ctrl+/Ctrl-, ⌘0/Ctrl+0 초기화)",
       "defaultTerminal": "기본 터미널",
       "defaultTerminalDesc": "CLI를 열 때 사용되는 터미널",
       "terminalSystem": "시스템 기본값",
@@ -1195,7 +1195,11 @@
         "tooMany": "태그는 최대 {{max}}개까지 추가할 수 있습니다"
       },
       "notesLabel": "메모",
-      "notesPlaceholder": "메모를 입력하세요. 비워 두면 삭제됩니다"
+      "notesPlaceholder": "메모를 입력하세요. 비워 두면 삭제됩니다",
+      "confirmGlobalDelete": "태그 \"{{targetTag}}\"을(를) 모든 계정에서 삭제할까요? 이 작업은 되돌릴 수 없습니다.",
+      "globalDeleteHint": "이 태그 전역 삭제",
+      "globalDeleteFailed": "태그 전역 삭제 실패",
+      "globalRenameHint": "이 태그 전역 이름 변경"
     },
     "groupByTag": "태그별 그룹",
     "untagged": "태그 없음",
@@ -3484,7 +3488,10 @@
       "checkAccounts": "계좌 확인",
       "importAndAddToApiService": "가져오기 + API",
       "importAndAddToApiServiceSuccess": "가져오고 API 서비스에 추가됨",
-      "addToApiServiceFailed": "가져왔지만 API 서비스에 추가하지 못했습니다: {{error}}"
+      "addToApiServiceFailed": "가져왔지만 API 서비스에 추가하지 못했습니다: {{error}}",
+      "cancelAndDismiss": "취소 후 닫기",
+      "bulkTagsLabel": "가져오기 후 태그",
+      "bulkTagsPlaceholder": "선택 사항. 쉼표/공백으로 구분"
     },
     "autoRepairMode": {
       "label": "자동 복구 로직",
@@ -3530,7 +3537,10 @@
       "chipTags": "태그",
       "chipSearch": "검색",
       "chipPlan": "요금제",
-      "chipFolder": "폴더"
+      "chipFolder": "폴더",
+      "authError": "인증 실패",
+      "zeroQuota": "0% 한도",
+      "expired": "만료됨"
     },
     "accessTokenImport": {
       "nameRequired": "계정 이름을 입력하세요",
@@ -3596,7 +3606,9 @@
       "serverListLead": "동기화 대상 선택",
       "serverCount": "{{count}}대",
       "autoSyncBadge": "자동"
-    }
+    },
+    "exportAuthFailed": "실패 내보내기",
+    "exportAuthFailedTitle": "인증 실패 계정 모두 내보내기"
   },
   "githubCopilot": {
     "title": "GitHub Copilot 계정 관리",

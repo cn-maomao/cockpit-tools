@@ -11,7 +11,6 @@ import {
 import './App.css';
 import { getVersion } from '@tauri-apps/api/app';
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { getCurrentWebview } from '@tauri-apps/api/webview';
 import { listen, UnlistenFn } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
@@ -20,7 +19,6 @@ import { FileText, FolderOpen, RefreshCw, X } from 'lucide-react';
 import { SideNav } from './components/layout/SideNav';
 import { GlobalModal } from './components/GlobalModal';
 import { AnnouncementHost } from './components/AnnouncementCenter';
-import { CodexBatchImportGlobalTask } from './components/CodexBatchImportGlobalTask';
 import { TopCenterPromoBanner } from './components/TopCenterPromoBanner';
 import type { QuickSettingsType } from './components/QuickSettingsPopover';
 import { isMainWindowNavigablePage, type Page } from './types/navigation';
@@ -75,6 +73,15 @@ import {
 import { runAutoBackupCycle } from './services/scheduledBackupService';
 import { prepareCodexLocalAccessForRestart } from './services/codexLocalAccessService';
 import { applyReducedMotion } from './utils/reducedMotion';
+import {
+  applyWebviewUiScale,
+  isUiScaleResetKey,
+  isUiScaleZoomInKey,
+  isUiScaleZoomOutKey,
+  normalizeUiScale,
+  stepUiScale,
+  UI_SCALE_DEFAULT,
+} from './utils/uiScale';
 import {
   emitActivePlatformFocus,
   resolvePlatformIdFromPage,
@@ -1033,6 +1040,96 @@ function MainApp() {
     window.addEventListener('keydown', handleRefreshShortcut, true);
     return () => {
       window.removeEventListener('keydown', handleRefreshShortcut, true);
+    };
+  }, []);
+
+  // ⌘+/⌘-（Windows/Linux: Ctrl+/Ctrl-）步进界面缩放；⌘0 / Ctrl+0 重置。
+  useEffect(() => {
+    let disposed = false;
+    let currentScale = UI_SCALE_DEFAULT;
+    let saveTimer: number | null = null;
+    let pendingScale: number | null = null;
+    let saveQueue: Promise<void> = Promise.resolve();
+
+    const loadCurrentScale = async () => {
+      try {
+        const config = await invoke<{ ui_scale?: number }>('get_general_config');
+        if (disposed) return;
+        currentScale = normalizeUiScale(config.ui_scale);
+      } catch (error) {
+        console.error('Failed to load UI scale for shortcuts:', error);
+      }
+    };
+
+    const persistScale = (scale: number) => {
+      pendingScale = scale;
+      if (saveTimer !== null) {
+        window.clearTimeout(saveTimer);
+      }
+      saveTimer = window.setTimeout(() => {
+        saveTimer = null;
+        const toSave = pendingScale;
+        pendingScale = null;
+        if (toSave == null) return;
+        saveQueue = saveQueue
+          .catch(() => undefined)
+          .then(async () => {
+            if (disposed) return;
+            try {
+              await invoke('patch_general_config', {
+                updates: { ui_scale: toSave },
+              });
+              window.dispatchEvent(new Event('config-updated'));
+            } catch (error) {
+              console.error('Failed to save UI scale:', error);
+            }
+          });
+      }, 250);
+    };
+
+    const handleZoomShortcut = (event: KeyboardEvent) => {
+      const hasMainModifier = event.metaKey || event.ctrlKey;
+      if (!hasMainModifier || event.altKey) {
+        return;
+      }
+
+      const zoomIn = isUiScaleZoomInKey(event);
+      const zoomOut = isUiScaleZoomOutKey(event);
+      const reset = isUiScaleResetKey(event);
+      if (!zoomIn && !zoomOut && !reset) {
+        return;
+      }
+      // 重置不需要连发；放大缩小允许按住连按。
+      if (reset && event.repeat) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const nextScale = reset
+        ? UI_SCALE_DEFAULT
+        : stepUiScale(currentScale, zoomIn ? 1 : -1);
+      if (nextScale === currentScale) {
+        return;
+      }
+      currentScale = nextScale;
+      void applyWebviewUiScale(nextScale).catch((error) => {
+        console.error('Failed to apply UI scale shortcut:', error);
+      });
+      persistScale(nextScale);
+    };
+
+    void loadCurrentScale();
+    window.addEventListener('keydown', handleZoomShortcut, true);
+    window.addEventListener('config-updated', loadCurrentScale);
+    return () => {
+      disposed = true;
+      window.removeEventListener('keydown', handleZoomShortcut, true);
+      window.removeEventListener('config-updated', loadCurrentScale);
+      if (saveTimer !== null) {
+        window.clearTimeout(saveTimer);
+      }
     };
   }, []);
 
@@ -2002,10 +2099,8 @@ function MainApp() {
     };
 
     const applyUiScale = async (rawScale?: number) => {
-      const scale = typeof rawScale === 'number' && Number.isFinite(rawScale) ? rawScale : 1;
-      const normalizedScale = Math.min(2, Math.max(0.8, scale));
       try {
-        await getCurrentWebview().setZoom(normalizedScale);
+        await applyWebviewUiScale(rawScale);
       } catch (error) {
         console.error('Failed to apply UI scale:', error);
       }
@@ -3826,7 +3921,6 @@ function MainApp() {
       />
 
       <AnnouncementHost onNavigate={setPage} />
-      <CodexBatchImportGlobalTask onOpenCodex={() => setPage('codex')} />
 
       {sideNavLayoutMode !== 'classic' && (
         <button

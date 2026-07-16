@@ -635,7 +635,7 @@
       "themeDark": "داكن (Dark)",
       "themeSystem": "حسب النظام",
       "uiScale": "مقياس الواجهة",
-      "uiScaleDesc": "اضبط مقياس الواجهة",
+      "uiScaleDesc": "ضبط مقياس الواجهة (⌘+/⌘- أو Ctrl+/Ctrl-، ⌘0/Ctrl+0 لإعادة التعيين)",
       "accountManagement": "إدارة الحسابات",
       "autoRefresh": "تحديث تلقائي لحصة Antigravity IDE",
       "codexAutoRefresh": "تحديث تلقائي لحصة Codex",
@@ -1242,7 +1242,11 @@
         "tooMany": "يمكنك إضافة حتى {{max}} أوسمة"
       },
       "notesLabel": "ملاحظات",
-      "notesPlaceholder": "أدخل ملاحظات. اتركه فارغًا للمسح"
+      "notesPlaceholder": "أدخل ملاحظات. اتركه فارغًا للمسح",
+      "confirmGlobalDelete": "هل تريد حذف العلامة \"{{targetTag}}\" من جميع الحسابات؟ لا يمكن التراجع عن هذا الإجراء.",
+      "globalDeleteHint": "حذف هذه العلامة عالميًا",
+      "globalDeleteFailed": "فشل الحذف العالمي للعلامة",
+      "globalRenameHint": "إعادة تسمية هذه العلامة عالميًا"
     },
     "groupByTag": "تجميع حسب العلامة",
     "untagged": "غير موسوم",
@@ -3531,7 +3535,10 @@
       "checkAccounts": "التحقق من الحسابات",
       "importAndAddToApiService": "استيراد + API",
       "importAndAddToApiServiceSuccess": "تم استيرادها وإضافتها إلى خدمة API",
-      "addToApiServiceFailed": "تم الاستيراد، ولكن فشلت الإضافة إلى خدمة API: {{error}}"
+      "addToApiServiceFailed": "تم الاستيراد، ولكن فشلت الإضافة إلى خدمة API: {{error}}",
+      "cancelAndDismiss": "إلغاء وتجاهل",
+      "bulkTagsLabel": "وسوم بعد الاستيراد",
+      "bulkTagsPlaceholder": "اختياري؛ افصل الوسوم بفاصلة أو مسافة"
     },
     "autoRepairMode": {
       "label": "منطق الإصلاح التلقائي",
@@ -3577,7 +3584,10 @@
       "chipTags": "وسوم",
       "chipSearch": "بحث",
       "chipPlan": "خطة",
-      "chipFolder": "مجلد"
+      "chipFolder": "مجلد",
+      "authError": "فشل المصادقة",
+      "zeroQuota": "حصة 0%",
+      "expired": "منتهي"
     },
     "accessTokenImport": {
       "nameRequired": "أدخل اسم الحساب",
@@ -3643,7 +3653,9 @@
       "serverListLead": "اختر هدف المزامنة",
       "serverCount": "{{count}} خادم",
       "autoSyncBadge": "آلي"
-    }
+    },
+    "exportAuthFailed": "تصدير الفاشل",
+    "exportAuthFailedTitle": "تصدير كل الحسابات ذات فشل المصادقة"
   },
   "githubCopilot": {
     "title": "إدارة حسابات GitHub Copilot",

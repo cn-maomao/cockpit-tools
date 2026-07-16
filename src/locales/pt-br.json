@@ -588,7 +588,7 @@
       "themeDark": "Escuro",
       "themeSystem": "Sistema",
       "uiScale": "Escala da interface",
-      "uiScaleDesc": "Ajuste a escala da interface",
+      "uiScaleDesc": "Ajustar a escala da interface (⌘+/⌘- ou Ctrl+/Ctrl-, ⌘0/Ctrl+0 redefinir)",
       "defaultTerminal": "Terminal Padrão",
       "defaultTerminalDesc": "O terminal usado ao abrir o CLI",
       "terminalSystem": "Padrão do Sistema",
@@ -1195,7 +1195,11 @@
         "tooMany": "Você pode adicionar até {{max}} tags"
       },
       "notesLabel": "Observações",
-      "notesPlaceholder": "Digite observações. Deixe em branco para limpar"
+      "notesPlaceholder": "Digite observações. Deixe em branco para limpar",
+      "confirmGlobalDelete": "Remover a tag \"{{targetTag}}\" de todas as contas? Esta ação não pode ser desfeita.",
+      "globalDeleteHint": "Excluir esta tag globalmente",
+      "globalDeleteFailed": "Falha ao excluir a tag globalmente",
+      "globalRenameHint": "Renomear esta tag globalmente"
     },
     "groupByTag": "Agrupar por tag",
     "untagged": "Sem tag",
@@ -3484,7 +3488,10 @@
       "checkAccounts": "Verifique contas",
       "importAndAddToApiService": "Importação + API",
       "importAndAddToApiServiceSuccess": "Importado e adicionado ao serviço API",
-      "addToApiServiceFailed": "Importado, mas falha ao adicionar ao serviço API: {{error}}"
+      "addToApiServiceFailed": "Importado, mas falha ao adicionar ao serviço API: {{error}}",
+      "cancelAndDismiss": "Cancelar e descartar",
+      "bulkTagsLabel": "Tags após importar",
+      "bulkTagsPlaceholder": "Opcional; separe com vírgulas ou espaços"
     },
     "autoRepairMode": {
       "label": "Lógica de reparo automático",
@@ -3530,7 +3537,10 @@
       "chipTags": "Etiquetas",
       "chipSearch": "Busca",
       "chipPlan": "Plano",
-      "chipFolder": "Pasta"
+      "chipFolder": "Pasta",
+      "authError": "Falha de auth",
+      "zeroQuota": "Cota 0%",
+      "expired": "Expirado"
     },
     "accessTokenImport": {
       "nameRequired": "Informe um nome de conta",
@@ -3596,7 +3606,9 @@
       "serverListLead": "Escolha o destino de sincronização",
       "serverCount": "{{count}} servidores",
       "autoSyncBadge": "Automático"
-    }
+    },
+    "exportAuthFailed": "Exportar falhas",
+    "exportAuthFailedTitle": "Exportar todas as contas com falha de auth"
   },
   "githubCopilot": {
     "title": "Gerenciamento de contas do GitHub Copilot",

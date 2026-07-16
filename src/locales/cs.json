@@ -588,7 +588,7 @@
       "themeDark": "Tmavý",
       "themeSystem": "Systémový",
       "uiScale": "Měřítko rozhraní",
-      "uiScaleDesc": "Upravte měřítko rozhraní",
+      "uiScaleDesc": "Upravit měřítko rozhraní (⌘+/⌘- nebo Ctrl+/Ctrl-, ⌘0/Ctrl+0 reset)",
       "accountManagement": "Správa účtů",
       "autoRefresh": "Automatické obnovení kvóty Antigravity IDE",
       "codexAutoRefresh": "Automatické obnovení kvóty Codex",
@@ -1195,7 +1195,11 @@
         "tooMany": "Můžete přidat až {{max}} štítků"
       },
       "notesLabel": "Poznámka",
-      "notesPlaceholder": "Zadejte poznámku. Ponechte prázdné pro vymazání"
+      "notesPlaceholder": "Zadejte poznámku. Ponechte prázdné pro vymazání",
+      "confirmGlobalDelete": "Odebrat štítek \"{{targetTag}}\" ze všech účtů? Tuto akci nelze vrátit zpět.",
+      "globalDeleteHint": "Globálně smazat tento štítek",
+      "globalDeleteFailed": "Globální smazání štítku se nezdařilo",
+      "globalRenameHint": "Globálně přejmenovat tento štítek"
     },
     "groupByTag": "Seskupit podle štítku",
     "untagged": "Bez štítku",
@@ -3484,7 +3488,10 @@
       "checkAccounts": "Zkontrolujte účty",
       "importAndAddToApiService": "Importovat + API",
       "importAndAddToApiServiceSuccess": "Importováno a přidáno do služby API",
-      "addToApiServiceFailed": "Importováno, ale přidání do služby API se nezdařilo: {{error}}"
+      "addToApiServiceFailed": "Importováno, ale přidání do služby API se nezdařilo: {{error}}",
+      "cancelAndDismiss": "Zrušit a zahodit",
+      "bulkTagsLabel": "Štítky po importu",
+      "bulkTagsPlaceholder": "Volitelné; oddělte čárkou nebo mezerou"
     },
     "autoRepairMode": {
       "label": "Logika auto opravy",
@@ -3530,7 +3537,10 @@
       "chipTags": "Štítky",
       "chipSearch": "Hledat",
       "chipPlan": "Plán",
-      "chipFolder": "Složka"
+      "chipFolder": "Složka",
+      "authError": "Auth selhala",
+      "zeroQuota": "0% kvóta",
+      "expired": "Vypršelo"
     },
     "accessTokenImport": {
       "nameRequired": "Zadejte název účtu",
@@ -3596,7 +3606,9 @@
       "serverListLead": "Vyberte cíl synchronizace",
       "serverCount": "{{count}} serverů",
       "autoSyncBadge": "Automaticky"
-    }
+    },
+    "exportAuthFailed": "Export chyb",
+    "exportAuthFailedTitle": "Exportovat všechny účty s chybou auth"
   },
   "githubCopilot": {
     "title": "Správa účtů GitHub Copilot",

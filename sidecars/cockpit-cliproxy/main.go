@@ -2889,13 +2889,15 @@ func buildCoreAuthSelector(cfg *config.Config, selector coreauth.Selector, m *ma
 		if parsed, err := time.ParseDuration(strings.TrimSpace(cfg.Routing.SessionAffinityTTL)); err == nil && parsed > 0 {
 			ttl = parsed
 		}
-		affinitySelector := coreauth.NewSessionAffinitySelectorWithConfig(coreauth.SessionAffinityConfig{
+		// Session affinity + per-client-key namespace, with image requests bypassing affinity.
+		selector = coreauth.NewSessionAffinitySelectorWithConfig(coreauth.SessionAffinityConfig{
 			Fallback: selector,
 			TTL:      ttl,
 		})
+		selector = &cockpitSessionAffinitySelector{inner: selector}
 		selector = &imageRequestSelector{
 			imageFallback: imageFallback,
-			fallback:      &cockpitSessionAffinitySelector{inner: selector},
+			fallback:      selector,
 		}
 	}
 	if m != nil {

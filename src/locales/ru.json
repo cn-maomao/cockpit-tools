@@ -588,7 +588,7 @@
       "themeDark": "Темная",
       "themeSystem": "Системная",
       "uiScale": "Масштаб интерфейса",
-      "uiScaleDesc": "Настройте масштаб интерфейса",
+      "uiScaleDesc": "Масштаб интерфейса (⌘+/⌘- или Ctrl+/Ctrl-, ⌘0/Ctrl+0 сброс)",
       "defaultTerminal": "Терминал по умолчанию",
       "defaultTerminalDesc": "Терминал, используемый при открытии CLI",
       "terminalSystem": "Системный по умолчанию",
@@ -1195,7 +1195,11 @@
         "tooMany": "Можно добавить не более {{max}} тегов"
       },
       "notesLabel": "Заметка",
-      "notesPlaceholder": "Введите заметку. Оставьте пустым, чтобы очистить"
+      "notesPlaceholder": "Введите заметку. Оставьте пустым, чтобы очистить",
+      "confirmGlobalDelete": "Удалить тег «{{targetTag}}» из всех аккаунтов? Это действие нельзя отменить.",
+      "globalDeleteHint": "Удалить этот тег глобально",
+      "globalDeleteFailed": "Не удалось глобально удалить тег",
+      "globalRenameHint": "Переименовать этот тег глобально"
     },
     "groupByTag": "Группировать по тегу",
     "untagged": "Без тега",
@@ -3484,7 +3488,10 @@
       "checkAccounts": "Проверить счета",
       "importAndAddToApiService": "Импорт + API",
       "importAndAddToApiServiceSuccess": "Импортировано и добавлено в сервис API.",
-      "addToApiServiceFailed": "Импортировано, но не удалось добавить в службу API: {{error}}."
+      "addToApiServiceFailed": "Импортировано, но не удалось добавить в службу API: {{error}}.",
+      "cancelAndDismiss": "Отменить и закрыть",
+      "bulkTagsLabel": "Теги после импорта",
+      "bulkTagsPlaceholder": "Необязательно; через запятую или пробел"
     },
     "autoRepairMode": {
       "label": "Логика автоисправления",
@@ -3530,7 +3537,10 @@
       "chipTags": "Теги",
       "chipSearch": "Поиск",
       "chipPlan": "План",
-      "chipFolder": "Папка"
+      "chipFolder": "Папка",
+      "authError": "Ошибка auth",
+      "zeroQuota": "Квота 0%",
+      "expired": "Истёк"
     },
     "accessTokenImport": {
       "nameRequired": "Введите имя аккаунта",
@@ -3596,7 +3606,9 @@
       "serverListLead": "Выберите цель синхронизации",
       "serverCount": "{{count}} серверов",
       "autoSyncBadge": "Авто"
-    }
+    },
+    "exportAuthFailed": "Экспорт сбоев",
+    "exportAuthFailedTitle": "Экспорт всех аккаунтов с ошибкой auth"
   },
   "githubCopilot": {
     "title": "Управление аккаунтами GitHub Copilot",

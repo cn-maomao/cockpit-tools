@@ -591,7 +591,7 @@
       "themeDark": "Koyu",
       "themeSystem": "Sistem",
       "uiScale": "Arayüz ölçeği",
-      "uiScaleDesc": "Arayüz ölçeğini ayarlayın",
+      "uiScaleDesc": "Arayüz ölçeğini ayarla (⌘+/⌘- veya Ctrl+/Ctrl-, ⌘0/Ctrl+0 sıfırla)",
       "accountManagement": "Hesap Yönetimi",
       "autoRefresh": "Antigravity IDE kota otomatik yenileme",
       "codexAutoRefresh": "Codex kota otomatik yenileme",
@@ -1195,7 +1195,11 @@
         "tooMany": "En fazla {{max}} etiket ekleyebilirsiniz"
       },
       "notesLabel": "Not",
-      "notesPlaceholder": "Not girin. Temizlemek için boş bırakın"
+      "notesPlaceholder": "Not girin. Temizlemek için boş bırakın",
+      "confirmGlobalDelete": "\"{{targetTag}}\" etiketi tüm hesaplardan kaldırılsın mı? Bu işlem geri alınamaz.",
+      "globalDeleteHint": "Bu etiketi genel olarak sil",
+      "globalDeleteFailed": "Etiket genel olarak silinemedi",
+      "globalRenameHint": "Bu etiketi genel olarak yeniden adlandır"
     },
     "groupByTag": "Etikete göre grupla",
     "untagged": "Etiketsiz",
@@ -3484,7 +3488,10 @@
       "checkAccounts": "Hesapları kontrol et",
       "importAndAddToApiService": "İçe Aktarma + API",
       "importAndAddToApiServiceSuccess": "İçe aktarıldı ve API hizmetine eklendi",
-      "addToApiServiceFailed": "İçe aktarıldı ancak API hizmetine ekleme işlemi başarısız oldu: {{error}}"
+      "addToApiServiceFailed": "İçe aktarıldı ancak API hizmetine ekleme işlemi başarısız oldu: {{error}}",
+      "cancelAndDismiss": "İptal et ve kapat",
+      "bulkTagsLabel": "İçe aktarma sonrası etiket",
+      "bulkTagsPlaceholder": "İsteğe bağlı; virgül veya boşlukla ayırın"
     },
     "autoRepairMode": {
       "label": "Otomatik onarım mantığı",
@@ -3530,7 +3537,10 @@
       "chipTags": "Etiket",
       "chipSearch": "Ara",
       "chipPlan": "Abonelik",
-      "chipFolder": "Klasör"
+      "chipFolder": "Klasör",
+      "authError": "Auth hatası",
+      "zeroQuota": "%0 kota",
+      "expired": "Süresi dolmuş"
     },
     "accessTokenImport": {
       "nameRequired": "Hesap adı girin",
@@ -3596,7 +3606,9 @@
       "serverListLead": "Senkronizasyon hedefi seçin",
       "serverCount": "{{count}} sunucu",
       "autoSyncBadge": "Otomatik"
-    }
+    },
+    "exportAuthFailed": "Hataları dışa aktar",
+    "exportAuthFailedTitle": "Tüm auth hatalı hesapları dışa aktar"
   },
   "githubCopilot": {
     "title": "GitHub Copilot Hesap Yönetimi",
