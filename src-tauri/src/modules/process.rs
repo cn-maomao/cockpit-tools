@@ -3649,16 +3649,54 @@ fn is_legacy_codex_store_launch_path(path: &Path) -> bool {
 }
 
 #[cfg(any(test, target_os = "windows"))]
-fn is_chatgpt_launch_path(path: &Path) -> bool {
+fn is_chatgpt_windows_launch_path(path: &Path) -> bool {
     normalized_windows_path_text(path).ends_with("\\chatgpt.exe")
 }
 
-#[cfg(any(test, target_os = "windows"))]
-fn should_migrate_legacy_codex_launch_path(current: &Path, detected: &Path) -> bool {
-    is_legacy_codex_store_launch_path(current) && is_chatgpt_launch_path(detected)
+#[cfg(any(test, target_os = "macos"))]
+fn normalized_macos_codex_path_text(path: &Path) -> String {
+    path.to_string_lossy()
+        .trim()
+        .trim_end_matches('/')
+        .to_ascii_lowercase()
 }
 
-#[cfg(target_os = "windows")]
+#[cfg(any(test, target_os = "macos"))]
+fn is_official_legacy_codex_macos_path(path: &Path) -> bool {
+    matches!(
+        normalized_macos_codex_path_text(path).as_str(),
+        "/applications/codex.app" | "/applications/codex.app/contents/macos/codex"
+    )
+}
+
+#[cfg(any(test, target_os = "macos"))]
+fn is_official_chatgpt_macos_path(path: &Path) -> bool {
+    matches!(
+        normalized_macos_codex_path_text(path).as_str(),
+        "/applications/chatgpt.app" | "/applications/chatgpt.app/contents/macos/chatgpt"
+    )
+}
+
+#[cfg(any(test, target_os = "macos", target_os = "windows"))]
+fn should_migrate_legacy_codex_launch_path(current: &Path, detected: &Path) -> bool {
+    let mut should_migrate = false;
+
+    #[cfg(any(test, target_os = "windows"))]
+    {
+        should_migrate |=
+            is_legacy_codex_store_launch_path(current) && is_chatgpt_windows_launch_path(detected);
+    }
+
+    #[cfg(any(test, target_os = "macos"))]
+    {
+        should_migrate |= is_official_legacy_codex_macos_path(current)
+            && is_official_chatgpt_macos_path(detected);
+    }
+
+    should_migrate
+}
+
+#[cfg(any(target_os = "macos", target_os = "windows"))]
 fn migrate_legacy_codex_launch_path(custom_path: &str) -> Option<std::path::PathBuf> {
     let current_path = std::path::PathBuf::from(custom_path);
     let detected = detect_codex_exec_path()?;
@@ -4117,6 +4155,9 @@ fn resolve_workbuddy_launch_path() -> Result<std::path::PathBuf, String> {
 #[cfg(target_os = "macos")]
 fn resolve_codex_launch_path() -> Result<std::path::PathBuf, String> {
     if let Some(custom) = normalize_custom_path(Some(&config::get_user_config().codex_app_path)) {
+        if let Some(migrated) = migrate_legacy_codex_launch_path(&custom) {
+            return Ok(migrated);
+        }
         if let Some(exec) = resolve_codex_macos_exec_path(&custom) {
             return Ok(exec);
         }
@@ -4186,6 +4227,10 @@ fn detect_and_save_app_path_raw(app: &str, force: bool) -> Option<String> {
         }
         "codex" => {
             if !force && !current.codex_app_path.trim().is_empty() {
+                #[cfg(any(target_os = "macos", target_os = "windows"))]
+                if migrate_legacy_codex_launch_path(&current.codex_app_path).is_some() {
+                    return Some(config::get_user_config().codex_app_path);
+                }
                 return Some(current.codex_app_path);
             }
             if let Some(detected) = detect_codex_exec_path() {
@@ -9598,11 +9643,10 @@ pub fn is_codex_running() -> bool {
 pub fn start_codex_with_args(codex_home: &str, extra_args: &[String]) -> Result<u32, String> {
     #[cfg(target_os = "macos")]
     {
-        let app_root = resolve_macos_app_root_from_config("codex").or_else(|| {
-            resolve_codex_launch_path()
-                .ok()
-                .and_then(|p| resolve_macos_app_root_from_launch_path(&p))
-        });
+        let app_root = resolve_codex_launch_path()
+            .ok()
+            .and_then(|p| resolve_macos_app_root_from_launch_path(&p))
+            .or_else(|| resolve_macos_app_root_from_config("codex"));
         let app_root = app_root.ok_or_else(|| app_path_missing_error("codex"))?;
 
         let codex_home_trimmed = codex_home.trim();
@@ -9835,11 +9879,10 @@ fn start_codex_default_internal(
 
     #[cfg(target_os = "macos")]
     {
-        let app_root = resolve_macos_app_root_from_config("codex").or_else(|| {
-            resolve_codex_launch_path()
-                .ok()
-                .and_then(|p| resolve_macos_app_root_from_launch_path(&p))
-        });
+        let app_root = resolve_codex_launch_path()
+            .ok()
+            .and_then(|p| resolve_macos_app_root_from_launch_path(&p))
+            .or_else(|| resolve_macos_app_root_from_config("codex"));
         let app_root = app_root.ok_or_else(|| app_path_missing_error("codex"))?;
 
         let args = build_codex_default_launch_args(extra_args);
@@ -13034,7 +13077,7 @@ mod codex_launch_args_tests {
 }
 
 #[cfg(test)]
-mod codex_windows_path_migration_tests {
+mod codex_path_migration_tests {
     use super::{
         is_codex_embedded_backend_executable, score_windows_candidate,
         should_migrate_legacy_codex_launch_path,
@@ -13073,6 +13116,34 @@ mod codex_windows_path_migration_tests {
             Path::new(
                 r"C:\Program Files\WindowsApps\OpenAI.ChatGPT_2.0.0.0_x64__8wekyb3d8bbwe\app\ChatGPT.exe"
             ),
+        ));
+    }
+
+    #[test]
+    fn migrates_official_macos_codex_path_when_chatgpt_exists() {
+        assert!(should_migrate_legacy_codex_launch_path(
+            Path::new("/Applications/Codex.app"),
+            Path::new("/Applications/ChatGPT.app/Contents/MacOS/ChatGPT"),
+        ));
+        assert!(should_migrate_legacy_codex_launch_path(
+            Path::new("/Applications/Codex.app/Contents/MacOS/Codex"),
+            Path::new("/Applications/ChatGPT.app"),
+        ));
+    }
+
+    #[test]
+    fn keeps_macos_legacy_path_when_chatgpt_is_not_detected() {
+        assert!(!should_migrate_legacy_codex_launch_path(
+            Path::new("/Applications/Codex.app"),
+            Path::new("/Applications/Codex.app/Contents/MacOS/Codex"),
+        ));
+    }
+
+    #[test]
+    fn does_not_replace_custom_macos_codex_path() {
+        assert!(!should_migrate_legacy_codex_launch_path(
+            Path::new("/Users/test/Applications/Codex.app"),
+            Path::new("/Applications/ChatGPT.app/Contents/MacOS/ChatGPT"),
         ));
     }
 
