@@ -1914,6 +1914,7 @@
         "requestsDetail": "OK {{success}} / Falha {{failed}} / Canc. {{canceled}} / Origem {{upstreamFailed}} / Incomp. {{incomplete}}",
         "tokens": "Tokens totais",
         "tokensDetail": "Entrada {{input}} / Saída {{output}}",
+        "cached": "Em cache",
         "specialTokens": "Cache / Raciocínio",
         "specialTokensDetail": "Cache {{cached}} / Raciocínio {{reasoning}}",
         "avgLatency": "Latência média",

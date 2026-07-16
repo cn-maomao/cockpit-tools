@@ -1914,6 +1914,7 @@
         "requestsDetail": "성공 {{success}} / 실패 {{failed}} / 취소 {{canceled}} / 업스트림 {{upstreamFailed}} / 미완료 {{incomplete}}",
         "tokens": "토큰",
         "tokensDetail": "입력 {{input}} / 출력 {{output}}",
+        "cached": "캐시",
         "specialTokens": "캐시 / 추론",
         "specialTokensDetail": "캐시 {{cached}} / 추론 {{reasoning}}",
         "avgLatency": "평균 지연",

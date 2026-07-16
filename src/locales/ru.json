@@ -1914,6 +1914,7 @@
         "requestsDetail": "ОК {{success}} / Ошибка {{failed}} / Отмена {{canceled}} / Источник {{upstreamFailed}} / Неполн. {{incomplete}}",
         "tokens": "Токены",
         "tokensDetail": "Вход {{input}} / Выход {{output}}",
+        "cached": "Кэш",
         "specialTokens": "Кэш / Размышления",
         "specialTokensDetail": "Кэш {{cached}} / Размышления {{reasoning}}",
         "avgLatency": "Средняя задержка",

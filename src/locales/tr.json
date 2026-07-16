@@ -1914,6 +1914,7 @@
         "requestsDetail": "OK {{success}} / Hata {{failed}} / İptal {{canceled}} / Kaynak {{upstreamFailed}} / Eksik {{incomplete}}",
         "tokens": "Tokenlar",
         "tokensDetail": "Girdi {{input}} / Çıktı {{output}}",
+        "cached": "Önbellek",
         "specialTokens": "Önbellek / Akıl yürütme",
         "specialTokensDetail": "Önbellek {{cached}} / Akıl yürütme {{reasoning}}",
         "avgLatency": "Ort. gecikme",

@@ -2292,6 +2292,7 @@
         "requestsDetail": "OK {{success}} / Fail {{failed}} / Cancel {{canceled}} / Upstream {{upstreamFailed}} / Incomplete {{incomplete}}",
         "tokens": "Tokens",
         "tokensDetail": "Input {{input}} / Output {{output}}",
+        "cached": "Cache",
         "estimatedCost": "Estimated Value",
         "estimatedCostDetail": "Accumulated from each request's price snapshot",
         "specialTokens": "Cache / Reasoning",

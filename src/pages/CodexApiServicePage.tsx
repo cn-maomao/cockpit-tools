@@ -3098,11 +3098,11 @@ export function CodexApiServicePage() {
       key: "tokens",
       label: t("codex.localAccess.stats.tokens", "总 Token 数"),
       value: formatCompactNumber(totals?.totalTokens ?? 0),
-      detail: t("codex.localAccess.stats.tokensDetail", {
+      detail: `${t("codex.localAccess.stats.tokensDetail", {
         input: formatCompactNumber(totals?.inputTokens ?? 0),
         output: formatCompactNumber(totals?.outputTokens ?? 0),
         defaultValue: "输入 {{input}} / 输出 {{output}}",
-      }),
+      })} / ${t("codex.localAccess.stats.cached", "缓存")} ${formatCompactNumber(totals?.cachedTokens ?? 0)}`,
     },
     {
       key: "cost",
