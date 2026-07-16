@@ -19,6 +19,8 @@ const CODEX_SHARED_RULES_DIR_NAME: &str = "rules";
 const CODEX_SHARED_AGENTS_FILE_NAME: &str = "AGENTS.md";
 const CODEX_SHARED_VENDOR_IMPORTS_SKILLS_DIR: &str = "vendor_imports/skills";
 #[cfg(target_os = "windows")]
+const CODEX_SHARED_COPY_MARKER_FILE_NAME: &str = ".cockpit-tools-shared-copy";
+#[cfg(target_os = "windows")]
 const CODEX_WINDOWS_APP_DATA_DIR_NAME: &str = "codex-app-data";
 #[cfg(target_os = "windows")]
 const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x0000_0400;
@@ -192,7 +194,7 @@ where
             junction_error
         ));
         prepare_directory_copy_fallback_target(target)?;
-        return copy_directory(source, target).map_err(|copy_error| {
+        copy_directory(source, target).map_err(|copy_error| {
             format!(
                 "创建目录共享存储失败: junction_error={}, copy_error={}, source={}, target={}",
                 junction_error,
@@ -200,7 +202,17 @@ where
                 display_abs_path(source),
                 display_abs_path(target)
             )
-        });
+        })?;
+        mark_directory_copy_fallback(target).map_err(|marker_error| {
+            format!(
+                "共享目录已复制但写入 fallback 标记失败: junction_error={}, marker_error={}, source={}, target={}",
+                junction_error,
+                marker_error,
+                display_abs_path(source),
+                display_abs_path(target)
+            )
+        })?;
+        return Ok(());
     }
     Ok(())
 }
@@ -226,6 +238,20 @@ fn prepare_directory_copy_fallback_target(target: &Path) -> Result<(), String> {
         "目录联接创建失败后目标路径已存在且非空，拒绝覆盖: {}",
         display_abs_path(target)
     ))
+}
+
+#[cfg(target_os = "windows")]
+fn mark_directory_copy_fallback(target: &Path) -> Result<(), String> {
+    fs::write(
+        target.join(CODEX_SHARED_COPY_MARKER_FILE_NAME),
+        "cockpit-tools-shared-copy-v1\n",
+    )
+    .map_err(|e| format!("写入目录复制 fallback 标记失败: {}", e))
+}
+
+#[cfg(target_os = "windows")]
+fn is_directory_copy_fallback(target: &Path) -> bool {
+    target.join(CODEX_SHARED_COPY_MARKER_FILE_NAME).is_file()
 }
 
 #[cfg(not(any(unix, windows)))]
@@ -419,6 +445,15 @@ fn sync_shared_directory(
         }
         remove_symlink(&instance_dir)?;
         return create_directory_symlink(&global_dir, &instance_dir);
+    }
+
+    #[cfg(target_os = "windows")]
+    if is_directory_copy_fallback(&instance_dir) {
+        modules::logger::log_warn(&format!(
+            "Windows shared directory is using a generated copy fallback; keeping it without destructive resync: path={}",
+            display_abs_path(&instance_dir)
+        ));
+        return Ok(());
     }
 
     if !metadata.is_dir() {
@@ -1032,6 +1067,7 @@ mod windows_shared_directory_tests {
         )
         .expect("copy fallback");
 
+        assert!(is_directory_copy_fallback(&target));
         assert_eq!(
             fs::read_to_string(target.join("nested").join("probe.txt")).expect("read copied probe"),
             "shared"
