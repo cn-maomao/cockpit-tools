@@ -44,6 +44,18 @@ jobs:
             exit 1
           fi
 
+      - name: Validate fork updater signing secrets
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${TAURI_SIGNING_PRIVATE_KEY}" ] || [ -z "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD}" ]; then
+            echo "TAURI_SIGNING_PRIVATE_KEY and TAURI_SIGNING_PRIVATE_KEY_PASSWORD are required for fork releases."
+            exit 1
+          fi
+
       - name: Build bilingual release notes from changelog
         shell: bash
         run: |
@@ -120,8 +132,15 @@ jobs:
               --jq "[.[] | select(.isDraft == false and .isPrerelease == false and .tagName != \"${GITHUB_REF_NAME}\")][0].tagName // \"\""
           )"
           if [ -z "${PREVIOUS_TAG}" ]; then
-            echo "No previous published release was found; refusing to stage without a legacy updater manifest."
-            exit 1
+            VERSION="${{ steps.app_version.outputs.VERSION }}"
+            PUBLISHED_AT="$(cat published-at.txt)"
+            jq -n \
+              --arg version "${VERSION}" \
+              --arg pub_date "${PUBLISHED_AT}" \
+              '{version: $version, notes: "Initial fork release is being assembled.", pub_date: $pub_date, platforms: {}}' \
+              > legacy-latest.json
+            echo "No previous fork release found; created a safe bootstrap latest.json."
+            exit 0
           fi
 
           mkdir -p previous-release

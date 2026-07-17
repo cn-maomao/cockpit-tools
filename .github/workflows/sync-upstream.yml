@@ -64,18 +64,55 @@ jobs:
           echo "head_sha=${head_sha}" >> "$GITHUB_OUTPUT"
           echo "Final main commit: ${head_sha}" >> "$GITHUB_STEP_SUMMARY"
 
-  build:
-    name: Dispatch final build
+  publish:
+    name: Dispatch release or final build
     needs: sync
     if: needs.sync.outputs.updated == 'true' || github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
-      - name: Run Build Matrix on main
-        env:
-          GH_TOKEN: ${{ github.token }}
-          HEAD_SHA: ${{ needs.sync.outputs.head_sha }}
+      - name: Checkout synchronized main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Read app version
+        id: version
         shell: bash
         run: |
           set -euo pipefail
-          gh workflow run build-matrix.yml --repo "$GITHUB_REPOSITORY" --ref main
-          echo "Dispatched Build Matrix for main at ${HEAD_SHA}." >> "$GITHUB_STEP_SUMMARY"
+          version="$(node -p "require('./package.json').version")"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Dispatch release or final build
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ needs.sync.outputs.head_sha }}
+          VERSION: ${{ steps.version.outputs.version }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="v${VERSION}"
+          if gh release view "${tag}" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh workflow run build-matrix.yml --repo "$GITHUB_REPOSITORY" --ref main
+            echo "Release ${tag} already exists; dispatched Build Matrix for ${HEAD_SHA}." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          if [ -z "${TAURI_SIGNING_PRIVATE_KEY}" ] || [ -z "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD}" ]; then
+            echo "::warning::fork updater signing secrets are not configured; dispatching Build Matrix instead of creating ${tag}"
+            gh workflow run build-matrix.yml --repo "$GITHUB_REPOSITORY" --ref main
+            echo "Signing secrets are missing; dispatched Build Matrix for ${HEAD_SHA}." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          if ! gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${tag}" > /dev/null 2>&1; then
+            gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" \
+              -f ref="refs/tags/${tag}" \
+              -f sha="${HEAD_SHA}" > /dev/null
+            echo "Created ${tag} at ${HEAD_SHA}." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref "${tag}"
+          echo "Dispatched Release for ${tag}." >> "$GITHUB_STEP_SUMMARY"

@@ -2,11 +2,11 @@ cask "cockpit-tools" do
   version "1.3.4"
   sha256 "8d644c659fc402c277487ac22435d2f6f6a18f881bfa2e7387a2f0b7ae5d0335"
 
-  url "https://github.com/jlcodes99/cockpit-tools/releases/download/v#{version}/Cockpit.Tools_#{version}_universal.dmg",
-      verified: "github.com/jlcodes99/cockpit-tools/"
+  url "https://github.com/cn-maomao/cockpit-tools/releases/download/v#{version}/Cockpit.Tools_#{version}_universal.dmg",
+      verified: "github.com/cn-maomao/cockpit-tools/"
   name "Cockpit Tools"
   desc "Account manager for AI IDEs (Antigravity and Codex)"
-  homepage "https://github.com/jlcodes99/cockpit-tools"
+  homepage "https://github.com/cn-maomao/cockpit-tools"
 
   auto_updates true
 
