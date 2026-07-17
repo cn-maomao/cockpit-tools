@@ -32,6 +32,7 @@ import {
   resolveUpdaterDownloadUrl,
 } from '../utils/updaterReleaseNotes';
 import { applyReducedMotion } from '../utils/reducedMotion';
+import { UI_SCALE_OPTION_STRINGS as UI_SCALE_OPTIONS } from '../utils/uiScale';
 import { getSubscriptionTier } from '../utils/account';
 import type { Account } from '../types/account';
 import type { CodexAccount } from '../types/codex';
@@ -152,6 +153,7 @@ interface GeneralConfig {
   tray_icon_style?: 'template' | 'color';
   floating_card_show_on_startup?: boolean;
   startup_minimized?: boolean;
+  remember_main_window_state?: boolean;
   /** `last` = restore previous page; otherwise a page id like `dashboard` / `codex` */
   startup_page?: string;
   floating_card_always_on_top?: boolean;
@@ -283,7 +285,6 @@ const REFRESH_PRESET_VALUES = ['-1', '2', '5', '10', '15'];
 const CURRENT_ACCOUNT_REFRESH_PRESET_VALUES = ['1', '2', '5', '10', '15'];
 const THRESHOLD_PRESET_VALUES = ['0', '20', '40', '60'];
 const CREDITS_THRESHOLD_PRESET_VALUES = ['0', '5', '10', '20'];
-const UI_SCALE_OPTIONS = ['0.9', '1', '1.1', '1.25', '1.5'] as const;
 const ANTIGRAVITY_SEAMLESS_SWITCH_UNLOCK_REQUIRED_TAPS = 10;
 const UNLOCK_FIREWORKS_VISIBLE_MS = 6000;
 const AUTO_SWITCH_SCOPE_ALL_ACCOUNTS: AutoSwitchAccountScopeMode = 'all_accounts';
@@ -293,11 +294,13 @@ const FALLBACK_PLATFORM_SETTINGS_ORDER: Record<PlatformId, number> = {
   antigravity: 0,
   antigravity_ide: 1,
   codex: 2,
-  claude_manager: 3,
-  'github-copilot': 4,
-  windsurf: 5,
-  kiro: 6,
-  cursor: 7,  grok: 9,
+  codex_api_service: 3,
+  claude_manager: 4,
+  'github-copilot': 5,
+  windsurf: 6,
+  kiro: 7,
+  cursor: 8,
+  grok: 9,
   codebuddy: 10,
   codebuddy_cn: 11,
   qoder: 12,
@@ -494,6 +497,7 @@ export function SettingsPage() {
   const [trayIconStyle, setTrayIconStyle] = useState<'template' | 'color'>('template');
   const [floatingCardShowOnStartup, setFloatingCardShowOnStartup] = useState(false);
   const [startupMinimized, setStartupMinimized] = useState(false);
+  const [rememberMainWindowState, setRememberMainWindowState] = useState(false);
   const [startupPage, setStartupPage] = useState('last');
   const [floatingCardAlwaysOnTop, setFloatingCardAlwaysOnTop] = useState(false);
   const [appAutoLaunchEnabled, setAppAutoLaunchEnabled] = useState(false);
@@ -1033,6 +1037,7 @@ export function SettingsPage() {
       tray_icon_style: isMacOS ? trayIconStyle : undefined,
       floating_card_show_on_startup: floatingCardShowOnStartup,
       startup_minimized: startupMinimized,
+      remember_main_window_state: rememberMainWindowState,
       startup_page: startupPage || 'last',
       floating_card_always_on_top: floatingCardAlwaysOnTop,
       app_auto_launch_enabled: appAutoLaunchEnabled,
@@ -1240,6 +1245,7 @@ export function SettingsPage() {
     isMacOS,
     floatingCardShowOnStartup,
     startupMinimized,
+    rememberMainWindowState,
     startupPage,
     floatingCardAlwaysOnTop,
     appAutoLaunchEnabled,
@@ -1581,6 +1587,7 @@ export function SettingsPage() {
       setTrayIconStyle(config.tray_icon_style === 'color' ? 'color' : 'template');
       setFloatingCardShowOnStartup(config.floating_card_show_on_startup ?? false);
       setStartupMinimized(config.startup_minimized ?? false);
+      setRememberMainWindowState(config.remember_main_window_state ?? false);
       setStartupPage((config.startup_page || 'last').trim() || 'last');
       setFloatingCardAlwaysOnTop(config.floating_card_always_on_top ?? false);
       setAppAutoLaunchEnabled(config.app_auto_launch_enabled ?? false);
@@ -3246,6 +3253,30 @@ export function SettingsPage() {
                     <option value="false">{t('common.disable', '停用')}</option>
                     <option value="true">{t('common.enable', '启用')}</option>
                   </select>
+                </div>
+              </div>
+
+              <div className="settings-row">
+                <div className="row-label">
+                  <div className="row-title">
+                    {t('settings.general.rememberMainWindowState', '记住主窗口位置和大小')}
+                  </div>
+                  <div className="row-desc">
+                    {t(
+                      'settings.general.rememberMainWindowStateDesc',
+                      '重启或从托盘重新打开时恢复主窗口位置和大小；默认关闭'
+                    )}
+                  </div>
+                </div>
+                <div className="row-control">
+                  <label className="switch">
+                    <input
+                      type="checkbox"
+                      checked={rememberMainWindowState}
+                      onChange={(event) => setRememberMainWindowState(event.target.checked)}
+                    />
+                    <span className="slider"></span>
+                  </label>
                 </div>
               </div>
 

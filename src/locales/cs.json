@@ -497,6 +497,7 @@
       "noneRunning": "Nebyly nalezeny žádné běžící instance",
       "syncThreadsNeedTwo": "Pro synchronizaci vláken jsou potřeba alespoň dvě instance",
       "launchPrepared": "Příkaz ke spuštění je připraven",
+      "codexManagedStoreLaunchUnsafe": "Windows Store nedokáže spolehlivě předat adresář instance, proto bylo otevření výchozího účtu zablokováno. Přepněte tuto instanci na spouštění přes CLI a zkuste to znovu. Podrobnosti: {{detail}}",
       "speedUpdated": "Rychlost aktualizována"
     },
     "runningDialog": {
@@ -588,7 +589,7 @@
       "themeDark": "Tmavý",
       "themeSystem": "Systémový",
       "uiScale": "Měřítko rozhraní",
-      "uiScaleDesc": "Upravte měřítko rozhraní",
+      "uiScaleDesc": "Upravit měřítko rozhraní (⌘+/⌘- nebo Ctrl+/Ctrl-, ⌘0/Ctrl+0 reset)",
       "accountManagement": "Správa účtů",
       "autoRefresh": "Automatické obnovení kvóty Antigravity IDE",
       "codexAutoRefresh": "Automatické obnovení kvóty Codex",
@@ -608,6 +609,8 @@
       "closeBehaviorQuit": "Ukončit aplikaci",
       "startupMinimized": "Spustit minimalizované",
       "startupMinimizedDesc": "Po spuštění aplikace automaticky minimalizuje hlavní okno; obnovíte ho z Docku, hlavního panelu nebo lišty",
+      "rememberMainWindowState": "Pamatovat polohu a velikost okna",
+      "rememberMainWindowStateDesc": "Obnoví polohu a velikost po restartu nebo otevření z lišty; ve výchozím nastavení vypnuto",
       "minimizeBehavior": "Chování při minimalizaci okna (pouze macOS)",
       "minimizeBehaviorDesc": "Vyberte, zda po minimalizaci zůstane okno v Docku a na liště nabídek, nebo pouze na liště nabídek",
       "minimizeBehaviorDockAndTray": "Dock + lišta nabídek (doporučeno)",
@@ -1195,7 +1198,11 @@
         "tooMany": "Můžete přidat až {{max}} štítků"
       },
       "notesLabel": "Poznámka",
-      "notesPlaceholder": "Zadejte poznámku. Ponechte prázdné pro vymazání"
+      "notesPlaceholder": "Zadejte poznámku. Ponechte prázdné pro vymazání",
+      "confirmGlobalDelete": "Odebrat štítek \"{{targetTag}}\" ze všech účtů? Tuto akci nelze vrátit zpět.",
+      "globalDeleteHint": "Globálně smazat tento štítek",
+      "globalDeleteFailed": "Globální smazání štítku se nezdařilo",
+      "globalRenameHint": "Globálně přejmenovat tento štítek"
     },
     "groupByTag": "Seskupit podle štítku",
     "untagged": "Bez štítku",
@@ -1266,7 +1273,9 @@
         "renameFailed": "Nepodařilo se přejmenovat skupinu: {{error}}",
         "deleteFailed": "Nepodařilo se smazat skupinu: {{error}}",
         "addFailed": "Nepodařilo se přidat do skupiny: {{error}}",
-        "createAndAddFailed": "Nepodařilo se vytvořit a přidat: {{error}}"
+        "createAndAddFailed": "Nepodařilo se vytvořit a přidat: {{error}}",
+        "quotaRefreshFailed": "Aktualizaci nastavení obnovování kvóty se nezdařilo: {{error}}",
+        "notFound": "Skupina nebyla nalezena"
       },
       "addAccounts": "Přidat účty",
       "editTitle": "Upravit skupinu",
@@ -1274,7 +1283,14 @@
       "currentGroupLabel": "Aktuální skupina",
       "accountPickerEmpty": "Žádné odpovídající účty",
       "filterHint": "Pro filtrování je vybráno {{count}} skupin",
-      "filterToggle": "Zaškrtnutím filtrujete podle této skupiny"
+      "filterToggle": "Zaškrtnutím filtrujete podle této skupiny",
+      "quotaRefresh": "Obnovení kvóty",
+      "quotaRefreshOffBadge": "Bez obnovování",
+      "quotaRefreshOffHint": "Tato skupina se neobnovuje; automatické a úplné obnovení její účty přeskočí",
+      "refreshForceHint": "Pokud zásada není nastavena na dědění, můžete skupinu stále obnovit ručně",
+      "quotaRefreshInherit": "Dědit nastavení platformy",
+      "quotaRefreshPolicyHint": "Obnovování kvóty skupiny má nejvyšší prioritu: zdědit platformu, vlastní interval nebo vypnout",
+      "quotaRefreshMinutesBadge": "{{count}} minut"
     },
     "switchHistory": {
       "title": "Historie přepnutí",
@@ -1863,6 +1879,7 @@
         "freeUnsupported": "Bezplatné účty zatím nejsou podporovány",
         "restrictFreeToggle": "Omezit Free účty",
         "chatApiKeyUnsupported": "Chat Completions není podporováno",
+        "pendingOauthUnsupported": "Čekající vyloučeno",
         "freeNoticeRestricted": "Free účty jsou omezené. Vypněte tuto volbu, chcete-li je vybrat.",
         "freeNoticeUnstable": "Proxy pro Free účty může být nestabilní. Používejte opatrně.",
         "restrictFreeDisableConfirmTitle": "Povolit Free účty",
@@ -1890,6 +1907,7 @@
       "testConnectFailed": "Nelze se připojit k {{url}}. Ověřte, že API služba běží, port se nezměnil a nic ho neblokuje.",
       "testAuthFailed": "Služba je dosažitelná, ale ověření selhalo: {{detail}}. Zkontrolujte klíč API služby nebo stav přihlášení účtu.",
       "testServiceUnavailable": "Služba je dosažitelná, ale momentálně není dostupná: {{detail}}. Zkontrolujte, zda je služba zapnutá, kolekce účtů není prázdná a účty jsou použitelné.",
+      "gatewayErrors": {"authUnavailable": "Momentálně není k dispozici žádný účet pro směrování. Účet může být v čekací lhůtě, bez ověření nebo omezený kvótou. Zkontrolujte jeho stav v API službě Cockpit Tools.", "authNotFound": "V kolekci účtů není nastaven žádný použitelný účet. Přidejte nebo aktivujte účet v API službě Cockpit Tools."},
       "testRateLimited": "Služba je dosažitelná, ale upstream je omezen nebo kvóta vyčerpána: {{detail}}.",
       "testHttpFailed": "Služba je dosažitelná, ale požadavek vrátil HTTP {{status}}: {{detail}}.",
       "activateAction": "Spustit API službu",
@@ -1914,6 +1932,7 @@
         "requestsDetail": "OK {{success}} / Chyba {{failed}} / Zruš. {{canceled}} / Zdroj {{upstreamFailed}} / Nedok. {{incomplete}}",
         "tokens": "Tokeny",
         "tokensDetail": "Vstup {{input}} / Výstup {{output}}",
+        "cached": "Mezipaměť",
         "specialTokens": "Cache / Přemýšlení",
         "specialTokensDetail": "Cache {{cached}} / Přemýšlení {{reasoning}}",
         "avgLatency": "Průměrná latence",
@@ -2107,7 +2126,31 @@
         "allAvailable": "Vše OK {{count}}",
         "availableRatio": "V pořádku {{available}}/{{total}}",
         "issueSummary": "Chyba {{abnormal}} · Pauza {{cooldown}}",
-        "detail": "OK {{available}}/{{total}}, chyba {{abnormal}}, pauza {{cooldown}}, chybí {{missing}}, ověření {{authError}}, limit {{quotaLimited}}"
+        "detail": "OK {{available}}/{{total}}, chyba {{abnormal}}, pauza {{cooldown}}, chybí {{missing}}, ověření {{authError}}, limit {{quotaLimited}}",
+        "openDetails": "Zobrazit problémové účty",
+        "recover": "Obnovit stav účtu",
+        "recoverSuccess": "Obnova vyžádána pro {{count}} účtů",
+        "dialog": {
+          "title": "Problémové účty",
+          "description": "Tyto stavy pocházejí z plánovače OAuth Sidecar. Obnova zruší čekání a účet zkusí znovu.",
+          "noIssues": "Žádné problémové účty",
+          "missing": "Účet chybí",
+          "cooldown": "Čeká",
+          "quota": "Omezená kvóta",
+          "missingDetail": "Účet již není v seznamu",
+          "cooldownModel": "Model {{model}} čeká",
+          "cooldownUntil": "Model {{model}} čeká do {{time}}",
+          "authDetail": "Autorizace OAuth mohla vypršet. Proveďte ji znovu.",
+          "quotaDetail": "Kvóta je dočasně nedostupná. Počkejte nebo zkontrolujte tarif.",
+          "paymentDetail": "Tarif nebo platba nejsou dostupné. Zkontrolujte předplatné.",
+          "modelDetail": "Účet nepodporuje požadovaný model.",
+          "upstreamDetail": "Nadřazená služba je dočasně nedostupná. Pokus se zopakuje.",
+          "disabledDetail": "Účet je zakázán. Nejprve jej povolte.",
+          "unavailableDetail": "Sidecar nyní nepovažuje účet za plánovatelný.",
+          "recover": "Obnovit",
+          "recovering": "Obnovování…",
+          "recoverAll": "Obnovit vše"
+        }
       },
       "testChatModel": "Model ID",
       "testChatClear": "Vymazat chat",
@@ -2163,7 +2206,10 @@
       "refreshFailedBadge": "Obnovení selhalo",
       "generic": "Obnovení kvóty se nezdařilo, zkuste to prosím později",
       "deactivatedWorkspace": "Pracovní prostor je deaktivovaný, přepněte účet nebo znovu autorizujte",
-      "requestFailedManualRetry": "Zkontrolujte síť. Nejnovější kvóta nebyla načtena. Obnovte a zkuste to znovu."
+      "requestFailedManualRetry": "Zkontrolujte síť. Nejnovější kvóta nebyla načtena. Obnovte a zkuste to znovu.",
+      "httpStatusSummary": "API vrátilo chybu {{status}}",
+      "viewDetails": "Podrobnosti",
+      "detailTitle": "Podrobnosti chyby"
     },
     "plan": {
       "free": "FREE​",
@@ -3229,7 +3275,9 @@
       },
       "accountHealth": {
         "failures": "{{count}} po sobě jdoucích selhání",
-        "image": "Obrázky {{status}}"
+        "image": "Obrázky {{status}}",
+        "unavailable": "Dočasně nedostupné",
+        "authError": "Chyba ověření"
       },
       "models": {
         "availableTitle": "Dostupné modely",
@@ -3313,11 +3361,13 @@
         "optionsTitle": "Volby směrování",
         "sessionAffinity": "Vazba relace",
         "sessionAffinityTtl": "TTL vazby",
+        "responsesWebsockets": "Responses přes WebSocket",
         "maxRetryCredentials": "Retry účty",
         "maxRetryInterval": "Čekání retry",
         "disableCooling": "Vypnout cooldown",
         "saveOptions": "Uložit volby",
         "immediateSseResponse": "Okamžitá SSE 200",
+        "maxConcurrentImageRequests": "Požadavky na obrázky na účet",
         "optionsSaved": "Volby směrování uloženy"
       },
       "validation": {
@@ -3479,7 +3529,10 @@
       "checkAccounts": "Zkontrolujte účty",
       "importAndAddToApiService": "Importovat + API",
       "importAndAddToApiServiceSuccess": "Importováno a přidáno do služby API",
-      "addToApiServiceFailed": "Importováno, ale přidání do služby API se nezdařilo: {{error}}"
+      "addToApiServiceFailed": "Importováno, ale přidání do služby API se nezdařilo: {{error}}",
+      "cancelAndDismiss": "Zrušit a zahodit",
+      "bulkTagsLabel": "Štítky po importu",
+      "bulkTagsPlaceholder": "Volitelné; oddělte čárkou nebo mezerou"
     },
     "autoRepairMode": {
       "label": "Logika auto opravy",
@@ -3525,7 +3578,10 @@
       "chipTags": "Štítky",
       "chipSearch": "Hledat",
       "chipPlan": "Plán",
-      "chipFolder": "Složka"
+      "chipFolder": "Složka",
+      "authError": "Auth selhala",
+      "zeroQuota": "0% kvóta",
+      "expired": "Vypršelo"
     },
     "accessTokenImport": {
       "nameRequired": "Zadejte název účtu",
@@ -3591,7 +3647,9 @@
       "serverListLead": "Vyberte cíl synchronizace",
       "serverCount": "{{count}} serverů",
       "autoSyncBadge": "Automaticky"
-    }
+    },
+    "exportAuthFailed": "Export chyb",
+    "exportAuthFailedTitle": "Exportovat všechny účty s chybou auth"
   },
   "githubCopilot": {
     "title": "Správa účtů GitHub Copilot",
@@ -4061,10 +4119,21 @@
       "description": "Kliknutím na „Přidat účet“ zahájíte správu účtů Kiro"
     },
     "addModal": {
-      "title": "Přidat Kiro účet"
+      "title": "Přidat Kiro účet",
+      "idc": "AWS SSO"
     },
     "oauth": {
       "desc": "Klikněte na tlačítko níže a dokončete autorizaci Kiro ve svém prohlížeči."
+    },
+    "idc": {
+      "builderId": "Účet AWS Builder ID",
+      "enterprise": "Podnikový účet",
+      "desc": "Dokončete autorizaci AWS IAM Identity Center v prohlížeči. Účet se uloží automaticky.",
+      "region": "Oblast AWS",
+      "startUrl": "Počáteční URL IAM Identity Center",
+      "start": "Spustit podnikové přihlášení",
+      "regionRequired": "Zadejte oblast AWS",
+      "startUrlRequired": "Zadejte počáteční URL IAM Identity Center"
     },
     "token": {
       "desc": "Vložte svůj přístupový token Kiro nebo exportovaná data JSON."
@@ -4762,7 +4831,12 @@
       "streakDays": "{{days}} dní",
       "streakRewardCountdown": "Do bonusové odměny zbývá {{days}} dní",
       "streakRewardToday": "Bonusová odměna je dnes dostupná!",
-      "recentDates": "Nedávno: "
+      "recentDates": "Nedávno: ",
+      "claimed": "Vyzvednuto",
+      "queryFailed": "Dotaz selhal",
+      "retry": "Znovu",
+      "inactive": "Nedostupné",
+      "inactiveHint": "Check-in není pro tento účet aktivní"
     }
   },
   "zcode": {
@@ -5212,13 +5286,13 @@
     },
     "import": {
       "pasteTab": "Vložit JSON",
-      "pasteDesc": "Vložte oficiální soubor auth.json z Grok CLI. Přihlašovací údaje zpracovává pouze místní backend. Cockpit exportuje jen skrytá metadata, ze kterých nelze obnovit přihlášení.",
+      "pasteDesc": "Vložte oficiální auth.json Grok CLI nebo plný JSON účtu z této aplikace (znovu importovatelný). Přihlašovací údaje jen lokálně.",
       "pastePlaceholder": "Vložit JSON účtu Grok",
       "pasteAction": "Importovat JSON",
-      "localDesc": "Importujte aktuální účet z výchozího ~/.grok/auth.json. Při výběru souboru použijte oficiální auth.json z Grok CLI.",
+      "localDesc": "Import z ~/.grok/auth.json, nebo zvolte oficiální auth.json / plný export JSON z této aplikace.",
       "localClient": "Importovat z místního Grok CLI",
       "apiKeyTab": "Klíč API",
-      "apiKeyDesc": "Vložte xAI API klíč (oficiální XAI_API_KEY). Při spuštění se injektuje. Lze i oficiální auth.json pro OAuth.",
+      "apiKeyDesc": "Vložte xAI API klíč (oficiální XAI_API_KEY / xai-…). Při spuštění CLI se injektuje jako proměnná prostředí a nepřepisuje oficiální OAuth přihlášení.",
       "apiKeyPlaceholder": "vložte xai-…",
       "apiKeyAction": "Přidat API Key"
     },

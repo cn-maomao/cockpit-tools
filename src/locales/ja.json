@@ -497,6 +497,7 @@
       "noneRunning": "実行中のインスタンスが見つかりません",
       "syncThreadsNeedTwo": "スレッドを同期するには少なくとも2つのインスタンスが必要です",
       "launchPrepared": "起動コマンドの準備ができました",
+      "codexManagedStoreLaunchUnsafe": "Windows Store ではインスタンスディレクトリを確実に引き継げないため、既定アカウントが開かれないよう起動を中止しました。このインスタンスの起動方式を CLI に変更して、もう一度お試しください。詳細: {{detail}}",
       "speedUpdated": "速度を更新しました"
     },
     "runningDialog": {
@@ -591,7 +592,7 @@
       "themeDark": "ダーク",
       "themeSystem": "システム設定に従う",
       "uiScale": "UIスケール",
-      "uiScaleDesc": "インターフェースの表示倍率を調整",
+      "uiScaleDesc": "画面の拡大率を調整（⌘+/⌘- または Ctrl+/Ctrl-、⌘0/Ctrl+0 でリセット）",
       "accountManagement": "アカウント管理",
       "autoRefresh": "Antigravity IDE 自動更新クォータ",
       "codexAutoRefresh": "Codex 自動更新クォータ",
@@ -611,6 +612,8 @@
       "closeBehaviorQuit": "アプリを終了",
       "startupMinimized": "最小化して起動",
       "startupMinimizedDesc": "アプリ起動後にメインウィンドウを自動で最小化し、Dock、タスクバー、トレイから復元できます",
+      "rememberMainWindowState": "メインウィンドウの位置とサイズを記憶",
+      "rememberMainWindowStateDesc": "再起動時やトレイから開き直す際に位置とサイズを復元します。初期設定はオフです",
       "minimizeBehavior": "ウィンドウ最小化時の動作（macOSのみ）",
       "minimizeBehaviorDesc": "ウィンドウを最小化した際にDockとメニューバーの両方に残すか、メニューバーのみにするかを選択",
       "minimizeBehaviorDockAndTray": "Dock + メニューバー（推奨・既定）",
@@ -1195,7 +1198,11 @@
         "tooMany": "タグは最大{{max}}件まで追加できます"
       },
       "notesLabel": "メモ",
-      "notesPlaceholder": "メモを入力。空欄でクリア"
+      "notesPlaceholder": "メモを入力。空欄でクリア",
+      "confirmGlobalDelete": "タグ「{{targetTag}}」をすべてのアカウントから削除しますか？この操作は元に戻せません。",
+      "globalDeleteHint": "このタグを全体削除",
+      "globalDeleteFailed": "タグの全体削除に失敗しました",
+      "globalRenameHint": "このタグを全体で名前変更"
     },
     "groupByTag": "タグでグループ化",
     "untagged": "タグなし",
@@ -1266,7 +1273,9 @@
         "renameFailed": "グループの名前変更に失敗しました：{{error}}",
         "deleteFailed": "グループの削除に失敗しました：{{error}}",
         "addFailed": "グループへの追加に失敗しました：{{error}}",
-        "createAndAddFailed": "グループの作成と追加に失敗しました：{{error}}"
+        "createAndAddFailed": "グループの作成と追加に失敗しました：{{error}}",
+        "quotaRefreshFailed": "クォータ更新設定を変更できませんでした：{{error}}",
+        "notFound": "グループが見つかりません"
       },
       "addAccounts": "アカウントを追加",
       "editTitle": "グループを編集",
@@ -1274,7 +1283,14 @@
       "currentGroupLabel": "現在のグループ",
       "accountPickerEmpty": "条件に一致するアカウントはありません",
       "filterHint": "フィルター対象に {{count}} 件のグループを選択中",
-      "filterToggle": "このグループで絞り込む"
+      "filterToggle": "このグループで絞り込む",
+      "quotaRefresh": "クォータ更新",
+      "quotaRefreshOffBadge": "更新しない",
+      "quotaRefreshOffHint": "このグループは更新されません。自動更新と全件更新ではグループ内のアカウントをスキップします",
+      "refreshForceHint": "ポリシーが「プラットフォームを継承」以外でも、このグループは手動で更新できます",
+      "quotaRefreshInherit": "プラットフォームを継承",
+      "quotaRefreshPolicyHint": "グループのクォータ更新設定が最優先されます：プラットフォームを継承、独自の間隔、または更新しない",
+      "quotaRefreshMinutesBadge": "{{count}}分"
     },
     "switchHistory": {
       "title": "切替履歴",
@@ -1863,6 +1879,7 @@
         "freeUnsupported": "無料アカウントはまだサポートされていません",
         "restrictFreeToggle": "Freeアカウントを制限",
         "chatApiKeyUnsupported": "Chat Completionsは非対応",
+        "pendingOauthUnsupported": "未認可は追加不可",
         "freeNoticeRestricted": "Freeアカウントは制限中です。選択するにはこの設定をオフにしてください。",
         "freeNoticeUnstable": "Freeアカウントのプロキシは不安定な場合があります。注意して使用してください。",
         "restrictFreeDisableConfirmTitle": "Freeアカウントを許可",
@@ -1890,6 +1907,7 @@
       "testConnectFailed": "{{url}} に接続できません。API サービスが起動していること、ポートが変更されていないこと、ブロックされていないことを確認してください。",
       "testAuthFailed": "サービスには到達しましたが、認証に失敗しました: {{detail}}。API サービスキーまたはアカウントのログイン状態を確認してください。",
       "testServiceUnavailable": "サービスには到達しましたが、現在利用できません: {{detail}}。サービスが有効か、アカウント集合が空でないか、アカウントが利用可能かを確認してください。",
+      "gatewayErrors": {"authUnavailable": "現在、ルーティング可能なアカウントがありません。冷却中、認証失敗、またはクォータ制限の可能性があります。Cockpit Tools の API サービスで状態を確認してください。", "authNotFound": "利用可能なアカウントがアカウントプールに設定されていません。Cockpit Tools の API サービスで追加または有効化してください。"},
       "testRateLimited": "サービスには到達しましたが、上流でレート制限またはクォータ不足です: {{detail}}。",
       "testHttpFailed": "サービスには到達しましたが、リクエストは HTTP {{status}} を返しました: {{detail}}。",
       "activateAction": "API サービスを起動",
@@ -1914,6 +1932,7 @@
         "requestsDetail": "成功 {{success}} / 失敗 {{failed}} / 取消 {{canceled}} / 上流失敗 {{upstreamFailed}} / 未完了 {{incomplete}}",
         "tokens": "トークン",
         "tokensDetail": "入力 {{input}} / 出力 {{output}}",
+        "cached": "キャッシュ",
         "specialTokens": "キャッシュ / 思考",
         "specialTokensDetail": "キャッシュ {{cached}} / 思考 {{reasoning}}",
         "avgLatency": "平均遅延",
@@ -2107,7 +2126,31 @@
         "allAvailable": "すべて正常 {{count}}",
         "availableRatio": "正常 {{available}}/{{total}}",
         "issueSummary": "異常 {{abnormal}} · 冷却 {{cooldown}}",
-        "detail": "正常 {{available}}/{{total}}、異常 {{abnormal}}、冷却 {{cooldown}}、欠落 {{missing}}、認証 {{authError}}、クォータ {{quotaLimited}}"
+        "detail": "正常 {{available}}/{{total}}、異常 {{abnormal}}、冷却 {{cooldown}}、欠落 {{missing}}、認証 {{authError}}、クォータ {{quotaLimited}}",
+        "openDetails": "異常アカウントを表示",
+        "recover": "アカウント状態を復旧",
+        "recoverSuccess": "{{count}} 件のアカウントの復旧を要求しました",
+        "dialog": {
+          "title": "異常アカウント",
+          "description": "この状態は Sidecar OAuth スケジューラから取得しています。復旧すると冷却を解除して再試行します。",
+          "noIssues": "異常アカウントはありません",
+          "missing": "アカウント欠落",
+          "cooldown": "冷却中",
+          "quota": "クォータ制限",
+          "missingDetail": "アカウントが一覧に存在しません",
+          "cooldownModel": "モデル {{model}} は冷却中です",
+          "cooldownUntil": "モデル {{model}} は {{time}} まで冷却中です",
+          "authDetail": "OAuth 認証が失効した可能性があります。再認証してください。",
+          "quotaDetail": "クォータが一時的に利用できません。回復を待つかプランを確認してください。",
+          "paymentDetail": "プランまたは支払い状態を確認してください。",
+          "modelDetail": "このアカウントは要求されたモデルに対応していません。",
+          "upstreamDetail": "上流サービスが一時的に異常です。復旧後に再試行します。",
+          "disabledDetail": "このアカウントは無効です。先に有効化してください。",
+          "unavailableDetail": "Sidecar は現在このアカウントをスケジュール対象にしていません。",
+          "recover": "復旧",
+          "recovering": "復旧中…",
+          "recoverAll": "すべて復旧"
+        }
       },
       "testChatModel": "モデル",
       "testChatClear": "会話を消去",
@@ -2163,7 +2206,10 @@
       "refreshFailedBadge": "更新失敗",
       "generic": "クォータの更新に失敗しました。後でもう一度お試しください",
       "deactivatedWorkspace": "ワークスペースが無効です。アカウントを切り替えるか再認証してください",
-      "requestFailedManualRetry": "ネットワークを確認してください。最新のクォータを取得できませんでした。更新して再試行できます。"
+      "requestFailedManualRetry": "ネットワークを確認してください。最新のクォータを取得できませんでした。更新して再試行できます。",
+      "httpStatusSummary": "API エラー {{status}}",
+      "viewDetails": "詳細",
+      "detailTitle": "エラー詳細"
     },
     "plan": {
       "free": "FREE​",
@@ -3229,7 +3275,9 @@
       },
       "accountHealth": {
         "failures": "連続失敗 {{count}} 回",
-        "image": "画像 {{status}}"
+        "image": "画像 {{status}}",
+        "unavailable": "一時的に利用不可",
+        "authError": "認証エラー"
       },
       "models": {
         "availableTitle": "利用可能なモデル",
@@ -3313,11 +3361,13 @@
         "optionsTitle": "ルーティング設定",
         "sessionAffinity": "セッション固定",
         "sessionAffinityTtl": "固定 TTL",
+        "responsesWebsockets": "WebSocket 経由の Responses",
         "maxRetryCredentials": "再試行アカウント",
         "maxRetryInterval": "再試行待ち",
         "disableCooling": "クールダウン無効",
         "saveOptions": "設定を保存",
         "immediateSseResponse": "即時 SSE 200",
+        "maxConcurrentImageRequests": "アカウントごとの画像リクエスト",
         "optionsSaved": "ルーティング設定を保存しました"
       },
       "validation": {
@@ -3479,7 +3529,10 @@
       "checkAccounts": "小切手口座",
       "importAndAddToApiService": "インポート + API",
       "importAndAddToApiServiceSuccess": "インポートされ、API サービスに追加されました",
-      "addToApiServiceFailed": "インポートされましたが、API サービスへの追加に失敗しました: {{error}}"
+      "addToApiServiceFailed": "インポートされましたが、API サービスへの追加に失敗しました: {{error}}",
+      "cancelAndDismiss": "キャンセルして破棄",
+      "bulkTagsLabel": "取込後にタグ",
+      "bulkTagsPlaceholder": "任意。タグはカンマまたはスペース区切り"
     },
     "autoRepairMode": {
       "label": "自動修復ロジック",
@@ -3525,7 +3578,10 @@
       "chipTags": "タグ",
       "chipSearch": "検索",
       "chipPlan": "プラン",
-      "chipFolder": "フォルダ"
+      "chipFolder": "フォルダ",
+      "authError": "認証失敗",
+      "zeroQuota": "0% 枠",
+      "expired": "期限切れ"
     },
     "accessTokenImport": {
       "nameRequired": "アカウント名を入力",
@@ -3591,7 +3647,9 @@
       "serverListLead": "同期ターゲットを選択",
       "serverCount": "{{count}} 台",
       "autoSyncBadge": "自動"
-    }
+    },
+    "exportAuthFailed": "失敗を書き出し",
+    "exportAuthFailedTitle": "認証失敗アカウントをすべて書き出す"
   },
   "githubCopilot": {
     "title": "GitHub Copilot アカウント管理",
@@ -4061,10 +4119,21 @@
       "description": "「アカウントを追加」をクリックして Kiro アカウントの管理を開始します"
     },
     "addModal": {
-      "title": "Kiroアカウントを追加する"
+      "title": "Kiroアカウントを追加する",
+      "idc": "AWS SSO ログイン"
     },
     "oauth": {
       "desc": "下のボタンをクリックして、ブラウザで Kiro 認証を完了してください。"
+    },
+    "idc": {
+      "builderId": "AWS Builder ID アカウント",
+      "enterprise": "企業アカウント",
+      "desc": "ブラウザで AWS IAM Identity Center の認証を完了すると、アカウントが自動的に保存されます。",
+      "region": "AWS リージョン",
+      "startUrl": "IAM Identity Center の開始 URL",
+      "start": "企業ログインを開始",
+      "regionRequired": "AWS リージョンを入力してください",
+      "startUrlRequired": "IAM Identity Center の開始 URL を入力してください"
     },
     "token": {
       "desc": "Kiro アクセス トークンまたはエクスポートされた JSON データを貼り付けます。"
@@ -4762,7 +4831,12 @@
       "streakDays": "{{days}}日",
       "streakRewardCountdown": "ボーナス報酬まであと{{days}}日",
       "streakRewardToday": "本日はボーナス報酬を受け取れます！",
-      "recentDates": "最近: "
+      "recentDates": "最近: ",
+      "claimed": "受取済み",
+      "queryFailed": "照会失敗",
+      "retry": "再試行",
+      "inactive": "利用不可",
+      "inactiveHint": "このアカウントではチェックインが無効です"
     }
   },
   "zcode": {
@@ -5212,13 +5286,13 @@
     },
     "import": {
       "pasteTab": "JSON を貼り付け",
-      "pasteDesc": "Grok CLI 公式の auth.json を貼り付けます。認証情報はローカルバックエンド内だけで処理されます。Cockpit のエクスポートはマスク済みメタデータのみで、ログインの復元には使えません。",
+      "pasteDesc": "公式 Grok CLI の auth.json、または本アプリが書き出した完全なアカウント JSON（再インポート可）を貼り付けます。資格情報はローカルのみ。",
       "pastePlaceholder": "Grok アカウントの JSON を貼り付け",
       "pasteAction": "JSON をインポート",
-      "localDesc": "既定の ~/.grok/auth.json から現在のアカウントをインポートします。ファイルを選ぶ場合は Grok CLI 公式の auth.json を使用してください。",
+      "localDesc": "既定の ~/.grok/auth.json から取り込みます。公式 auth.json または本アプリの完全エクスポート JSON も選択できます。",
       "localClient": "ローカルの Grok CLI からインポート",
       "apiKeyTab": "APIキー",
-      "apiKeyDesc": "xAI API キー（公式 XAI_API_KEY）を貼り付けます。起動時に環境変数へ注入します。公式 auth.json の貼り付けも可能です。",
+      "apiKeyDesc": "xAI API キー（公式 XAI_API_KEY / xai-…）を貼り付けます。CLI 起動時に環境変数へ注入し、公式 OAuth ログインは上書きしません。",
       "apiKeyPlaceholder": "xai- で始まるキー",
       "apiKeyAction": "API Key を追加"
     },

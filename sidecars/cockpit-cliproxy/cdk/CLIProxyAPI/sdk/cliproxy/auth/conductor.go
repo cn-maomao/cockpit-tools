@@ -114,6 +114,14 @@ type Result struct {
 	RetryAfter *time.Duration
 	// Error describes the failure when Success is false.
 	Error *Error
+	// AuthStateKnown reports whether MarkResult evaluated the selected auth's final scheduler state.
+	AuthStateKnown bool
+	// AuthAvailable is the scheduler's final availability decision for this auth/model.
+	AuthAvailable bool
+	// NextRetryAt is the scheduler's effective retry time after applying local cooldown policy.
+	NextRetryAt time.Time
+	// AuthStateReason is a stable machine-readable reason for the final scheduler state.
+	AuthStateReason string
 }
 
 // Selector chooses an auth candidate for execution.
@@ -1190,6 +1198,57 @@ func (m *Manager) Update(ctx context.Context, auth *Auth) (*Auth, error) {
 	_ = m.persist(ctx, auth)
 	m.hook.OnAuthUpdated(ctx, auth.Clone())
 	return auth.Clone(), nil
+}
+
+// ResetAuthState clears transient scheduler state for an auth and makes it
+// eligible for a fresh request attempt. Credential data and operator-disabled
+// state are preserved.
+func (m *Manager) ResetAuthState(ctx context.Context, authID string) (*Auth, error) {
+	authID = strings.TrimSpace(authID)
+	if m == nil || authID == "" {
+		return nil, nil
+	}
+
+	var authSnapshot *Auth
+	var modelIDs []string
+	m.mu.Lock()
+	auth, ok := m.auths[authID]
+	if !ok || auth == nil {
+		m.mu.Unlock()
+		return nil, nil
+	}
+	now := time.Now()
+	cleared := auth.Clone()
+	wasDisabled := cleared.Disabled || cleared.Status == StatusDisabled
+	modelIDs = make([]string, 0, len(cleared.ModelStates))
+	for modelID := range cleared.ModelStates {
+		if modelID = strings.TrimSpace(modelID); modelID != "" {
+			modelIDs = append(modelIDs, modelID)
+		}
+	}
+	cleared.ModelStates = nil
+	clearAuthStateOnSuccess(cleared, now)
+	if wasDisabled {
+		cleared.Status = StatusDisabled
+	}
+	cleared.UpdatedAt = now
+	authSnapshot = cleared.Clone()
+	m.auths[authID] = authSnapshot
+	m.mu.Unlock()
+
+	m.rebuildAPIKeyModelAliasFromRuntimeConfig()
+	if m.scheduler != nil {
+		m.scheduler.upsertAuth(authSnapshot)
+	}
+	modelRegistry := registry.GetGlobalRegistry()
+	for _, modelID := range modelIDs {
+		modelRegistry.ClearModelQuotaExceeded(authID, modelID)
+		modelRegistry.ResumeClientModel(authID, modelID)
+	}
+	m.queueRefreshReschedule(authID)
+	_ = m.persist(ctx, authSnapshot)
+	m.hook.OnAuthUpdated(ctx, authSnapshot.Clone())
+	return authSnapshot.Clone(), nil
 }
 
 // Load resets manager state from the backing store.
@@ -2429,6 +2488,11 @@ func (m *Manager) MarkResult(ctx context.Context, result Result) {
 
 		_ = m.persist(ctx, auth)
 		authSnapshot = auth.Clone()
+		blocked, blockReasonValue, nextRetryAt := isAuthBlockedForModel(authSnapshot, result.Model, now)
+		result.AuthStateKnown = true
+		result.AuthAvailable = !blocked
+		result.NextRetryAt = nextRetryAt
+		result.AuthStateReason = authResultStateReason(result, suspendReason, blockReasonValue)
 	}
 	m.mu.Unlock()
 	if m.scheduler != nil && authSnapshot != nil {
@@ -2448,6 +2512,39 @@ func (m *Manager) MarkResult(ctx context.Context, result Result) {
 	}
 
 	m.hook.OnResult(ctx, result)
+}
+
+func authResultStateReason(result Result, suspendReason string, reason blockReason) string {
+	if result.Success {
+		return "available"
+	}
+	if value := strings.TrimSpace(suspendReason); value != "" {
+		return value
+	}
+	status := statusCodeFromResult(result.Error)
+	switch status {
+	case http.StatusUnauthorized:
+		return "unauthorized"
+	case http.StatusPaymentRequired, http.StatusForbidden:
+		return "payment_required"
+	case http.StatusNotFound:
+		return "not_found"
+	case http.StatusTooManyRequests:
+		return "quota"
+	case http.StatusRequestTimeout, http.StatusInternalServerError, http.StatusBadGateway,
+		http.StatusServiceUnavailable, http.StatusGatewayTimeout:
+		return "transient_upstream"
+	}
+	switch reason {
+	case blockReasonCooldown:
+		return "cooldown"
+	case blockReasonDisabled:
+		return "disabled"
+	case blockReasonOther:
+		return "unavailable"
+	default:
+		return "available"
+	}
 }
 
 func ensureModelState(auth *Auth, model string) *ModelState {
@@ -4541,4 +4638,60 @@ func (m *Manager) HttpRequest(ctx context.Context, auth *Auth, req *http.Request
 		return nil, &Error{Code: "provider_not_found", Message: "executor not registered for provider: " + providerKey}
 	}
 	return exec.HttpRequest(ctx, auth, req)
+}
+
+// SelectAuth selects one credential through the configured scheduling strategy.
+func (m *Manager) SelectAuth(ctx context.Context, provider, model string, opts cliproxyexecutor.Options) (*Auth, error) {
+	if m == nil {
+		return nil, &Error{Code: "provider_not_found", Message: "manager is nil"}
+	}
+	selected, _, errPick := m.pickNext(ctx, provider, model, opts, nil)
+	if errPick != nil {
+		return nil, errPick
+	}
+	return selected, nil
+}
+
+// SelectAuthByKind selects one credential of the required kind through the
+// configured scheduling strategy. Credentials of other kinds are skipped so
+// callers can force OAuth-only backends such as Codex Alpha Search.
+func (m *Manager) SelectAuthByKind(ctx context.Context, provider, model, requiredKind string, opts cliproxyexecutor.Options) (*Auth, error) {
+	if m == nil {
+		return nil, &Error{Code: "provider_not_found", Message: "manager is nil"}
+	}
+	requiredKind = normalizeAuthKind(requiredKind)
+	if requiredKind == "" {
+		return nil, &Error{Code: "invalid_auth_kind", Message: "required auth kind is invalid", HTTPStatus: http.StatusBadRequest}
+	}
+
+	homeMode := m.HomeEnabled()
+	homeAuthCount := homeAuthCountFromMetadata(opts.Metadata)
+	tried := make(map[string]struct{})
+	for {
+		pickOpts := opts
+		if homeMode {
+			pickOpts = withHomeAuthCount(opts, homeAuthCount)
+		}
+		selected, _, errPick := m.pickNext(ctx, provider, model, pickOpts, tried)
+		if errPick != nil {
+			return nil, errPick
+		}
+		if selected == nil {
+			return nil, &Error{Code: "auth_not_found", Message: "selector returned no auth"}
+		}
+		if selected.AuthKind() == requiredKind {
+			return selected, nil
+		}
+		authID := strings.TrimSpace(selected.ID)
+		if authID == "" {
+			return nil, &Error{Code: "auth_not_found", Message: "selected auth has no ID"}
+		}
+		if _, alreadyTried := tried[authID]; alreadyTried {
+			return nil, &Error{Code: "auth_not_found", Message: "selector repeatedly returned an ineligible auth"}
+		}
+		tried[authID] = struct{}{}
+		if homeMode {
+			homeAuthCount++
+		}
+	}
 }

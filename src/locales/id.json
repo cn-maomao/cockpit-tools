@@ -556,6 +556,7 @@
       "noneRunning": "Tidak ditemukan instansi yang sedang berjalan",
       "syncThreadsNeedTwo": "Diperlukan setidaknya dua instansi untuk menyinkronkan thread",
       "launchPrepared": "Perintah peluncuran siap",
+      "codexManagedStoreLaunchUnsafe": "Windows Store tidak dapat meneruskan direktori instans secara andal, sehingga pembukaan akun default diblokir. Ubah instans ini ke mode peluncuran CLI lalu coba lagi. Detail: {{detail}}",
       "speedUpdated": "Kecepatan diperbarui"
     },
     "runningDialog": {
@@ -639,7 +640,7 @@
       "themeDark": "Gelap",
       "themeSystem": "Sistem",
       "uiScale": "Skala Antarmuka",
-      "uiScaleDesc": "Sesuaikan skala antarmuka",
+      "uiScaleDesc": "Sesuaikan skala antarmuka (⌘+/⌘- atau Ctrl+/Ctrl-, ⌘0/Ctrl+0 reset)",
       "accountManagement": "Akun",
       "autoRefresh": "Penyegaran Otomatis Kuota Antigravity IDE",
       "codexAutoRefresh": "Penyegaran Otomatis Kuota Codex",
@@ -661,6 +662,8 @@
       "closeBehaviorQuit": "Keluar dari aplikasi",
       "startupMinimized": "Mulai diperkecil",
       "startupMinimizedDesc": "Otomatis memperkecil jendela utama setelah aplikasi selesai dibuka; pulihkan dari Dock, taskbar, atau tray",
+      "rememberMainWindowState": "Ingat posisi dan ukuran jendela utama",
+      "rememberMainWindowStateDesc": "Pulihkan posisi dan ukuran setelah memulai ulang atau membuka dari tray; nonaktif secara default",
       "minimizeBehavior": "Perilaku perkecil jendela (khusus macOS)",
       "minimizeBehaviorDesc": "Pilih apakah saat diperkecil jendela tetap di Dock dan menu bar, atau hanya di menu bar",
       "minimizeBehaviorDockAndTray": "Dock + Menu Bar (Direkomendasikan)",
@@ -1242,7 +1245,11 @@
         "tooMany": "Anda dapat menambahkan maksimal {{max}} tag"
       },
       "notesLabel": "Catatan",
-      "notesPlaceholder": "Masukkan catatan. Kosongkan untuk menghapus"
+      "notesPlaceholder": "Masukkan catatan. Kosongkan untuk menghapus",
+      "confirmGlobalDelete": "Hapus tag \"{{targetTag}}\" dari semua akun? Tindakan ini tidak dapat dibatalkan.",
+      "globalDeleteHint": "Hapus tag ini secara global",
+      "globalDeleteFailed": "Gagal menghapus tag secara global",
+      "globalRenameHint": "Ganti nama tag ini secara global"
     },
     "groupByTag": "Kelompokkan berdasarkan tag",
     "untagged": "Tanpa Tag",
@@ -1349,7 +1356,9 @@
         "renameFailed": "Gagal mengubah nama grup: {{error}}",
         "deleteFailed": "Gagal menghapus grup: {{error}}",
         "addFailed": "Gagal menambahkan ke grup: {{error}}",
-        "createAndAddFailed": "Gagal membuat grup dan menambahkan: {{error}}"
+        "createAndAddFailed": "Gagal membuat grup dan menambahkan: {{error}}",
+        "quotaRefreshFailed": "Gagal memperbarui pengaturan penyegaran kuota: {{error}}",
+        "notFound": "Grup tidak ditemukan"
       },
       "addAccounts": "Tambahkan Akun",
       "editTitle": "Edit Grup",
@@ -1357,7 +1366,14 @@
       "currentGroupLabel": "Grup Saat Ini",
       "accountPickerEmpty": "Tidak ada akun yang cocok",
       "filterHint": "{{count}} grup dipilih untuk penyaringan",
-      "filterToggle": "Centang untuk menyaring berdasarkan grup ini"
+      "filterToggle": "Centang untuk menyaring berdasarkan grup ini",
+      "quotaRefresh": "Penyegaran kuota",
+      "quotaRefreshOffBadge": "Tanpa penyegaran",
+      "quotaRefreshOffHint": "Grup ini tidak disegarkan; penyegaran otomatis dan menyeluruh melewati akunnya",
+      "refreshForceHint": "Anda tetap dapat menyegarkan grup ini secara manual jika kebijakannya bukan mewarisi",
+      "quotaRefreshInherit": "Ikuti pengaturan platform",
+      "quotaRefreshPolicyHint": "Kebijakan penyegaran kuota grup memiliki prioritas tertinggi: ikuti platform, interval khusus, atau nonaktif",
+      "quotaRefreshMinutesBadge": "{{count}} mnt"
     },
     "clearTagFilter": "Hapus Filter Tag",
     "compact": {
@@ -1913,6 +1929,7 @@
         "freeUnsupported": "Akun gratis belum didukung",
         "restrictFreeToggle": "Batasi akun Free",
         "chatApiKeyUnsupported": "Chat Completions tidak didukung",
+        "pendingOauthUnsupported": "Auth tertunda: tidak",
         "freeNoticeRestricted": "Akun Free dibatasi. Nonaktifkan ini untuk memilihnya.",
         "freeNoticeUnstable": "Proxy akun Free bisa tidak stabil. Gunakan dengan hati-hati.",
         "restrictFreeDisableConfirmTitle": "Izinkan akun Free",
@@ -1940,6 +1957,7 @@
       "testConnectFailed": "Tidak dapat terhubung ke {{url}}. Pastikan layanan API berjalan, port tidak berubah, dan tidak ada yang memblokirnya.",
       "testAuthFailed": "Layanan dapat dijangkau, tetapi autentikasi gagal: {{detail}}. Periksa kunci layanan API atau status masuk akun.",
       "testServiceUnavailable": "Layanan dapat dijangkau, tetapi saat ini tidak tersedia: {{detail}}. Periksa apakah layanan aktif, koleksi akun kosong, atau akun dapat digunakan.",
+      "gatewayErrors": {"authUnavailable": "Tidak ada akun yang dapat dirutekan saat ini. Akun mungkin sedang cooldown, tidak terautentikasi, atau dibatasi kuota. Periksa statusnya di layanan API Cockpit Tools.", "authNotFound": "Tidak ada akun yang dapat digunakan di kumpulan akun. Tambahkan atau aktifkan akun di layanan API Cockpit Tools."},
       "testRateLimited": "Layanan dapat dijangkau, tetapi upstream dibatasi atau kuota habis: {{detail}}.",
       "testHttpFailed": "Layanan dapat dijangkau, tetapi permintaan mengembalikan HTTP {{status}}: {{detail}}.",
       "activateAction": "Mulai Layanan API",
@@ -1964,6 +1982,7 @@
         "requestsDetail": "OK {{success}} / Gagal {{failed}} / Batal {{canceled}} / Hulu {{upstreamFailed}} / Belum lengkap {{incomplete}}",
         "tokens": "Token",
         "tokensDetail": "Masuk {{input}} / Keluar {{output}}",
+        "cached": "Tembolok",
         "specialTokens": "Cache / Penalaran",
         "specialTokensDetail": "Cache {{cached}} / Penalaran {{reasoning}}",
         "avgLatency": "Latensi rata-rata",
@@ -2157,7 +2176,31 @@
         "allAvailable": "Semua OK {{count}}",
         "availableRatio": "Baik {{available}}/{{total}}",
         "issueSummary": "Error {{abnormal}} · Jeda {{cooldown}}",
-        "detail": "OK {{available}}/{{total}}, error {{abnormal}}, jeda {{cooldown}}, hilang {{missing}}, auth {{authError}}, kuota {{quotaLimited}}"
+        "detail": "OK {{available}}/{{total}}, error {{abnormal}}, jeda {{cooldown}}, hilang {{missing}}, auth {{authError}}, kuota {{quotaLimited}}",
+        "openDetails": "Lihat akun bermasalah",
+        "recover": "Pulihkan status akun",
+        "recoverSuccess": "Pemulihan diminta untuk {{count}} akun",
+        "dialog": {
+          "title": "Akun Bermasalah",
+          "description": "Status ini berasal dari penjadwal OAuth Sidecar. Pemulihan menghapus jeda dan mencoba kembali akun.",
+          "noIssues": "Tidak ada akun bermasalah",
+          "missing": "Akun hilang",
+          "cooldown": "Dalam jeda",
+          "quota": "Kuota terbatas",
+          "missingDetail": "Akun tidak lagi ada dalam daftar",
+          "cooldownModel": "Model {{model}} sedang dalam jeda",
+          "cooldownUntil": "Model {{model}} dalam jeda hingga {{time}}",
+          "authDetail": "Otorisasi OAuth mungkin kedaluwarsa. Otorisasi ulang lalu coba lagi.",
+          "quotaDetail": "Kuota sementara tidak tersedia. Tunggu atau periksa paket.",
+          "paymentDetail": "Paket atau status pembayaran tidak tersedia. Periksa langganan.",
+          "modelDetail": "Akun ini tidak mendukung model yang diminta.",
+          "upstreamDetail": "Layanan upstream sementara bermasalah. Akan dicoba lagi.",
+          "disabledDetail": "Akun ini dinonaktifkan. Aktifkan terlebih dahulu.",
+          "unavailableDetail": "Sidecar saat ini tidak menganggap akun ini dapat dijadwalkan.",
+          "recover": "Pulihkan",
+          "recovering": "Memulihkan…",
+          "recoverAll": "Pulihkan semua"
+        }
       },
       "testChatModel": "Model uji",
       "testChatClear": "Hapus chat",
@@ -2352,7 +2395,10 @@
       "refreshFailedBadge": "Gagal menyegarkan",
       "generic": "Penyegaran kuota gagal, silakan coba lagi nanti",
       "deactivatedWorkspace": "Workspace dinonaktifkan, ganti akun atau otorisasi ulang",
-      "requestFailedManualRetry": "Periksa jaringan. Kuota terbaru belum diambil. Segarkan untuk mencoba lagi."
+      "requestFailedManualRetry": "Periksa jaringan. Kuota terbaru belum diambil. Segarkan untuk mencoba lagi.",
+      "httpStatusSummary": "Kesalahan API {{status}}",
+      "viewDetails": "Detail",
+      "detailTitle": "Detail error"
     },
     "plan": {
       "free": "FREE​",
@@ -3276,7 +3322,9 @@
       },
       "accountHealth": {
         "failures": "{{count}} kegagalan beruntun",
-        "image": "Gambar {{status}}"
+        "image": "Gambar {{status}}",
+        "unavailable": "Sementara tidak tersedia",
+        "authError": "Kesalahan autentikasi"
       },
       "models": {
         "availableTitle": "Model tersedia",
@@ -3360,11 +3408,13 @@
         "optionsTitle": "Opsi Routing",
         "sessionAffinity": "Afinitas Sesi",
         "sessionAffinityTtl": "TTL Afinitas",
+        "responsesWebsockets": "Responses melalui WebSocket",
         "maxRetryCredentials": "Akun retry",
         "maxRetryInterval": "Tunggu retry",
         "disableCooling": "Matikan cooldown",
         "saveOptions": "Simpan Opsi",
         "immediateSseResponse": "SSE 200 langsung",
+        "maxConcurrentImageRequests": "Permintaan gambar per akun",
         "optionsSaved": "Opsi routing tersimpan"
       },
       "validation": {
@@ -3526,7 +3576,10 @@
       "checkAccounts": "Periksa akun",
       "importAndAddToApiService": "Impor + API",
       "importAndAddToApiServiceSuccess": "Diimpor dan ditambahkan ke layanan API",
-      "addToApiServiceFailed": "Diimpor, tetapi penambahan ke layanan API gagal: {{error}}"
+      "addToApiServiceFailed": "Diimpor, tetapi penambahan ke layanan API gagal: {{error}}",
+      "cancelAndDismiss": "Batalkan dan buang",
+      "bulkTagsLabel": "Tag setelah impor",
+      "bulkTagsPlaceholder": "Opsional; pisahkan dengan koma atau spasi"
     },
     "autoRepairMode": {
       "label": "Logika perbaikan otomatis",
@@ -3572,7 +3625,10 @@
       "chipTags": "Tag",
       "chipSearch": "Cari",
       "chipPlan": "Paket",
-      "chipFolder": "Direktori"
+      "chipFolder": "Direktori",
+      "authError": "Auth gagal",
+      "zeroQuota": "Kuota 0%",
+      "expired": "Kedaluwarsa"
     },
     "accessTokenImport": {
       "nameRequired": "Masukkan nama akun",
@@ -3638,7 +3694,9 @@
       "serverListLead": "Pilih target sinkronisasi",
       "serverCount": "{{count}} server",
       "autoSyncBadge": "Mobil"
-    }
+    },
+    "exportAuthFailed": "Ekspor gagal",
+    "exportAuthFailedTitle": "Ekspor semua akun auth gagal"
   },
   "codebuddy": {
     "title": "Akun CodeBuddy",
@@ -4214,10 +4272,21 @@
       "description": "Klik \"Tambah Akun\" untuk mulai mengelola akun Kiro Anda"
     },
     "addModal": {
-      "title": "Tambah Akun Kiro"
+      "title": "Tambah Akun Kiro",
+      "idc": "SSO AWS"
     },
     "oauth": {
       "desc": "Klik tombol di bawah ini dan selesaikan otorisasi Kiro di peramban Anda."
+    },
+    "idc": {
+      "builderId": "Akun AWS Builder ID",
+      "enterprise": "Akun perusahaan",
+      "desc": "Selesaikan otorisasi AWS IAM Identity Center di peramban. Akun akan disimpan otomatis.",
+      "region": "Wilayah AWS",
+      "startUrl": "URL awal IAM Identity Center",
+      "start": "Mulai masuk perusahaan",
+      "regionRequired": "Masukkan wilayah AWS",
+      "startUrlRequired": "Masukkan URL awal IAM Identity Center"
     },
     "token": {
       "desc": "Tempel token akses Kiro atau data JSON yang diekspor."
@@ -4937,7 +5006,12 @@
       "streakDays": "{{days}} hari",
       "streakRewardCountdown": "{{days}} hari lagi untuk hadiah bonus",
       "streakRewardToday": "Hadiah bonus tersedia hari ini!",
-      "recentDates": "Terbaru: "
+      "recentDates": "Terbaru: ",
+      "claimed": "Diklaim",
+      "queryFailed": "Kueri gagal",
+      "retry": "Coba lagi",
+      "inactive": "Tidak tersedia",
+      "inactiveHint": "Check-in tidak aktif untuk akun ini"
     }
   },
   "mfaVault": {
@@ -5212,13 +5286,13 @@
     },
     "import": {
       "pasteTab": "Tempel JSON",
-      "pasteDesc": "Tempel auth.json resmi dari Grok CLI. Kredensial hanya diproses oleh backend lokal. Cockpit hanya mengekspor metadata yang disamarkan dan tidak dapat memulihkan login.",
+      "pasteDesc": "Tempel auth.json Grok CLI resmi, atau JSON akun lengkap yang diekspor aplikasi ini (bisa diimpor ulang). Kredensial hanya diproses lokal.",
       "pastePlaceholder": "Tempel JSON akun Grok",
       "pasteAction": "Impor JSON",
-      "localDesc": "Impor akun saat ini dari ~/.grok/auth.json bawaan. Saat memilih berkas, gunakan auth.json resmi dari Grok CLI.",
+      "localDesc": "Impor dari ~/.grok/auth.json, atau pilih auth.json resmi / JSON ekspor lengkap aplikasi ini.",
       "localClient": "Impor dari Grok CLI lokal",
       "apiKeyTab": "Kunci API",
-      "apiKeyDesc": "Tempel xAI API Key (XAI_API_KEY resmi). Diinjeksikan saat peluncuran. Bisa juga tempel auth.json resmi untuk OAuth.",
+      "apiKeyDesc": "Tempel kunci API xAI (XAI_API_KEY / xai-… resmi). Diinjeksikan sebagai variabel lingkungan saat CLI diluncurkan; tidak menimpa login OAuth resmi.",
       "apiKeyPlaceholder": "tempel xai-…",
       "apiKeyAction": "Tambah API Key"
     },

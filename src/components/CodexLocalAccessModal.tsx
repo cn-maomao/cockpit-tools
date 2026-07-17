@@ -56,6 +56,7 @@ import {
 } from "../utils/codexAccountOverview";
 import {
   formatCodexQuotaPoolPercent,
+  formatCodexQuotaPoolWindowLabel,
   summarizeCodexQuotaPool,
   type CodexQuotaPoolItem,
 } from "../utils/codexQuotaPool";
@@ -66,6 +67,7 @@ import {
 } from "../utils/codexLocalAccessAccounts";
 import { isBlockingCodexQuotaError } from "../utils/codexQuotaError";
 import { AccountTagFilterDropdown } from "./AccountTagFilterDropdown";
+import { CodexAccountPoolHealthModal } from "./CodexAccountPoolHealthModal";
 import {
   MultiSelectFilterDropdown,
   type MultiSelectFilterOption,
@@ -147,6 +149,8 @@ interface CodexLocalAccessModalProps {
   onRotateApiKey: () => Promise<unknown> | unknown;
   onKillPort: () => Promise<unknown> | unknown;
   onToggleEnabled: () => Promise<unknown> | unknown;
+  onRecoverAccounts: (accountIds: string[]) => Promise<void>;
+  healthActionBusy: boolean;
   onStreamTestMessage: (payload: {
     sessionId: string;
     modelId: string;
@@ -286,10 +290,15 @@ function createTestChatMessage(
 function formatQuotaPoolLabel(
   baseLabel: string,
   pool: CodexQuotaPoolItem,
-  hourlyLabel: string,
   weeklyLabel: string,
 ): string {
-  return `${baseLabel} · ${hourlyLabel} ${formatCodexQuotaPoolPercent(pool.hourly)} · ${weeklyLabel} ${formatCodexQuotaPoolPercent(pool.weekly)}`;
+  const quotaText = pool.windows
+    .map(
+      (window) =>
+        `${formatCodexQuotaPoolWindowLabel(window.label, weeklyLabel)} ${formatCodexQuotaPoolPercent(window.percentage)}`,
+    )
+    .join(" · ");
+  return quotaText ? `${baseLabel} · ${quotaText}` : baseLabel;
 }
 
 function summarizeQuotaPoolsByPlan(
@@ -321,9 +330,10 @@ function isAbnormalAccountFailure(
 ): boolean {
   return Boolean(
     health &&
-    health.consecutiveFailures >= 3 &&
-    health.lastFailureCategory &&
-    ABNORMAL_ACCOUNT_FAILURE_CATEGORIES.has(health.lastFailureCategory),
+    ((health.schedulerAvailable === false && !health.cooldowns.length) ||
+      (health.consecutiveFailures >= 3 &&
+        health.lastFailureCategory &&
+        ABNORMAL_ACCOUNT_FAILURE_CATEGORIES.has(health.lastFailureCategory))),
   );
 }
 
@@ -354,6 +364,8 @@ export function CodexLocalAccessModal({
   onRotateApiKey,
   onKillPort,
   onToggleEnabled,
+  onRecoverAccounts,
+  healthActionBusy,
   onStreamTestMessage,
   saving,
   testing,
@@ -371,6 +383,7 @@ export function CodexLocalAccessModal({
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [testDialogOpen, setTestDialogOpen] = useState(false);
+  const [healthModalOpen, setHealthModalOpen] = useState(false);
   const [testDialogRunning, setTestDialogRunning] = useState(false);
   const [testChatMessages, setTestChatMessages] = useState<TestChatMessage[]>(
     [],
@@ -431,7 +444,6 @@ export function CodexLocalAccessModal({
   const stats = state?.stats;
   const quotaPoolLabels = useMemo(
     () => ({
-      hourly: t("codex.localAccess.quotaPool.hourlyShort", "5h"),
       weekly: t("codex.localAccess.quotaPool.weeklyShort", "周"),
       title: t("codex.localAccess.quotaPool.title", "额度池"),
     }),
@@ -815,11 +827,9 @@ export function CodexLocalAccessModal({
       formatQuotaPoolLabel(
         t("common.shared.filter.all", { count: tierCounts.all }),
         quotaPoolSummary.all,
-        quotaPoolLabels.hourly,
         quotaPoolLabels.weekly,
       ),
     [
-      quotaPoolLabels.hourly,
       quotaPoolLabels.weekly,
       quotaPoolSummary.all,
       t,
@@ -841,13 +851,11 @@ export function CodexLocalAccessModal({
           label: formatQuotaPoolLabel(
             option.label,
             pool,
-            quotaPoolLabels.hourly,
             quotaPoolLabels.weekly,
           ),
         };
       }),
     [
-      quotaPoolLabels.hourly,
       quotaPoolLabels.weekly,
       quotaPoolByPlan,
       t,
@@ -959,7 +967,11 @@ export function CodexLocalAccessModal({
           account,
           restrictFreeAccounts,
         );
-        if (ineligibleReason === "chat_completions_api_key") {
+        // Keep unsupported accounts visible so users know why they cannot join.
+        if (
+          ineligibleReason === "chat_completions_api_key" ||
+          ineligibleReason === "pending_oauth"
+        ) {
           return true;
         }
         if (isCodexLocalAccessEligibleAccount(account, restrictFreeAccounts)) {
@@ -1259,13 +1271,11 @@ export function CodexLocalAccessModal({
       formatQuotaPoolLabel(
         t("common.shared.filter.all", { count: customRoutingTierCounts.all }),
         customRoutingQuotaPoolSummary.all,
-        quotaPoolLabels.hourly,
         quotaPoolLabels.weekly,
       ),
     [
       customRoutingQuotaPoolSummary.all,
       customRoutingTierCounts.all,
-      quotaPoolLabels.hourly,
       quotaPoolLabels.weekly,
       t,
     ],
@@ -1288,7 +1298,6 @@ export function CodexLocalAccessModal({
           label: formatQuotaPoolLabel(
             option.label,
             pool,
-            quotaPoolLabels.hourly,
             quotaPoolLabels.weekly,
           ),
         };
@@ -1296,7 +1305,6 @@ export function CodexLocalAccessModal({
     [
       customRoutingQuotaPoolByPlan,
       customRoutingTierCounts,
-      quotaPoolLabels.hourly,
       quotaPoolLabels.weekly,
       t,
     ],
@@ -2313,7 +2321,8 @@ export function CodexLocalAccessModal({
                     aria-label={quotaPoolLabels.title}
                   >
                     {accountPoolHealthSummary.total > 0 && (
-                      <div
+                      <button
+                        type="button"
                         className={`codex-local-access-quota-pool-card codex-local-access-health-pool-card${
                           accountPoolHealthSummary.available <
                             accountPoolHealthSummary.total ||
@@ -2333,6 +2342,11 @@ export function CodexLocalAccessModal({
                           defaultValue:
                             "可用 {{available}}/{{total}}，异常 {{abnormal}}，冷却 {{cooldown}}，缺失 {{missing}}，鉴权 {{authError}}，额度 {{quotaLimited}}",
                         })}
+                        onClick={() => setHealthModalOpen(true)}
+                        aria-label={t(
+                          "codex.localAccess.accountPoolHealth.openDetails",
+                          "查看异常账号详情",
+                        )}
                       >
                         <span className="codex-local-access-quota-pool-plan">
                           {t(
@@ -2375,7 +2389,7 @@ export function CodexLocalAccessModal({
                             )}
                           </span>
                         )}
-                      </div>
+                      </button>
                     )}
                     {currentQuotaPoolSummary.visiblePlans.map((item) => (
                       <div
@@ -2385,14 +2399,18 @@ export function CodexLocalAccessModal({
                         <span className="codex-local-access-quota-pool-plan">
                           {item.key} ({item.count})
                         </span>
-                        <span className="codex-local-access-quota-pool-value">
-                          {quotaPoolLabels.hourly}{" "}
-                          {formatCodexQuotaPoolPercent(item.hourly)}
-                        </span>
-                        <span className="codex-local-access-quota-pool-value">
-                          {quotaPoolLabels.weekly}{" "}
-                          {formatCodexQuotaPoolPercent(item.weekly)}
-                        </span>
+                        {item.windows.map((window) => (
+                          <span
+                            key={window.key}
+                            className="codex-local-access-quota-pool-value"
+                          >
+                            {formatCodexQuotaPoolWindowLabel(
+                              window.label,
+                              quotaPoolLabels.weekly,
+                            )}{" "}
+                            {formatCodexQuotaPoolPercent(window.percentage)}
+                          </span>
+                        ))}
                       </div>
                     ))}
                   </div>
@@ -2969,9 +2987,13 @@ export function CodexLocalAccessModal({
                         );
                       const isChatCompletionsApiKeyUnsupported =
                         ineligibleReason === "chat_completions_api_key";
+                      const isPendingOauthUnsupported =
+                        ineligibleReason === "pending_oauth";
+                      const isJoinUnsupported =
+                        isChatCompletionsApiKeyUnsupported ||
+                        isPendingOauthUnsupported;
                       const isChecked =
-                        !isChatCompletionsApiKeyUnsupported &&
-                        selected.has(account.id);
+                        !isJoinUnsupported && selected.has(account.id);
                       const isBackup =
                         customRoutingDraft[account.id]?.isBackup ??
                         customRoutingRuleByAccountId.get(account.id)
@@ -2984,15 +3006,14 @@ export function CodexLocalAccessModal({
                       return (
                         <div
                           key={account.id}
-                          className={`group-account-item${isChecked ? " is-current" : ""}${isChatCompletionsApiKeyUnsupported ? " is-disabled" : ""}`}
+                          className={`group-account-item${isChecked ? " is-current" : ""}${isJoinUnsupported ? " is-disabled" : ""}`}
                         >
                           <input
                             type="checkbox"
                             className="codex-local-access-member-select"
                             checked={isChecked}
                             disabled={
-                              membersInteractionDisabled ||
-                              isChatCompletionsApiKeyUnsupported
+                              membersInteractionDisabled || isJoinUnsupported
                             }
                             onChange={() => toggleSelect(account.id)}
                             aria-label={maskAccountText(
@@ -3008,15 +3029,14 @@ export function CodexLocalAccessModal({
                                   presentation.displayName,
                                 )}
                                 disabled={
-                                  membersInteractionDisabled ||
-                                  isChatCompletionsApiKeyUnsupported
+                                  membersInteractionDisabled || isJoinUnsupported
                                 }
                                 onClick={() => toggleSelect(account.id)}
                               >
                                 {maskAccountText(presentation.displayName)}
                               </button>
                               <span className="codex-local-access-member-backup-slot">
-                                {!isChatCompletionsApiKeyUnsupported ? (
+                                {!isJoinUnsupported ? (
                                   <button
                                     type="button"
                                     className={`codex-local-access-member-backup-field${
@@ -3072,6 +3092,14 @@ export function CodexLocalAccessModal({
                                     {t(
                                       "codex.localAccess.modal.chatApiKeyUnsupported",
                                       "Chat Completions 协议不支持加入 API 服务",
+                                    )}
+                                  </span>
+                                )}
+                                {isPendingOauthUnsupported && (
+                                  <span className="codex-local-access-member-unsupported">
+                                    {t(
+                                      "codex.localAccess.modal.pendingOauthUnsupported",
+                                      "待授权账号不可加入 API 服务",
                                     )}
                                   </span>
                                 )}
@@ -3734,6 +3762,17 @@ export function CodexLocalAccessModal({
           </div>
         </div>
       )}
+      <CodexAccountPoolHealthModal
+        isOpen={healthModalOpen}
+        accountIds={collection?.accountIds ?? []}
+        accounts={accounts}
+        accountHealth={state?.accountHealth ?? []}
+        actionBusy={healthActionBusy}
+        maskAccountText={(value) => maskAccountText(value)}
+        onClose={() => setHealthModalOpen(false)}
+        onRecover={(accountId) => onRecoverAccounts([accountId])}
+        onRecoverAll={onRecoverAccounts}
+      />
     </>
   );
 }

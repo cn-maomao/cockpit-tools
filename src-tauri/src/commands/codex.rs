@@ -61,6 +61,8 @@ struct CodexBatchDeleteJob {
     errors: Vec<CodexBatchDeleteError>,
     account_ids: Vec<String>,
     next_index: usize,
+    #[serde(default)]
+    api_service_cleaned: bool,
     created_at: i64,
     updated_at: i64,
 }
@@ -219,8 +221,55 @@ fn get_codex_batch_delete_job_status(job_id: &str) -> Result<CodexBatchDeleteJob
     Ok(codex_batch_delete_status(job_id, job))
 }
 
+async fn cleanup_batch_accounts_from_api_service(job_id: &str, account_ids: Vec<String>) {
+    if account_ids.is_empty() {
+        return;
+    }
+    match tokio::time::timeout(
+        Duration::from_secs(5),
+        codex_local_access::remove_deleted_accounts_from_local_access_pool(&account_ids),
+    )
+    .await
+    {
+        Ok(Ok(())) => {}
+        Ok(Err(error)) => {
+            logger::log_warn(&format!(
+                "[Codex Batch Delete] 删除前批量移除 API 服务账号池引用失败，继续删除账号: job_id={}, account_count={}, error={}",
+                job_id,
+                account_ids.len(),
+                error
+            ));
+        }
+        Err(_) => {
+            logger::log_warn(&format!(
+                "[Codex Batch Delete] 删除前批量移除 API 服务账号池引用超时，继续删除账号: job_id={}, account_count={}",
+                job_id,
+                account_ids.len()
+            ));
+        }
+    }
+}
+
 async fn run_codex_batch_delete_job(job_id: String) {
     loop {
+        let cleanup_request = {
+            let mut jobs = CODEX_BATCH_DELETE_JOBS.lock().unwrap();
+            let Some(job) = jobs.get_mut(&job_id) else {
+                return;
+            };
+            if job.api_service_cleaned {
+                None
+            } else {
+                job.api_service_cleaned = true;
+                Some((job.account_ids.clone(), job.clone()))
+            }
+        };
+        if let Some((cleanup_ids, snapshot)) = cleanup_request {
+            save_codex_batch_delete_job_snapshot_best_effort(&job_id, &snapshot);
+            cleanup_batch_accounts_from_api_service(&job_id, cleanup_ids).await;
+            continue;
+        }
+
         let next_account_id = {
             let mut jobs = CODEX_BATCH_DELETE_JOBS.lock().unwrap();
             let Some(job) = jobs.get_mut(&job_id) else {
@@ -257,31 +306,19 @@ async fn run_codex_batch_delete_job(job_id: String) {
         .map_err(|error| format!("批量删除后台任务失败: {}", error))
         .and_then(|result| result);
 
-        let mut deleted_account_id_for_cleanup = None;
         let result = match remove_result {
-            Ok(()) => {
-                deleted_account_id_for_cleanup = Some(next_account_id.clone());
-                Ok(())
-            }
+            Ok(()) => Ok(()),
             Err(error) => Err(error),
         };
 
-        if let Some(account_id) = deleted_account_id_for_cleanup {
+        if result.is_ok() {
+            let account_id = next_account_id.clone();
             if let Err(error) =
                 codex_wakeup::remove_deleted_accounts_from_tasks(&[account_id.clone()])
             {
                 logger::log_warn(&format!(
                     "[Codex Batch Delete] 清理唤醒任务账号引用失败: job_id={}, account_id={}, error={}",
                     job_id, account_id, error
-                ));
-            }
-            if let Err(error) =
-                codex_local_access::remove_deleted_accounts_from_local_access_pool(&[account_id])
-                    .await
-            {
-                logger::log_warn(&format!(
-                    "[Codex Batch Delete] 清理 API 服务账号池引用失败: job_id={}, error={}",
-                    job_id, error
                 ));
             }
         }
@@ -336,6 +373,7 @@ fn start_codex_batch_delete_job(
         errors: Vec::new(),
         account_ids: normalized_ids,
         next_index: 0,
+        api_service_cleaned: false,
         created_at: now,
         updated_at: now,
     };
@@ -901,6 +939,10 @@ async fn run_codex_post_refresh_checks(app: &AppHandle) {
 /// 删除 Codex 账号
 #[tauri::command]
 pub async fn delete_codex_account(account_id: String) -> Result<(), String> {
+    // Keep deletion consistent with manually removing the account from the API
+    // Service pool first, then remove its local credential file.
+    codex_local_access::remove_deleted_accounts_from_local_access_pool(&[account_id.clone()])
+        .await?;
     codex_account::remove_account(&account_id)?;
     if let Err(error) = codex_wakeup::remove_deleted_accounts_from_tasks(&[account_id.clone()]) {
         logger::log_warn(&format!(
@@ -908,13 +950,14 @@ pub async fn delete_codex_account(account_id: String) -> Result<(), String> {
             account_id, error
         ));
     }
-    codex_local_access::remove_deleted_accounts_from_local_access_pool(&[account_id]).await?;
     Ok(())
 }
 
 /// 批量删除 Codex 账号
 #[tauri::command]
 pub async fn delete_codex_accounts(account_ids: Vec<String>) -> Result<(), String> {
+    // Match the manual API Service removal flow before deleting local files.
+    codex_local_access::remove_deleted_accounts_from_local_access_pool(&account_ids).await?;
     codex_account::remove_accounts(&account_ids)?;
     if let Err(error) = codex_wakeup::remove_deleted_accounts_from_tasks(&account_ids) {
         logger::log_warn(&format!(
@@ -923,7 +966,6 @@ pub async fn delete_codex_accounts(account_ids: Vec<String>) -> Result<(), Strin
             error
         ));
     }
-    codex_local_access::remove_deleted_accounts_from_local_access_pool(&account_ids).await?;
     Ok(())
 }
 
@@ -1133,7 +1175,9 @@ pub fn export_codex_accounts(account_ids: Vec<String>) -> Result<String, String>
     codex_account::export_accounts(&account_ids)
 }
 
-/// 从本地文件导入 Codex 账号
+/// 从本地文件导入 Codex 账号。
+///
+/// 直导路径：只落盘账号，不做导入前/导入后额度检测，避免单账号也因网络刷新变慢。
 #[tauri::command]
 pub async fn import_codex_from_files(
     app: AppHandle,
@@ -1141,11 +1185,10 @@ pub async fn import_codex_from_files(
 ) -> Result<codex_account::CodexFileImportResult, String> {
     let result = codex_account::import_from_files(file_paths).await?;
     reactivate_imported_current_if_needed(&result.imported).await;
-    let imported = refresh_imported_codex_accounts(&app, result.imported).await;
-    Ok(codex_account::CodexFileImportResult {
-        imported,
-        failed: result.failed,
-    })
+    if !result.imported.is_empty() {
+        let _ = crate::modules::tray::update_tray_menu(&app);
+    }
+    Ok(result)
 }
 
 #[tauri::command]
@@ -1229,6 +1272,14 @@ pub async fn refresh_current_codex_quota(app: AppHandle) -> Result<(), String> {
     if account.is_api_key_auth() {
         return Ok(());
     }
+    // 分组策略「不刷新」：自动当前号刷新静默跳过
+    if !codex_account::is_quota_refresh_enabled_for_account(&account.id) {
+        logger::log_info(&format!(
+            "[Codex Quota] 当前账号所属分组已关闭额度刷新，跳过: account_id={}",
+            account.id
+        ));
+        return Ok(());
+    }
 
     let result = codex_quota::refresh_account_quota(&account.id).await;
     if result.is_ok() {
@@ -1256,12 +1307,18 @@ pub async fn refresh_all_codex_quotas(app: AppHandle) -> Result<i32, String> {
 
 /// 按账号 ID 列表限流并发刷新配额（分组刷新 / 本地访问批量等）
 /// 只在全部任务结束后做一次 tray / post-check，避免 N 次并发互踩。
+///
+/// `respect_group_quota_refresh` 缺省 true：跳过分组「不刷新」账号。
+/// 显式「刷新分组」应传 false。
 #[tauri::command]
 pub async fn refresh_codex_quotas_batch(
     app: AppHandle,
     account_ids: Vec<String>,
+    respect_group_quota_refresh: Option<bool>,
 ) -> Result<i32, String> {
-    let results = codex_quota::refresh_quotas_for_account_ids(&account_ids).await?;
+    let respect = respect_group_quota_refresh.unwrap_or(true);
+    let results =
+        codex_quota::refresh_quotas_for_account_ids_with_options(&account_ids, respect).await?;
     let success_count = results.iter().filter(|(_, r)| r.is_ok()).count();
     if success_count > 0 {
         run_codex_post_refresh_checks(&app).await;
@@ -1485,6 +1542,39 @@ pub fn update_codex_api_key_credentials(
         api_model_vision_support.unwrap_or_default(),
         api_vision_routing_model,
     )
+}
+
+#[tauri::command]
+pub async fn sync_codex_api_key_provider_accounts(
+    account_ids: Vec<String>,
+    api_base_url: Option<String>,
+    api_provider_mode: Option<CodexApiProviderMode>,
+    api_provider_id: Option<String>,
+    api_provider_name: Option<String>,
+    api_model_catalog: Option<Vec<String>>,
+    api_wire_api: Option<String>,
+    api_supports_websockets: Option<bool>,
+    api_supports_vision: Option<bool>,
+    api_model_vision_support: Option<std::collections::HashMap<String, bool>>,
+    api_vision_routing_model: Option<String>,
+) -> Result<usize, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        codex_account::sync_api_key_provider_accounts(
+            account_ids,
+            api_base_url,
+            api_provider_mode,
+            api_provider_id,
+            api_provider_name,
+            api_model_catalog.unwrap_or_default(),
+            api_wire_api,
+            api_supports_websockets.unwrap_or(false),
+            api_supports_vision.unwrap_or(false),
+            api_model_vision_support.unwrap_or_default(),
+            api_vision_routing_model,
+        )
+    })
+    .await
+    .map_err(|error| format!("同步 Codex 供应商账号快照任务失败: {}", error))?
 }
 
 #[tauri::command]
@@ -3087,6 +3177,13 @@ pub async fn codex_local_access_remove_account(
 }
 
 #[tauri::command]
+pub async fn codex_local_access_recover_accounts(
+    account_ids: Vec<String>,
+) -> Result<CodexLocalAccessState, String> {
+    codex_local_access::recover_local_access_accounts(account_ids).await
+}
+
+#[tauri::command]
 pub async fn codex_local_access_rotate_api_key() -> Result<CodexLocalAccessState, String> {
     codex_local_access::rotate_local_access_api_key().await
 }
@@ -3211,18 +3308,22 @@ pub async fn codex_local_access_reprice_request_logs() -> Result<CodexLocalAcces
 pub async fn codex_local_access_update_routing_options(
     session_affinity: bool,
     session_affinity_ttl_ms: i64,
+    responses_websockets_enabled: bool,
     max_retry_credentials: u16,
     max_retry_interval_ms: u64,
     disable_cooling: bool,
     immediate_sse_response: bool,
+    max_concurrent_image_requests: u16,
 ) -> Result<CodexLocalAccessState, String> {
     codex_local_access::update_local_access_routing_options(
         session_affinity,
         session_affinity_ttl_ms,
+        responses_websockets_enabled,
         max_retry_credentials,
         max_retry_interval_ms,
         disable_cooling,
         immediate_sse_response,
+        max_concurrent_image_requests,
     )
     .await
 }

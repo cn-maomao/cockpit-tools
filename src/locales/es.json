@@ -497,6 +497,7 @@
       "noneRunning": "No se encontraron instancias en ejecución",
       "syncThreadsNeedTwo": "Se requieren al menos dos instancias para sincronizar hilos",
       "launchPrepared": "El comando de inicio está listo",
+      "codexManagedStoreLaunchUnsafe": "Windows Store no puede transferir de forma fiable el directorio de la instancia, por lo que se bloqueó la apertura de la cuenta predeterminada. Cambia esta instancia al modo de inicio CLI e inténtalo de nuevo. Detalles: {{detail}}",
       "speedUpdated": "Velocidad actualizada"
     },
     "runningDialog": {
@@ -588,7 +589,7 @@
       "themeDark": "Oscuro",
       "themeSystem": "Sistema",
       "uiScale": "Escala de la interfaz",
-      "uiScaleDesc": "Ajusta la escala de la interfaz",
+      "uiScaleDesc": "Ajustar la escala de la interfaz (⌘+/⌘- o Ctrl+/Ctrl-, ⌘0/Ctrl+0 restablecer)",
       "accountManagement": "Gestión de Cuentas",
       "autoRefresh": "Actualización automática de cuota de Antigravity IDE",
       "codexAutoRefresh": "Actualización automática de cuota de Codex",
@@ -608,6 +609,8 @@
       "closeBehaviorQuit": "Salir de la aplicación",
       "startupMinimized": "Iniciar minimizada",
       "startupMinimizedDesc": "Minimiza automáticamente la ventana principal tras iniciar la app; restáurala desde el Dock, la barra de tareas o la bandeja",
+      "rememberMainWindowState": "Recordar posición y tamaño de la ventana",
+      "rememberMainWindowStateDesc": "Restaura la posición y el tamaño tras reiniciar o abrir desde la bandeja; desactivado de forma predeterminada",
       "minimizeBehavior": "Comportamiento al minimizar la ventana (solo macOS)",
       "minimizeBehaviorDesc": "Elige si al minimizar la ventana permanece en el Dock y la barra de menús, o solo en la barra de menús",
       "minimizeBehaviorDockAndTray": "Dock + barra de menús (recomendado)",
@@ -1195,7 +1198,11 @@
         "tooMany": "Puedes agregar hasta {{max}} etiquetas"
       },
       "notesLabel": "Notas",
-      "notesPlaceholder": "Introduce notas. Déjalo vacío para borrar"
+      "notesPlaceholder": "Introduce notas. Déjalo vacío para borrar",
+      "confirmGlobalDelete": "¿Eliminar la etiqueta \"{{targetTag}}\" de todas las cuentas? Esta acción no se puede deshacer.",
+      "globalDeleteHint": "Eliminar esta etiqueta globalmente",
+      "globalDeleteFailed": "Error al eliminar la etiqueta globalmente",
+      "globalRenameHint": "Renombrar esta etiqueta globalmente"
     },
     "groupByTag": "Agrupar por etiqueta",
     "untagged": "Sin etiqueta",
@@ -1266,7 +1273,9 @@
         "renameFailed": "Error al renombrar el grupo: {{error}}",
         "deleteFailed": "Error al eliminar el grupo: {{error}}",
         "addFailed": "Error al añadir al grupo: {{error}}",
-        "createAndAddFailed": "Error al crear y añadir: {{error}}"
+        "createAndAddFailed": "Error al crear y añadir: {{error}}",
+        "quotaRefreshFailed": "No se pudo actualizar la configuración de actualización de cuota: {{error}}",
+        "notFound": "No se encontró el grupo"
       },
       "addAccounts": "Agregar cuentas",
       "editTitle": "Editar grupo",
@@ -1274,7 +1283,14 @@
       "currentGroupLabel": "Grupo actual",
       "accountPickerEmpty": "No hay cuentas coincidentes",
       "filterHint": "{{count}} grupo(s) seleccionado(s) para filtrar",
-      "filterToggle": "Marca para filtrar por este grupo"
+      "filterToggle": "Marca para filtrar por este grupo",
+      "quotaRefresh": "Actualizar cuota",
+      "quotaRefreshOffBadge": "Sin actualización",
+      "quotaRefreshOffHint": "Este grupo no se actualiza; la actualización automática y completa omite sus cuentas",
+      "refreshForceHint": "Puedes actualizar este grupo manualmente cuando su política no sea heredar",
+      "quotaRefreshInherit": "Heredar de la plataforma",
+      "quotaRefreshPolicyHint": "La actualización de cuota del grupo tiene máxima prioridad: heredar de la plataforma, intervalo personalizado o desactivada",
+      "quotaRefreshMinutesBadge": "{{count}} minutos"
     },
     "switchHistory": {
       "title": "Historial de cambios",
@@ -1863,6 +1879,7 @@
         "freeUnsupported": "Las cuentas gratuitas aún no son compatibles",
         "restrictFreeToggle": "Limitar cuentas Free",
         "chatApiKeyUnsupported": "Chat Completions no compatible",
+        "pendingOauthUnsupported": "Pendiente no se admite",
         "freeNoticeRestricted": "Las cuentas Free están limitadas. Desactiva esto para seleccionarlas.",
         "freeNoticeUnstable": "El proxy de cuentas Free puede ser inestable. Úsalo con cuidado.",
         "restrictFreeDisableConfirmTitle": "Permitir cuentas Free",
@@ -1890,6 +1907,7 @@
       "testConnectFailed": "No se puede conectar a {{url}}. Confirma que el servicio API esté en ejecución, que el puerto no haya cambiado y que nada lo bloquee.",
       "testAuthFailed": "El servicio responde, pero falló la autenticación: {{detail}}. Revisa la clave del servicio API o el estado de inicio de sesión de la cuenta.",
       "testServiceUnavailable": "El servicio responde, pero no está disponible: {{detail}}. Revisa si el servicio está activado, si la colección de cuentas está vacía o si las cuentas son utilizables.",
+      "gatewayErrors": {"authUnavailable": "Ninguna cuenta del grupo está disponible para enrutar ahora. Puede estar en espera, sin autorización o limitada por cuota. Revisa su estado en el servicio API de Cockpit Tools.", "authNotFound": "No hay ninguna cuenta utilizable configurada en el grupo. Añade o activa una cuenta en el servicio API de Cockpit Tools."},
       "testRateLimited": "El servicio responde, pero el ascendente tiene límite de velocidad o cuota agotada: {{detail}}.",
       "testHttpFailed": "El servicio responde, pero la solicitud devolvió HTTP {{status}}: {{detail}}.",
       "activateAction": "Iniciar servicio API",
@@ -1914,6 +1932,7 @@
         "requestsDetail": "OK {{success}} / Fallo {{failed}} / Canc. {{canceled}} / Origen {{upstreamFailed}} / Incomp. {{incomplete}}",
         "tokens": "Tokens totales",
         "tokensDetail": "Entrada {{input}} / Salida {{output}}",
+        "cached": "Caché",
         "specialTokens": "Caché / Razonamiento",
         "specialTokensDetail": "Caché {{cached}} / Razonamiento {{reasoning}}",
         "avgLatency": "Latencia media",
@@ -2107,7 +2126,31 @@
         "allAvailable": "Todo OK {{count}}",
         "availableRatio": "Bien {{available}}/{{total}}",
         "issueSummary": "Error {{abnormal}} · Pausa {{cooldown}}",
-        "detail": "OK {{available}}/{{total}}, error {{abnormal}}, pausa {{cooldown}}, faltan {{missing}}, auth {{authError}}, cuota {{quotaLimited}}"
+        "detail": "OK {{available}}/{{total}}, error {{abnormal}}, pausa {{cooldown}}, faltan {{missing}}, auth {{authError}}, cuota {{quotaLimited}}",
+        "openDetails": "Ver cuentas con problemas",
+        "recover": "Recuperar estado",
+        "recoverSuccess": "Recuperación solicitada para {{count}} cuenta(s)",
+        "dialog": {
+          "title": "Cuentas con problemas",
+          "description": "Estos estados provienen del programador OAuth de Sidecar. La recuperación borra la espera y reintenta la cuenta.",
+          "noIssues": "No hay cuentas con problemas",
+          "missing": "Cuenta ausente",
+          "cooldown": "En espera",
+          "quota": "Cuota limitada",
+          "missingDetail": "La cuenta ya no está en la lista",
+          "cooldownModel": "El modelo {{model}} está en espera",
+          "cooldownUntil": "El modelo {{model}} estará en espera hasta {{time}}",
+          "authDetail": "La autorización OAuth puede haber caducado. Vuelve a autorizar e inténtalo.",
+          "quotaDetail": "La cuota no está disponible temporalmente. Espera o revisa el plan.",
+          "paymentDetail": "El plan o el pago de la cuenta no está disponible. Revisa la suscripción.",
+          "modelDetail": "Esta cuenta no admite el modelo solicitado.",
+          "upstreamDetail": "El servicio upstream no está disponible temporalmente. Se reintentará.",
+          "disabledDetail": "Esta cuenta está desactivada. Actívala primero.",
+          "unavailableDetail": "Sidecar no considera esta cuenta disponible para programar.",
+          "recover": "Recuperar",
+          "recovering": "Recuperando…",
+          "recoverAll": "Recuperar todo"
+        }
       },
       "testChatModel": "Modelo",
       "testChatClear": "Vaciar chat",
@@ -2163,7 +2206,10 @@
       "refreshFailedBadge": "Actualización fallida",
       "generic": "No se pudo actualizar la cuota, inténtalo más tarde",
       "deactivatedWorkspace": "El espacio de trabajo está desactivado, cambia de cuenta o vuelve a autorizar",
-      "requestFailedManualRetry": "Comprueba la red. No se obtuvo la cuota más reciente. Actualiza para reintentarlo."
+      "requestFailedManualRetry": "Comprueba la red. No se obtuvo la cuota más reciente. Actualiza para reintentarlo.",
+      "httpStatusSummary": "Error de la API {{status}}",
+      "viewDetails": "Detalles",
+      "detailTitle": "Detalle del error"
     },
     "plan": {
       "free": "FREE​",
@@ -3229,7 +3275,9 @@
       },
       "accountHealth": {
         "failures": "{{count}} fallos seguidos",
-        "image": "Imágenes {{status}}"
+        "image": "Imágenes {{status}}",
+        "unavailable": "No disponible temporalmente",
+        "authError": "Error de autenticación"
       },
       "models": {
         "availableTitle": "Modelos disponibles",
@@ -3313,11 +3361,13 @@
         "optionsTitle": "Opciones de ruta",
         "sessionAffinity": "Afinidad de sesión",
         "sessionAffinityTtl": "TTL de afinidad",
+        "responsesWebsockets": "Responses por WebSocket",
         "maxRetryCredentials": "Cuentas retry",
         "maxRetryInterval": "Espera retry",
         "disableCooling": "Desactivar cooldown",
         "saveOptions": "Guardar opciones",
         "immediateSseResponse": "SSE 200 inmediato",
+        "maxConcurrentImageRequests": "Solicitudes de imagen por cuenta",
         "optionsSaved": "Opciones de ruta guardadas"
       },
       "validation": {
@@ -3479,7 +3529,10 @@
       "checkAccounts": "comprobar cuentas",
       "importAndAddToApiService": "Importar + API",
       "importAndAddToApiServiceSuccess": "Importado y agregado al servicio API",
-      "addToApiServiceFailed": "Importado, pero falló al agregarlo al servicio API: {{error}}"
+      "addToApiServiceFailed": "Importado, pero falló al agregarlo al servicio API: {{error}}",
+      "cancelAndDismiss": "Cancelar y descartar",
+      "bulkTagsLabel": "Etiquetas al importar",
+      "bulkTagsPlaceholder": "Opcional; separe con comas o espacios"
     },
     "autoRepairMode": {
       "label": "Lógica de autorreparación",
@@ -3525,7 +3578,10 @@
       "chipTags": "Etiquetas",
       "chipSearch": "Buscar",
       "chipPlan": "Plan tarifario",
-      "chipFolder": "Carpeta"
+      "chipFolder": "Carpeta",
+      "authError": "Auth fallida",
+      "zeroQuota": "Cuota 0%",
+      "expired": "Caducado"
     },
     "accessTokenImport": {
       "nameRequired": "Introduce un nombre de cuenta",
@@ -3591,7 +3647,9 @@
       "serverListLead": "Elige el objetivo de sincronización",
       "serverCount": "{{count}} servidores",
       "autoSyncBadge": "Automático"
-    }
+    },
+    "exportAuthFailed": "Exportar fallos",
+    "exportAuthFailedTitle": "Exportar todas las cuentas con fallo de auth"
   },
   "githubCopilot": {
     "title": "Gestión de cuentas de GitHub Copilot",
@@ -4061,10 +4119,21 @@
       "description": "Haga clic en \"Agregar cuenta\" para comenzar a administrar sus cuentas Kiro"
     },
     "addModal": {
-      "title": "Agregar cuenta Kiro"
+      "title": "Agregar cuenta Kiro",
+      "idc": "Inicio de sesión AWS"
     },
     "oauth": {
       "desc": "Haga clic en el botón a continuación y complete la autorización de Kiro en su navegador."
+    },
+    "idc": {
+      "builderId": "Cuenta AWS Builder ID",
+      "enterprise": "Cuenta empresarial",
+      "desc": "Completa la autorización de AWS IAM Identity Center en el navegador. La cuenta se guardará automáticamente.",
+      "region": "Región de AWS",
+      "startUrl": "URL de inicio de IAM Identity Center",
+      "start": "Iniciar sesión empresarial",
+      "regionRequired": "Introduce una región de AWS",
+      "startUrlRequired": "Introduce una URL de inicio de IAM Identity Center"
     },
     "token": {
       "desc": "Pegue su token de acceso Kiro o los datos JSON exportados."
@@ -4762,7 +4831,12 @@
       "streakDays": "{{days}} días",
       "streakRewardCountdown": "Faltan {{days}} días para la recompensa extra",
       "streakRewardToday": "¡Recompensa extra disponible hoy!",
-      "recentDates": "Reciente: "
+      "recentDates": "Reciente: ",
+      "claimed": "Reclamado",
+      "queryFailed": "Consulta fallida",
+      "retry": "Reintentar",
+      "inactive": "No disponible",
+      "inactiveHint": "El check-in no está activo en esta cuenta"
     }
   },
   "zcode": {
@@ -5212,13 +5286,13 @@
     },
     "import": {
       "pasteTab": "Pegar JSON",
-      "pasteDesc": "Pega el auth.json oficial de Grok CLI. Las credenciales solo se procesan en el backend local. Cockpit exporta únicamente metadatos ocultos que no permiten restaurar una sesión.",
+      "pasteDesc": "Pega el auth.json oficial de Grok CLI o un JSON completo exportado por esta app (reimportable). Las credenciales se tratan en local.",
       "pastePlaceholder": "Pegar JSON de cuenta Grok",
       "pasteAction": "Importar JSON",
-      "localDesc": "Importa la cuenta actual desde ~/.grok/auth.json. Al elegir un archivo, usa el auth.json oficial de Grok CLI.",
+      "localDesc": "Importa desde ~/.grok/auth.json o elige un auth.json oficial / JSON de exportación completa de esta app.",
       "localClient": "Importar desde Grok CLI local",
       "apiKeyTab": "Clave API",
-      "apiKeyDesc": "Pega una API key de xAI (XAI_API_KEY oficial). Se inyecta al iniciar. También puedes pegar auth.json oficial para OAuth.",
+      "apiKeyDesc": "Pega una API key de xAI (XAI_API_KEY / xai-… oficial). Se inyecta como variable de entorno al iniciar el CLI; no sobrescribe el inicio de sesión OAuth oficial.",
       "apiKeyPlaceholder": "pegar xai-…",
       "apiKeyAction": "Añadir API Key"
     },

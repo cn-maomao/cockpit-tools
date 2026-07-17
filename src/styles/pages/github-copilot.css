@@ -2564,8 +2564,7 @@
 }
 
 .ghcp-add-modal .modal-tabs {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
   gap: 6px;
   padding: 4px;
   background: var(--bg-tertiary);
@@ -2573,6 +2572,13 @@
   border-radius: 12px;
   margin: 16px 24px 0;
   flex: 0 0 auto;
+  min-width: 0;
+}
+
+/* 4 页签时与 Codex 一致：单行等分，文案省略 */
+.ghcp-add-modal.suite-account-add-modal-wide {
+  width: min(760px, calc(100vw - 32px));
+  max-width: 760px;
 }
 
 .ghcp-add-modal .modal-tab {
@@ -2580,9 +2586,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 5px;
   height: 32px;
-  padding: 0 8px;
+  padding: 0 6px;
   border: none;
   background: transparent;
   color: var(--text-secondary);
@@ -2591,6 +2597,17 @@
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
+  min-width: 0;
+}
+
+.ghcp-add-modal .modal-tab > svg {
+  flex-shrink: 0;
+}
+
+.ghcp-add-modal .modal-tab-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -2887,6 +2904,41 @@
   gap: 12px;
   padding: 30px;
   color: var(--text-secondary);
+}
+
+.ghcp-add-modal .oauth-provider-switch {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ghcp-add-modal .oauth-idc-form {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.ghcp-add-modal .oauth-idc-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--text-muted, #8b93a7);
+  font-size: 12px;
+}
+
+.ghcp-add-modal .oauth-idc-form input {
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color, rgba(148, 163, 184, 0.24));
+  border-radius: 8px;
+  color: var(--text-primary, inherit);
+  background: var(--input-background, rgba(148, 163, 184, 0.08));
+}
+
+.ghcp-add-modal .oauth-idc-form input:focus {
+  outline: none;
+  border-color: var(--accent-color, #6366f1);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-color, #6366f1) 22%, transparent);
 }
 
 @media (max-width: 640px) {

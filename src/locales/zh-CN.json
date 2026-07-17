@@ -701,6 +701,7 @@
       "deleted": "实例已删除",
       "started": "实例已启动",
       "launchPrepared": "启动命令已准备",
+      "codexManagedStoreLaunchUnsafe": "Windows Store 无法可靠传递实例目录，已阻止打开默认账号。请将该实例的启动方式切换为 CLI 后重试。详情：{{detail}}",
       "stopped": "实例已关闭",
       "startedAll": "已启动所有未运行实例",
       "restartedAll": "已重启运行中的实例",
@@ -952,7 +953,7 @@
       "themeDark": "深色 (Dark)",
       "themeSystem": "跟随系统",
       "uiScale": "界面缩放",
-      "uiScaleDesc": "调整界面缩放比例",
+      "uiScaleDesc": "调整界面缩放比例（⌘+/⌘- 缩放，⌘0 重置）",
       "accountManagement": "账号管理",
       "autoRefresh": "Antigravity IDE 自动刷新配额",
       "codexAutoRefresh": "Codex 自动刷新配额",
@@ -975,6 +976,8 @@
       "closeBehaviorQuit": "退出应用",
       "startupMinimized": "启动后自动最小化",
       "startupMinimizedDesc": "应用启动完成后自动最小化主窗口，可从 Dock、任务栏或托盘恢复",
+      "rememberMainWindowState": "记住主窗口位置和大小",
+      "rememberMainWindowStateDesc": "重启或从托盘重新打开时恢复主窗口位置和大小；默认关闭",
       "minimizeBehavior": "窗口最小化行为（仅 macOS）",
       "minimizeBehaviorDesc": "选择最小化窗口时保留在程序坞和菜单栏，或仅保留在菜单栏",
       "minimizeBehaviorDockAndTray": "程序坞 + 菜单栏（推荐默认）",
@@ -1394,7 +1397,11 @@
         "tooMany": "标签数量不能超过 {{max}} 个"
       },
       "notesLabel": "备注",
-      "notesPlaceholder": "输入备注，留空表示不设置"
+      "notesPlaceholder": "输入备注，留空表示不设置",
+      "confirmGlobalDelete": "确定要从所有账号中全局删除标签 \"{{targetTag}}\" 吗？此操作不可逆。",
+      "globalDeleteHint": "全局删除此标签",
+      "globalDeleteFailed": "全局删除失败",
+      "globalRenameHint": "全局重命名此标签"
     },
     "groupByTag": "按标签分组展示",
     "untagged": "默认分组",
@@ -1501,7 +1508,9 @@
         "renameFailed": "重命名分组失败：{{error}}",
         "deleteFailed": "删除分组失败：{{error}}",
         "addFailed": "添加到分组失败：{{error}}",
-        "createAndAddFailed": "新建分组并添加失败：{{error}}"
+        "createAndAddFailed": "新建分组并添加失败：{{error}}",
+        "quotaRefreshFailed": "更新额度刷新设置失败：{{error}}",
+        "notFound": "分组不存在"
       },
       "addAccounts": "添加账号",
       "editTitle": "编辑分组",
@@ -1509,7 +1518,14 @@
       "currentGroupLabel": "当前分组",
       "accountPickerEmpty": "没有符合条件的账号",
       "filterHint": "已勾选 {{count}} 个分组做筛选",
-      "filterToggle": "勾选以筛选此分组"
+      "filterToggle": "勾选以筛选此分组",
+      "quotaRefresh": "额度刷新",
+      "quotaRefreshOffBadge": "不刷新",
+      "quotaRefreshOffHint": "本组不刷新：自动/全量会跳过组内账号",
+      "refreshForceHint": "本组自动额度策略非继承时，仍可手动刷新本组",
+      "quotaRefreshInherit": "继承平台",
+      "quotaRefreshPolicyHint": "分组额度刷新为最高优先级；可继承平台设置、自定义间隔或不刷新",
+      "quotaRefreshMinutesBadge": "{{count}} 分钟"
     },
     "clearTagFilter": "清空标签",
     "compact": {
@@ -2170,6 +2186,10 @@
       "testConnectFailed": "无法连接 {{url}}。请确认 API 服务已启动、端口未被改动或被拦截。",
       "testAuthFailed": "服务可达，但鉴权失败：{{detail}}。请检查 API 服务密钥或账号登录状态。",
       "testServiceUnavailable": "服务可达，但当前不可用：{{detail}}。请检查服务是否启用、账号集合是否为空或账号是否可用。",
+      "gatewayErrors": {
+        "authUnavailable": "账号池当前没有可调度账号；账号可能正在冷却、授权失效或额度受限，请在 Cockpit Tools 的 API 服务页查看账号状态。",
+        "authNotFound": "账号池当前没有已配置的可用账号，请在 Cockpit Tools 的 API 服务页添加或启用账号。"
+      },
       "testRateLimited": "服务可达，但上游限流或额度不足：{{detail}}。",
       "testHttpFailed": "服务可达，但请求返回 HTTP {{status}}：{{detail}}。",
       "activateAction": "启动 API 服务",
@@ -2267,7 +2287,31 @@
         "allAvailable": "全部可用 {{count}}",
         "availableRatio": "可用 {{available}}/{{total}}",
         "issueSummary": "异常 {{abnormal}} · 冷却 {{cooldown}}",
-        "detail": "可用 {{available}}/{{total}}，异常 {{abnormal}}，冷却 {{cooldown}}，缺失 {{missing}}，鉴权 {{authError}}，额度 {{quotaLimited}}"
+        "detail": "可用 {{available}}/{{total}}，异常 {{abnormal}}，冷却 {{cooldown}}，缺失 {{missing}}，鉴权 {{authError}}，额度 {{quotaLimited}}",
+        "openDetails": "查看异常账号详情",
+        "recover": "恢复账号状态",
+        "recoverSuccess": "已提交 {{count}} 个账号的恢复操作",
+        "dialog": {
+          "title": "异常账号",
+          "description": "以下状态来自 Sidecar OAuth 调度器。恢复操作会清除调度冷却并重新尝试账号。",
+          "noIssues": "当前没有异常账号",
+          "missing": "账号缺失",
+          "cooldown": "冷却中",
+          "quota": "额度受限",
+          "missingDetail": "账号已不在当前账号列表中",
+          "cooldownModel": "模型 {{model}} 处于冷却状态",
+          "cooldownUntil": "模型 {{model}} 冷却至 {{time}}",
+          "authDetail": "OAuth 授权可能已失效，请重新授权后再试",
+          "quotaDetail": "账号额度暂时不可用，请等待额度恢复或检查套餐状态",
+          "paymentDetail": "账号套餐或付款状态不可用，请检查订阅状态",
+          "modelDetail": "当前账号不支持请求的模型",
+          "upstreamDetail": "上游服务暂时异常，恢复后会重新尝试",
+          "disabledDetail": "该账号已被停用，请先启用账号",
+          "unavailableDetail": "Sidecar 当前未将该账号列为可调度账号",
+          "recover": "恢复",
+          "recovering": "恢复中…",
+          "recoverAll": "全部恢复"
+        }
       },
       "memberTitle": "集合成员",
       "routingStrategy": {
@@ -2292,6 +2336,7 @@
         "requestsDetail": "成功 {{success}} / 失败 {{failed}} / 取消 {{canceled}} / 上游失败 {{upstreamFailed}} / 流未完成 {{incomplete}}",
         "tokens": "总 Token 数",
         "tokensDetail": "输入 {{input}} / 输出 {{output}}",
+        "cached": "缓存",
         "estimatedCost": "估算价值",
         "estimatedCostDetail": "按当前请求价格快照累计",
         "specialTokens": "缓存 / 思考",
@@ -2310,6 +2355,7 @@
         "desc": "选择要加入 API 服务集合的 Codex OAuth 账号或 API Key 账号。加入后，这些账号将从普通面板中隐藏，只在 API 服务卡片中管理。",
         "restrictFreeToggle": "限制 Free 账号使用",
         "chatApiKeyUnsupported": "Chat Completions 不支持加入",
+        "pendingOauthUnsupported": "待授权不可加入",
         "freeNoticeRestricted": "已限制 Free 账号，关闭后才可勾选。",
         "freeNoticeUnstable": "Free账号反代不稳定，请谨慎使用。",
         "restrictFreeDisableConfirmTitle": "确认允许 Free 账号",
@@ -2887,7 +2933,10 @@
       "refreshFailedBadge": "刷新失败",
       "generic": "配额刷新失败，请稍后重试",
       "deactivatedWorkspace": "工作区已停用，请切换账号或重新授权",
-      "requestFailedManualRetry": "请检查网络，未获取到最新额度。可刷新重试。"
+      "requestFailedManualRetry": "请检查网络，未获取到最新额度。可刷新重试。",
+      "httpStatusSummary": "API 返回错误 {{status}}",
+      "viewDetails": "查看详情",
+      "detailTitle": "错误详情"
     },
     "plan": {
       "free": "FREE",
@@ -3440,7 +3489,9 @@
       },
       "accountHealth": {
         "failures": "连续失败 {{count}}",
-        "image": "图片 {{status}}"
+        "image": "图片 {{status}}",
+        "unavailable": "暂不可用",
+        "authError": "鉴权异常"
       },
       "accountModelRules": {
         "action": "禁用模型",
@@ -3536,11 +3587,13 @@
         "optionsTitle": "调度选项",
         "sessionAffinity": "会话亲和",
         "sessionAffinityTtl": "亲和 TTL",
+        "responsesWebsockets": "WebSocket 响应传输",
         "maxRetryCredentials": "重试账号数",
         "maxRetryInterval": "重试等待",
         "disableCooling": "禁用冷却",
         "saveOptions": "保存选项",
         "immediateSseResponse": "SSE 立即返回 200",
+        "maxConcurrentImageRequests": "每个账户的图片请求数",
         "optionsSaved": "调度选项已保存"
       },
       "timeouts": {
@@ -3681,6 +3734,7 @@
       "taskPreview": "已生成 {{total}} 条预览",
       "reopen": "查看任务",
       "dismissTask": "丢弃",
+      "cancelAndDismiss": "取消并丢弃任务",
       "queueCount": "队列中 {{count}} 个任务",
       "queued": "排队中",
       "batchLabel": "批次 {{index}}",
@@ -3690,7 +3744,9 @@
       "checkAccounts": "检测账号",
       "importAndAddToApiService": "导入并添加 API",
       "importAndAddToApiServiceSuccess": "已导入并添加到 API 服务",
-      "addToApiServiceFailed": "账号已导入，但添加到 API 服务失败: {{error}}"
+      "addToApiServiceFailed": "账号已导入，但添加到 API 服务失败: {{error}}",
+      "bulkTagsLabel": "导入后批量打标",
+      "bulkTagsPlaceholder": "可选，多个标签用逗号或空格分隔"
     },
     "autoRepairMode": {
       "label": "自动修复逻辑",
@@ -3724,7 +3780,10 @@
       "chipTags": "标签",
       "chipSearch": "搜索",
       "chipPlan": "套餐",
-      "chipFolder": "分组目录"
+      "chipFolder": "分组目录",
+      "authError": "授权失败",
+      "zeroQuota": "0% 额度",
+      "expired": "已过期"
     },
     "accessTokenImport": {
       "nameRequired": "请输入账户名",
@@ -3790,7 +3849,9 @@
       "serverListLead": "选择同步目标",
       "serverCount": "{{count}} 台",
       "autoSyncBadge": "自动同步"
-    }
+    },
+    "exportAuthFailed": "导出失败账号",
+    "exportAuthFailedTitle": "导出全部授权失败账号"
   },
   "codebuddy": {
     "title": "CodeBuddy 账号管理",
@@ -4366,10 +4427,21 @@
       "description": "点击\"添加账号\"开始管理您的 Kiro 账号"
     },
     "addModal": {
-      "title": "添加 Kiro 账号"
+      "title": "添加 Kiro 账号",
+      "idc": "AWS 单点登录"
     },
     "oauth": {
       "desc": "点击下方按钮，在浏览器中完成 Kiro OAuth 授权。"
+    },
+    "idc": {
+      "builderId": "AWS Builder ID 账号",
+      "enterprise": "企业账号",
+      "desc": "在浏览器中完成 AWS IAM Identity Center 授权，授权完成后账号会自动保存。",
+      "region": "AWS Region",
+      "startUrl": "IAM Identity Center Start URL",
+      "start": "开始企业登录",
+      "regionRequired": "请填写 AWS Region",
+      "startUrlRequired": "请填写 IAM Identity Center Start URL"
     },
     "token": {
       "desc": "粘贴您的 Kiro Access Token 或导出的 JSON 数据。"
@@ -4977,6 +5049,7 @@
       "button": "签到",
       "button.loading": "签到中...",
       "done": "已完成",
+      "claimed": "已领取",
       "success": "签到成功！连续签到 {{days}} 天",
       "failure": "签到失败：{{message}}",
       "failure.network": "网络异常，请稍后重试",
@@ -4987,6 +5060,10 @@
       "checkAll": "一键签到",
       "noAccounts": "暂无账号",
       "querying": "查询中...",
+      "queryFailed": "状态查询失败",
+      "retry": "重试",
+      "inactive": "不可用",
+      "inactiveHint": "签到活动未开启或不适用当前账号",
       "streakDays": "{{days}} 天",
       "streakRewardCountdown": "再签 {{days}} 天获大礼包",
       "streakRewardToday": "今日可获得大礼包!",
@@ -5235,13 +5312,13 @@
     },
     "import": {
       "pasteTab": "粘贴 JSON",
-      "pasteDesc": "粘贴 Grok CLI 官方 auth.json；凭据仅在本机后端处理。Cockpit 导出仅含脱敏元数据，不能用于恢复登录。",
+      "pasteDesc": "粘贴官方 Grok CLI auth.json，或本应用导出的完整账号 JSON（含凭据，可再导入恢复）。凭据仅在本机处理。",
       "pastePlaceholder": "粘贴 Grok 账号 JSON",
       "pasteAction": "导入 JSON",
-      "localDesc": "从默认 ~/.grok/auth.json 导入当前账号；选择文件时应使用 Grok CLI 官方 auth.json。",
+      "localDesc": "从默认 ~/.grok/auth.json 导入；也可选择官方 auth.json 或本应用导出的完整账号 JSON 文件。",
       "localClient": "从本机 Grok CLI 导入",
       "apiKeyTab": "API 密钥",
-      "apiKeyDesc": "粘贴 xAI API Key（官方 XAI_API_KEY）。启动时注入环境变量；也可粘贴官方 auth.json 按 OAuth 导入。",
+      "apiKeyDesc": "粘贴 xAI API Key（官方 XAI_API_KEY / xai-…）。启动 CLI 时注入为环境变量，不会覆盖官方 OAuth 登录。",
       "apiKeyPlaceholder": "粘贴 xai- 开头的密钥",
       "apiKeyAction": "添加 API Key"
     },
