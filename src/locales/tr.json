@@ -5264,6 +5264,29 @@
     "clearKey": "Clear input​"
   },
   "grok": {
+    "tools": {
+      "tab": "Grok Araçları",
+      "title": "Otomatik Kayıt ve Grok2API",
+      "desc": "Tarayıcıda başarıyla kaydedilen hesaplar yerleşik Grok2API'ye otomatik olarak aktarılır.",
+      "apiPort": "Hizmet Bağlantı Noktası",
+      "baseUrl": "OpenAI Temel URL'si",
+      "apiKey": "API Anahtarı",
+      "startToGenerate": "Hizmet başladığında oluşturulur",
+      "startApi": "API Hizmetini Başlat",
+      "autoStartApi": "Cockpit ile Başlat",
+      "registration": "Otomatik Kayıt",
+      "mailProvider": "E-posta Sağlayıcısı",
+      "count": "Hesap Sayısı",
+      "domains": "E-posta alan adları (virgülle ayrılmış)",
+      "proxy": "Tarayıcı proxy'si (isteğe bağlı)",
+      "browserPath": "Chrome / Edge yolu (boşsa otomatik algılanır)",
+      "enableNsfw": "Kayıttan sonra NSFW'yi etkinleştir",
+      "start": "Otomatik Kaydı Başlat",
+      "cancel": "Kaydı Durdur",
+      "progress": "Görev İlerlemesi",
+      "successCount": "{{count}} başarılı",
+      "failedCount": "{{count}} başarısız"
+    },
     "search": "Grok CLI hesaplarını ara...",
     "flowNotice": {
       "title": "Grok CLI Hesap Yönetimi",

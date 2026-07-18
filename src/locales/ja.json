@@ -5264,6 +5264,29 @@
     "clearKey": "Clear input​"
   },
   "grok": {
+    "tools": {
+      "tab": "Grok ツール",
+      "title": "自動登録と Grok2API",
+      "desc": "ブラウザーで登録に成功したアカウントは、内蔵の Grok2API に自動的にインポートされます。",
+      "apiPort": "サービスポート",
+      "baseUrl": "OpenAI ベース URL",
+      "apiKey": "API キー",
+      "startToGenerate": "サービスの起動時に生成されます",
+      "startApi": "API サービスを開始",
+      "autoStartApi": "Cockpit と同時に起動",
+      "registration": "自動登録",
+      "mailProvider": "メールプロバイダー",
+      "count": "アカウント数",
+      "domains": "メールドメイン（カンマ区切り）",
+      "proxy": "ブラウザーのプロキシ（任意）",
+      "browserPath": "Chrome / Edge のパス（空欄の場合は自動検出）",
+      "enableNsfw": "登録後に NSFW を有効化",
+      "start": "自動登録を開始",
+      "cancel": "登録を停止",
+      "progress": "タスクの進行状況",
+      "successCount": "成功: {{count}} 件",
+      "failedCount": "失敗: {{count}} 件"
+    },
     "search": "Grok CLI アカウントを検索...",
     "flowNotice": {
       "title": "Grok CLI アカウント管理",

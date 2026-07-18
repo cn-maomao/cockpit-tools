@@ -7,6 +7,17 @@ All notable changes to Cockpit Tools will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
+## [1.4.0] - 2026-07-18
+
+### Added
+
+- **CloudMail administrator credential authentication for Grok registration**: CloudMail can now be configured with its API base URL, administrator email, administrator password, and catch-all domains. The Grok registration sidecar validates these credentials before registration, obtains and caches the receive-mail token internally, and refreshes it automatically when authorization expires, so users no longer need to create or paste a public token manually.
+
+### Changed
+
+- **CloudMail configuration is migrated away from legacy public tokens**: the Grok tools UI, sidecar configuration, validation, examples, and documentation now consistently use administrator credentials; obsolete `cloudmail_public_token` values are removed when registration settings are normalized.
+
+---
 ## [1.3.9] - 2026-07-18
 
 ### Fixed

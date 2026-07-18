@@ -5264,6 +5264,29 @@
     "clearKey": "清除輸入"
   },
   "grok": {
+    "tools": {
+      "tab": "Grok 工具",
+      "title": "自動註冊與 Grok2API",
+      "desc": "透過瀏覽器成功註冊的帳號會自動匯入內建的 Grok2API。",
+      "apiPort": "服務連接埠",
+      "baseUrl": "OpenAI 基礎 URL",
+      "apiKey": "API 金鑰",
+      "startToGenerate": "服務啟動時產生",
+      "startApi": "啟動 API 服務",
+      "autoStartApi": "隨 Cockpit 啟動",
+      "registration": "自動註冊",
+      "mailProvider": "郵件服務商",
+      "count": "帳號數量",
+      "domains": "郵件網域（以逗號分隔）",
+      "proxy": "瀏覽器 Proxy（選填）",
+      "browserPath": "Chrome / Edge 路徑（留空時自動偵測）",
+      "enableNsfw": "註冊後啟用 NSFW",
+      "start": "開始自動註冊",
+      "cancel": "停止註冊",
+      "progress": "工作進度",
+      "successCount": "成功 {{count}} 個",
+      "failedCount": "失敗 {{count}} 個"
+    },
     "search": "搜尋 Grok CLI 帳號...",
     "flowNotice": {
       "title": "Grok CLI 帳號管理說明",

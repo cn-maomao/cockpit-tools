@@ -5264,6 +5264,29 @@
     "clearKey": "Clear input​"
   },
   "grok": {
+    "tools": {
+      "tab": "Công cụ Grok",
+      "title": "Đăng ký tự động và Grok2API",
+      "desc": "Các tài khoản đăng ký thành công qua trình duyệt sẽ tự động được nhập vào Grok2API tích hợp.",
+      "apiPort": "Cổng dịch vụ",
+      "baseUrl": "URL cơ sở OpenAI",
+      "apiKey": "Khóa API",
+      "startToGenerate": "Được tạo khi dịch vụ khởi động",
+      "startApi": "Khởi động dịch vụ API",
+      "autoStartApi": "Khởi động cùng Cockpit",
+      "registration": "Đăng ký tự động",
+      "mailProvider": "Nhà cung cấp email",
+      "count": "Số lượng tài khoản",
+      "domains": "Tên miền email (phân tách bằng dấu phẩy)",
+      "proxy": "Proxy trình duyệt (không bắt buộc)",
+      "browserPath": "Đường dẫn Chrome / Edge (tự động phát hiện nếu để trống)",
+      "enableNsfw": "Bật NSFW sau khi đăng ký",
+      "start": "Bắt đầu đăng ký tự động",
+      "cancel": "Dừng đăng ký",
+      "progress": "Tiến độ tác vụ",
+      "successCount": "Thành công: {{count}}",
+      "failedCount": "Thất bại: {{count}}"
+    },
     "search": "Tìm tài khoản Grok CLI...",
     "flowNotice": {
       "title": "Quản lý tài khoản Grok CLI",

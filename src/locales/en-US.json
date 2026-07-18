@@ -5267,6 +5267,29 @@
     "btnExportTitle": "Export Saved as JSON"
   },
   "grok": {
+    "tools": {
+      "tab": "Grok Tools",
+      "title": "Automated Registration & Grok2API",
+      "desc": "Browser accounts that register successfully are automatically imported into the built-in Grok2API.",
+      "apiPort": "Service Port",
+      "baseUrl": "OpenAI Base URL",
+      "apiKey": "API Key",
+      "startToGenerate": "Generated when the service starts",
+      "startApi": "Start API Service",
+      "autoStartApi": "Start with Cockpit",
+      "registration": "Automated Registration",
+      "mailProvider": "Email Provider",
+      "count": "Number of Accounts",
+      "domains": "Email domains (comma-separated)",
+      "proxy": "Browser proxy (optional)",
+      "browserPath": "Chrome / Edge path (auto-detected when blank)",
+      "enableNsfw": "Enable NSFW after registration",
+      "start": "Start Automated Registration",
+      "cancel": "Stop Registration",
+      "progress": "Task Progress",
+      "successCount": "{{count}} succeeded",
+      "failedCount": "{{count}} failed"
+    },
     "search": "Search Grok CLI accounts...",
     "flowNotice": {
       "title": "Grok CLI account guide",

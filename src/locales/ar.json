@@ -5264,6 +5264,29 @@
     "clearKey": "Clear input​"
   },
   "grok": {
+    "tools": {
+      "tab": "أدوات Grok",
+      "title": "التسجيل التلقائي وGrok2API",
+      "desc": "تُستورد الحسابات المسجلة بنجاح عبر المتصفح تلقائيًا إلى Grok2API المدمج.",
+      "apiPort": "منفذ الخدمة",
+      "baseUrl": "عنوان OpenAI الأساسي",
+      "apiKey": "مفتاح API",
+      "startToGenerate": "يُنشأ عند بدء الخدمة",
+      "startApi": "بدء خدمة API",
+      "autoStartApi": "البدء مع Cockpit",
+      "registration": "التسجيل التلقائي",
+      "mailProvider": "مزود البريد",
+      "count": "عدد الحسابات",
+      "domains": "نطاقات البريد (مفصولة بفواصل)",
+      "proxy": "وكيل المتصفح (اختياري)",
+      "browserPath": "مسار Chrome / Edge (يُكتشف تلقائيًا إذا تُرك فارغًا)",
+      "enableNsfw": "تمكين NSFW بعد التسجيل",
+      "start": "بدء التسجيل التلقائي",
+      "cancel": "إيقاف التسجيل",
+      "progress": "تقدم المهمة",
+      "successCount": "نجح {{count}}",
+      "failedCount": "فشل {{count}}"
+    },
     "search": "البحث في حسابات Grok CLI...",
     "flowNotice": {
       "title": "إدارة حسابات Grok CLI",

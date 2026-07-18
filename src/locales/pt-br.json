@@ -5264,6 +5264,29 @@
     "clearKey": "Clear input​"
   },
   "grok": {
+    "tools": {
+      "tab": "Ferramentas do Grok",
+      "title": "Cadastro automático e Grok2API",
+      "desc": "As contas cadastradas com sucesso no navegador são importadas automaticamente para o Grok2API integrado.",
+      "apiPort": "Porta do serviço",
+      "baseUrl": "URL base da OpenAI",
+      "apiKey": "Chave de API",
+      "startToGenerate": "Gerada ao iniciar o serviço",
+      "startApi": "Iniciar serviço de API",
+      "autoStartApi": "Iniciar com o Cockpit",
+      "registration": "Cadastro automático",
+      "mailProvider": "Provedor de e-mail",
+      "count": "Quantidade de contas",
+      "domains": "Domínios de e-mail (separados por vírgulas)",
+      "proxy": "Proxy do navegador (opcional)",
+      "browserPath": "Caminho do Chrome / Edge (detecção automática se vazio)",
+      "enableNsfw": "Ativar NSFW após o cadastro",
+      "start": "Iniciar cadastro automático",
+      "cancel": "Interromper cadastro",
+      "progress": "Progresso da tarefa",
+      "successCount": "{{count}} com sucesso",
+      "failedCount": "{{count}} com falha"
+    },
     "search": "Buscar contas do Grok CLI...",
     "flowNotice": {
       "title": "Gerenciamento de contas do Grok CLI",

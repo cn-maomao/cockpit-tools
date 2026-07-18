@@ -5264,6 +5264,29 @@
     "clearKey": "Clear input​"
   },
   "grok": {
+    "tools": {
+      "tab": "Grok-Werkzeuge",
+      "title": "Automatische Registrierung und Grok2API",
+      "desc": "Erfolgreich im Browser registrierte Konten werden automatisch in das integrierte Grok2API importiert.",
+      "apiPort": "Dienst-Port",
+      "baseUrl": "OpenAI-Basis-URL",
+      "apiKey": "API-Schlüssel",
+      "startToGenerate": "Wird beim Start des Dienstes erzeugt",
+      "startApi": "API-Dienst starten",
+      "autoStartApi": "Mit Cockpit starten",
+      "registration": "Automatische Registrierung",
+      "mailProvider": "E-Mail-Anbieter",
+      "count": "Anzahl der Konten",
+      "domains": "E-Mail-Domains (durch Kommas getrennt)",
+      "proxy": "Browser-Proxy (optional)",
+      "browserPath": "Chrome-/Edge-Pfad (bei leerem Feld automatisch erkennen)",
+      "enableNsfw": "NSFW nach der Registrierung aktivieren",
+      "start": "Automatische Registrierung starten",
+      "cancel": "Registrierung stoppen",
+      "progress": "Aufgabenfortschritt",
+      "successCount": "{{count}} erfolgreich",
+      "failedCount": "{{count}} fehlgeschlagen"
+    },
     "search": "Grok CLI-Konten durchsuchen...",
     "flowNotice": {
       "title": "Grok CLI-Kontoverwaltung",

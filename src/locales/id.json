@@ -5264,6 +5264,29 @@
     "clearKey": "Clear input​"
   },
   "grok": {
+    "tools": {
+      "tab": "Alat Grok",
+      "title": "Pendaftaran Otomatis & Grok2API",
+      "desc": "Akun yang berhasil didaftarkan melalui browser otomatis diimpor ke Grok2API bawaan.",
+      "apiPort": "Port Layanan",
+      "baseUrl": "URL Dasar OpenAI",
+      "apiKey": "Kunci API",
+      "startToGenerate": "Dibuat saat layanan dimulai",
+      "startApi": "Mulai Layanan API",
+      "autoStartApi": "Mulai bersama Cockpit",
+      "registration": "Pendaftaran Otomatis",
+      "mailProvider": "Penyedia Email",
+      "count": "Jumlah Akun",
+      "domains": "Domain email (dipisahkan koma)",
+      "proxy": "Proxy browser (opsional)",
+      "browserPath": "Lokasi Chrome / Edge (terdeteksi otomatis jika kosong)",
+      "enableNsfw": "Aktifkan NSFW setelah pendaftaran",
+      "start": "Mulai Pendaftaran Otomatis",
+      "cancel": "Hentikan Pendaftaran",
+      "progress": "Progres Tugas",
+      "successCount": "{{count}} berhasil",
+      "failedCount": "{{count}} gagal"
+    },
     "search": "Cari akun Grok CLI...",
     "flowNotice": {
       "title": "Pengelolaan akun Grok CLI",

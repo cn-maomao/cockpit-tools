@@ -7,6 +7,17 @@
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
 ---
+## [1.4.0] - 2026-07-18
+
+### 新增
+
+- **Grok 注册工具支持使用 CloudMail 管理员凭据认证**：CloudMail 现在可配置 API 地址、管理员邮箱、管理员密码和 catch-all 域名。Grok 注册 sidecar 会在注册前验证管理员凭据，在内部自动获取并缓存收件 Token，并在授权失效时自动刷新，用户无需再手工创建或填写公共 Token。
+
+### 变更
+
+- **CloudMail 配置从旧公共 Token 迁移到管理员凭据**：Grok 工具界面、sidecar 配置、运行校验、示例和文档统一改用管理员凭据；规范化注册设置时会移除废弃的 `cloudmail_public_token` 值。
+
+---
 ## [1.3.9] - 2026-07-18
 
 ### 修复

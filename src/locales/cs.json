@@ -5264,6 +5264,29 @@
     "clearKey": "Clear input​"
   },
   "grok": {
+    "tools": {
+      "tab": "Nástroje Grok",
+      "title": "Automatická registrace a Grok2API",
+      "desc": "Úspěšně zaregistrované účty v prohlížeči se automaticky importují do integrovaného Grok2API.",
+      "apiPort": "Port služby",
+      "baseUrl": "Základní URL OpenAI",
+      "apiKey": "Klíč API",
+      "startToGenerate": "Vygeneruje se při spuštění služby",
+      "startApi": "Spustit službu API",
+      "autoStartApi": "Spouštět s Cockpitem",
+      "registration": "Automatická registrace",
+      "mailProvider": "Poskytovatel e-mailu",
+      "count": "Počet účtů",
+      "domains": "E-mailové domény (oddělené čárkami)",
+      "proxy": "Proxy prohlížeče (volitelné)",
+      "browserPath": "Cesta k Chrome / Edge (při prázdné hodnotě se zjistí automaticky)",
+      "enableNsfw": "Po registraci povolit NSFW",
+      "start": "Spustit automatickou registraci",
+      "cancel": "Zastavit registraci",
+      "progress": "Průběh úlohy",
+      "successCount": "Úspěšně: {{count}}",
+      "failedCount": "Neúspěšně: {{count}}"
+    },
     "search": "Hledat účty Grok CLI...",
     "flowNotice": {
       "title": "Správa účtů Grok CLI",

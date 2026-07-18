@@ -5264,6 +5264,29 @@
     "clearKey": "Clear input​"
   },
   "grok": {
+    "tools": {
+      "tab": "Outils Grok",
+      "title": "Inscription automatisée et Grok2API",
+      "desc": "Les comptes inscrits avec succès dans le navigateur sont automatiquement importés dans le Grok2API intégré.",
+      "apiPort": "Port du service",
+      "baseUrl": "URL de base OpenAI",
+      "apiKey": "Clé API",
+      "startToGenerate": "Générée au démarrage du service",
+      "startApi": "Démarrer le service API",
+      "autoStartApi": "Démarrer avec Cockpit",
+      "registration": "Inscription automatisée",
+      "mailProvider": "Fournisseur de messagerie",
+      "count": "Nombre de comptes",
+      "domains": "Domaines de messagerie (séparés par des virgules)",
+      "proxy": "Proxy du navigateur (facultatif)",
+      "browserPath": "Chemin de Chrome / Edge (détection automatique si vide)",
+      "enableNsfw": "Activer NSFW après l'inscription",
+      "start": "Démarrer l'inscription automatisée",
+      "cancel": "Arrêter l'inscription",
+      "progress": "Progression de la tâche",
+      "successCount": "{{count}} réussis",
+      "failedCount": "{{count}} échoués"
+    },
     "search": "Rechercher des comptes Grok CLI...",
     "flowNotice": {
       "title": "Gestion des comptes Grok CLI",

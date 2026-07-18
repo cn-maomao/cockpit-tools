@@ -5264,6 +5264,29 @@
     "clearKey": "Clear input​"
   },
   "grok": {
+    "tools": {
+      "tab": "Grok 도구",
+      "title": "자동 등록 및 Grok2API",
+      "desc": "브라우저에서 등록에 성공한 계정은 내장 Grok2API로 자동으로 가져옵니다.",
+      "apiPort": "서비스 포트",
+      "baseUrl": "OpenAI 기본 URL",
+      "apiKey": "API 키",
+      "startToGenerate": "서비스 시작 시 생성됩니다",
+      "startApi": "API 서비스 시작",
+      "autoStartApi": "Cockpit과 함께 시작",
+      "registration": "자동 등록",
+      "mailProvider": "메일 제공업체",
+      "count": "계정 수",
+      "domains": "메일 도메인(쉼표로 구분)",
+      "proxy": "브라우저 프록시(선택 사항)",
+      "browserPath": "Chrome / Edge 경로(비워 두면 자동 감지)",
+      "enableNsfw": "등록 후 NSFW 활성화",
+      "start": "자동 등록 시작",
+      "cancel": "등록 중지",
+      "progress": "작업 진행률",
+      "successCount": "성공 {{count}}건",
+      "failedCount": "실패 {{count}}건"
+    },
     "search": "Grok CLI 계정 검색...",
     "flowNotice": {
       "title": "Grok CLI 계정 관리",
