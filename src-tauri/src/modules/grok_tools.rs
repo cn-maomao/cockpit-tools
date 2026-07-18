@@ -54,6 +54,8 @@ impl Default for GrokToolsSettings {
             for key in [
                 "cloudflare_api_base",
                 "cloudmail_api_base",
+                "cloudmail_admin_email",
+                "cloudmail_admin_password",
                 "cloudmail_domains",
                 "defaultDomains",
             ] {
@@ -66,6 +68,13 @@ impl Default for GrokToolsSettings {
             registration,
         }
     }
+}
+
+fn normalize_settings(mut settings: GrokToolsSettings) -> GrokToolsSettings {
+    if let Some(registration) = settings.registration.as_object_mut() {
+        registration.remove("cloudmail_public_token");
+    }
+    settings
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -138,7 +147,9 @@ fn load_settings() -> Result<GrokToolsSettings, String> {
     }
     let content =
         fs::read_to_string(&path).map_err(|error| format!("读取 Grok 工具设置失败: {error}"))?;
-    serde_json::from_str(&content).map_err(|error| format!("解析 Grok 工具设置失败: {error}"))
+    serde_json::from_str(&content)
+        .map(normalize_settings)
+        .map_err(|error| format!("解析 Grok 工具设置失败: {error}"))
 }
 
 fn write_private(path: &Path, content: &[u8]) -> Result<(), String> {
@@ -159,7 +170,8 @@ fn save_settings(settings: &GrokToolsSettings) -> Result<(), String> {
     if settings.api_port == 0 {
         return Err("Grok2API 端口必须大于 0".to_string());
     }
-    let content = serde_json::to_vec_pretty(settings)
+    let normalized = normalize_settings(settings.clone());
+    let content = serde_json::to_vec_pretty(&normalized)
         .map_err(|error| format!("序列化 Grok 工具设置失败: {error}"))?;
     write_private(&settings_path()?, &content)
 }

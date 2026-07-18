@@ -2,6 +2,7 @@
 import re
 import secrets
 import string
+import threading
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -15,6 +16,8 @@ YYDS_API_BASE = "https://maliapi.215.im/v1"
 config = {}
 _cf_domain_index = 0
 _cloudmail_domain_index = 0
+_cloudmail_public_token = None
+_cloudmail_public_token_lock = threading.Lock()
 _OWN_NAMES = {'cloudmail_get_email_and_token', 'get_messages', 'cloudflare_get_messages', 'get_yyds_api_key', 'yyds_generate_username', 'yyds_get_domains', 'yyds_get_email_and_token', 'yyds_get_oai_code', 'get_email_provider', 'cloudflare_get_domains', 'extract_verification_code', 'get_cloudflare_api_base', 'cloudflare_apply_auth_params', 'duckmail_get_oai_code', 'create_account', 'get_yyds_jwt', 'get_message_detail', 'yyds_create_account', 'get_duckmail_api_key', 'get_cloudflare_path', 'cloudflare_create_account', 'cloudflare_get_token', 'cloudflare_get_oai_code', 'get_cloudmail_public_token', 'generate_username', 'yyds_get_message_detail', 'cloudflare_next_default_domain', 'yyds_get_messages', 'yyds_get_token', 'get_domains', 'get_token', 'cloudflare_create_temp_address', 'get_cloudflare_api_key', 'get_cloudmail_path', 'get_cloudmail_api_base', 'cloudmail_get_oai_code', 'cloudflare_build_headers', 'cloudflare_is_admin_create_path', 'cloudmail_next_domain', 'cloudflare_get_message_detail', 'cloudmail_get_messages', 'get_user_agent', 'yyds_pick_domain', '_pick_list_payload', 'get_email_and_token', 'get_oai_code', 'get_cloudflare_auth_mode', 'pick_domain'}
 
 
@@ -299,22 +302,65 @@ def cloudmail_get_email_and_token():
     """生成无需预创建账号的 Cloud Mail 收件地址。"""
     if not get_cloudmail_api_base():
         raise Exception("Cloud Mail API Base 未配置")
-    if not get_cloudmail_public_token():
-        raise Exception("Cloud Mail Public Token 未配置")
+    if not get_cloudmail_admin_email():
+        raise Exception("Cloud Mail 管理员邮箱未配置")
+    if not get_cloudmail_admin_password():
+        raise Exception("Cloud Mail 管理员密码未配置")
     domain = cloudmail_next_domain()
     if not domain:
         raise Exception("Cloud Mail 收件域名未配置")
+    # 提前验证管理员凭据，避免浏览器注册开始后才发现邮箱服务不可用。
+    get_cloudmail_public_token()
     address = f"{generate_username(12)}@{domain}"
-    # 仅返回非敏感占位凭证；公共 Token 始终只从 config.json 读取。
+    # 仅返回非敏感占位凭证；公开 Token 只保存在当前进程内存中。
     return address, f"cloudmail:{address}"
+
+
+def cloudmail_gen_public_token(api_base=None, admin_email=None, admin_password=None):
+    """使用 CloudMail 管理员凭据生成公开收件 API Token。"""
+    base = str(api_base or get_cloudmail_api_base() or "").strip().rstrip("/")
+    email = str(admin_email or get_cloudmail_admin_email() or "").strip()
+    password = str(admin_password or get_cloudmail_admin_password() or "")
+    if not base or not email or not password:
+        raise Exception("Cloud Mail 管理员配置不完整")
+    resp = http_post(
+        f"{base}/api/public/genToken",
+        headers={"Content-Type": "application/json"},
+        json={"email": email, "password": password},
+        proxies={},
+        timeout=20,
+    )
+    resp.raise_for_status()
+    try:
+        data = resp.json()
+    except Exception:
+        raise Exception(f"Cloud Mail Token 接口返回非JSON: {resp.text[:300]}")
+    if isinstance(data, dict) and data.get("code") in (200, "200"):
+        token_data = data.get("data")
+        if isinstance(token_data, dict):
+            token = str(token_data.get("token") or "").strip()
+            if token:
+                return token
+    message = data.get("message", "") if isinstance(data, dict) else ""
+    raise Exception(f"Cloud Mail 获取公开 Token 失败: {message or '响应缺少 data.token'}")
+
+
+def get_cloudmail_public_token(force_refresh=False):
+    """线程安全地获取或刷新当前进程共享的 CloudMail 公开 Token。"""
+    global _cloudmail_public_token
+    with _cloudmail_public_token_lock:
+        if _cloudmail_public_token and not force_refresh:
+            return _cloudmail_public_token
+        token = cloudmail_gen_public_token()
+        _cloudmail_public_token = token
+        return token
+
 
 def cloudmail_get_messages(address):
     api_base = get_cloudmail_api_base()
     public_token = get_cloudmail_public_token()
     if not api_base:
         raise Exception("Cloud Mail API Base 未配置")
-    if not public_token:
-        raise Exception("Cloud Mail Public Token 未配置")
     payload = {
         "toEmail": address,
         "type": 0,
@@ -330,6 +376,7 @@ def cloudmail_get_messages(address):
             "Content-Type": "application/json",
         },
         json=payload,
+        proxies={},
         timeout=20,
     )
     resp.raise_for_status()
@@ -379,6 +426,15 @@ def cloudmail_get_oai_code(
         except Exception as exc:
             if log_callback:
                 log_callback(f"[Debug] Cloud Mail 拉取邮件列表失败: {exc}")
+            error_text = str(exc).lower()
+            if "token" in error_text or "401" in error_text or "403" in error_text:
+                try:
+                    get_cloudmail_public_token(force_refresh=True)
+                    if log_callback:
+                        log_callback("[Debug] Cloud Mail 公开 Token 已刷新")
+                except Exception as refresh_exc:
+                    if log_callback:
+                        log_callback(f"[Debug] Cloud Mail 刷新公开 Token 失败: {refresh_exc}")
             sleep_with_cancel(poll_interval, cancel_callback)
             continue
         if log_callback:
@@ -533,8 +589,17 @@ def get_cloudmail_path():
     ).strip()
     return raw if raw.startswith("/") else "/" + raw
 
-def get_cloudmail_public_token():
-    return str(config.get("cloudmail_public_token", "") or "").strip()
+def get_cloudmail_admin_email():
+    return str(config.get("cloudmail_admin_email", "") or "").strip()
+
+
+def get_cloudmail_admin_password():
+    # 兼容 grok_bytao 使用的 cloudmail_password 字段，但新配置统一使用明确的管理员密码键。
+    return str(
+        config.get("cloudmail_admin_password", "")
+        or config.get("cloudmail_password", "")
+        or ""
+    )
 
 def get_domains(api_key=None):
     headers = {}

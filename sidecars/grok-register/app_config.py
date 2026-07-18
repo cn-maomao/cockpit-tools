@@ -16,7 +16,8 @@ DEFAULT_CONFIG = {
     "cloudflare_path_token": "/api/token",
     "cloudflare_path_messages": "/api/mails",
     "cloudmail_api_base": "",
-    "cloudmail_public_token": "",
+    "cloudmail_admin_email": "",
+    "cloudmail_admin_password": "",
     "cloudmail_domains": "",
     "cloudmail_path_messages": "/api/public/emailList",
     "proxy": "",
@@ -149,7 +150,10 @@ def validate_run_requirements(cfg):
         raise ConfigError("Cloudflare 模式需要配置 cloudflare_api_base")
     if provider == "cloudmail":
         missing = [
-            key for key in ("cloudmail_api_base", "cloudmail_public_token", "cloudmail_domains")
+            key for key in (
+                "cloudmail_api_base", "cloudmail_admin_email",
+                "cloudmail_admin_password", "cloudmail_domains",
+            )
             if not cfg[key]
         ]
         if missing:

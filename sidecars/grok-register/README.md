@@ -230,7 +230,8 @@ python cf_mail_debug.py \
 | 配置项 | 说明 |
 | --- | --- |
 | `cloudmail_api_base` | Cloud Mail 站点根地址 |
-| `cloudmail_public_token` | 公共收件 API Token |
+| `cloudmail_admin_email` | Cloud Mail 管理员邮箱，用于自动获取公共收件 Token |
+| `cloudmail_admin_password` | Cloud Mail 管理员密码，用于自动获取公共收件 Token |
 | `cloudmail_domains` | 无人收件域名，多个域名用英文逗号分隔 |
 | `cloudmail_path_messages` | 默认 `/api/public/emailList` |
 
@@ -240,13 +241,14 @@ python cf_mail_debug.py \
 {
   "email_provider": "cloudmail",
   "cloudmail_api_base": "https://你的-Cloud-Mail-域名",
-  "cloudmail_public_token": "公共 API Token",
+  "cloudmail_admin_email": "admin@example.com",
+  "cloudmail_admin_password": "管理员密码",
   "cloudmail_domains": "example.com,example.net",
   "cloudmail_path_messages": "/api/public/emailList"
 }
 ```
 
-Cloud Mail 模式直接生成随机地址，不预先创建邮箱账户。公共 Token 只从 `config.json` 读取，不会作为邮箱 credential 写入 `mail_credentials.txt`。
+Cloud Mail 模式直接生成随机地址，不预先创建邮箱账户。注册器首次使用时会通过 `/api/public/genToken` 用管理员邮箱和密码自动获取公共 Token；Token 仅缓存在当前进程内存中，失效后自动刷新，不会写入配置或邮箱凭据文件。
 
 ### grok2api token 池
 

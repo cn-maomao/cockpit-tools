@@ -11,7 +11,8 @@ export interface GrokRegistrationSettings {
   cloudflare_api_key?: string;
   cloudflare_auth_mode?: 'none' | 'bearer' | 'query';
   cloudmail_api_base?: string;
-  cloudmail_public_token?: string;
+  cloudmail_admin_email?: string;
+  cloudmail_admin_password?: string;
   cloudmail_domains?: string;
   yyds_api_key?: string;
   yyds_jwt?: string;

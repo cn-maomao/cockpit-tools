@@ -71,7 +71,12 @@ export function GrokToolsContent() {
     if (!settings || status?.registrationRunning) return false;
     if (provider === 'duckmail') return Boolean(registration.duckmail_api_key?.trim());
     if (provider === 'cloudflare') return Boolean(registration.cloudflare_api_base?.trim());
-    if (provider === 'cloudmail') return Boolean(registration.cloudmail_api_base?.trim());
+    if (provider === 'cloudmail') return Boolean(
+      registration.cloudmail_api_base?.trim()
+      && registration.cloudmail_admin_email?.trim()
+      && registration.cloudmail_admin_password?.trim()
+      && registration.cloudmail_domains?.trim()
+    );
     return Boolean(registration.yyds_api_key?.trim() || registration.yyds_jwt?.trim());
   }, [provider, registration, settings, status?.registrationRunning]);
 
@@ -222,8 +227,9 @@ export function GrokToolsContent() {
           </>}
           {provider === 'cloudmail' && <>
             <label><span>CloudMail API Base</span><input className="form-input" value={registration.cloudmail_api_base ?? ''} onChange={(event) => patchRegistration({ cloudmail_api_base: event.target.value })} /></label>
-            <label><span>CloudMail Token</span><input className="form-input" type="password" value={registration.cloudmail_public_token ?? ''} onChange={(event) => patchRegistration({ cloudmail_public_token: event.target.value })} /></label>
-            <label className="wide"><span>{t('grok.tools.domains', '邮箱域名（逗号分隔）')}</span><input className="form-input" value={registration.cloudmail_domains ?? ''} onChange={(event) => patchRegistration({ cloudmail_domains: event.target.value })} /></label>
+            <label><span>CloudMail 管理员邮箱</span><input className="form-input" type="email" autoComplete="username" value={registration.cloudmail_admin_email ?? ''} onChange={(event) => patchRegistration({ cloudmail_admin_email: event.target.value })} /></label>
+            <label><span>CloudMail 管理员密码</span><input className="form-input" type="password" autoComplete="current-password" value={registration.cloudmail_admin_password ?? ''} onChange={(event) => patchRegistration({ cloudmail_admin_password: event.target.value })} /></label>
+            <label><span>{t('grok.tools.domains', '邮箱域名（逗号分隔）')}</span><input className="form-input" value={registration.cloudmail_domains ?? ''} onChange={(event) => patchRegistration({ cloudmail_domains: event.target.value })} /></label>
           </>}
           {provider === 'yyds' && <>
             <label><span>YYDS API Key</span><input className="form-input" type="password" value={registration.yyds_api_key ?? ''} onChange={(event) => patchRegistration({ yyds_api_key: event.target.value })} /></label>

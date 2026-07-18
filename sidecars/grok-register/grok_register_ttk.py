@@ -796,10 +796,15 @@ class GrokRegisterGUI:
         self.cloudmail_domains_entry = tk_entry(config_frame, textvariable=self.cloudmail_domains_var, width=34)
         add_field(self.cloudmail_domains_entry, 5, 3)
 
-        add_label(6, 0, "Cloud Mail Public Token:")
-        self.cloudmail_public_token_var = tk.StringVar(value=config.get("cloudmail_public_token", ""))
-        self.cloudmail_public_token_entry = tk_entry(config_frame, textvariable=self.cloudmail_public_token_var, width=72)
-        add_field(self.cloudmail_public_token_entry, 6, 1, columnspan=3)
+        add_label(6, 0, "Cloud Mail 管理员邮箱:")
+        self.cloudmail_admin_email_var = tk.StringVar(value=config.get("cloudmail_admin_email", ""))
+        self.cloudmail_admin_email_entry = tk_entry(config_frame, textvariable=self.cloudmail_admin_email_var, width=34)
+        add_field(self.cloudmail_admin_email_entry, 6, 1)
+
+        add_label(6, 2, "Cloud Mail 管理员密码:")
+        self.cloudmail_admin_password_var = tk.StringVar(value=config.get("cloudmail_admin_password", ""))
+        self.cloudmail_admin_password_entry = tk_entry(config_frame, textvariable=self.cloudmail_admin_password_var, width=34, show="*")
+        add_field(self.cloudmail_admin_password_entry, 6, 3)
 
         add_label(7, 0, "grok2api 本地入池:")
         self.grok2api_local_auto_var = tk.BooleanVar(value=bool(config.get("grok2api_auto_add_local", True)))
@@ -961,7 +966,8 @@ class GrokRegisterGUI:
         config["cloudflare_api_key"] = self.cloudflare_api_key_var.get().strip()
         config["cloudflare_auth_mode"] = self.cloudflare_auth_mode_var.get().strip() or "none"
         config["cloudmail_api_base"] = self.cloudmail_api_base_var.get().strip()
-        config["cloudmail_public_token"] = self.cloudmail_public_token_var.get().strip()
+        config["cloudmail_admin_email"] = self.cloudmail_admin_email_var.get().strip()
+        config["cloudmail_admin_password"] = self.cloudmail_admin_password_var.get()
         config["cloudmail_domains"] = self.cloudmail_domains_var.get().strip()
         config["grok2api_auto_add_local"] = bool(self.grok2api_local_auto_var.get())
         config["grok2api_local_token_file"] = self.grok2api_local_file_var.get().strip()
