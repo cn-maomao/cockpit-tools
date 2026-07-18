@@ -7,6 +7,13 @@
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
 ---
+## [1.3.9] - 2026-07-18
+
+### 修复
+
+- **重新构建并发布 v1.3.8**：重新编译所有平台二进制文件（Windows、macOS Intel、macOS Apple Silicon），确保更新器清单和发布资产一致。
+
+---
 ## [1.3.8] - 2026-07-17
 
 ### 新增

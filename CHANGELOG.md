@@ -7,6 +7,13 @@ All notable changes to Cockpit Tools will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
+## [1.3.9] - 2026-07-18
+
+### Fixed
+
+- **Rebuild and republish for v1.3.8**: This release rebuilds all platform binaries (Windows, macOS Intel, macOS Apple Silicon) to ensure consistent updater manifests and release assets.
+
+---
 ## [1.3.8] - 2026-07-17
 
 ### Added
